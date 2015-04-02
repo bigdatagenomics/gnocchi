@@ -1,0 +1,12 @@
+@namespace("net.fnothaft.g2pilot.avro")
+
+// Loosely inspired by the schemas that the GA4GH are developing for G2P associations
+protocol G2P {
+
+  record Phenotype {
+    string phenotype;
+    string sampleId;
+    union { null, int } ageOfOnset;
+    union { null, string } description;
+  }
+}

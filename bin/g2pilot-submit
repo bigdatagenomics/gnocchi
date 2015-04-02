@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#
+# Licensed to Big Data Genomics (BDG) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The BDG licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Figure out where G2PILOT is installed
+G2PILOT_REPO="$(cd `dirname $0`/..; pwd)"
+
+CLASSPATH=$("$G2PILOT_REPO"/bin/compute-g2pilot-classpath.sh)
+G2PILOT_JARS=$("$G2PILOT_REPO"/bin/compute-g2pilot-jars.sh)
+
+# Find the G2PILOT CLI jar
+num_versions=$(ls "$G2PILOT_REPO"/target/appassembler/repo/net/fnothaft/g2pilot | wc -l)
+if [ "$num_versions" -eq "0" ]; then
+  echo "Failed to find g2pilot jar in $G2PILOT_REPO/target/appassembler/repo/net/fnothaft/g2pilot"
+  echo "You need to build g2pilot before running this program."
+  exit 1
+fi
+if [ "$num_versions" -gt "1" ]; then
+  versions_list=$(ls "$G2PILOT_REPO"/target/appassembler/repo/net/fnothaft/g2pilot)
+  echo "Found multiple g2pilot versions in $G2PILOT_REPO/target/appassembler/repo/net/fnothaft/g2pilot:"
+  echo "$versions_list"
+  echo "Please remove all but one."
+  exit 1
+fi
+G2PILOT_CLI_JAR=$(ls "$G2PILOT_REPO"/target/appassembler/repo/net/fnothaft/g2pilot/*/g2pilot-*.jar)
+
+if [ -z "$SPARK_HOME" ]; then
+  echo "Attempting to use 'spark-submit' on default path; you might need to set SPARK_HOME"
+  SPARK_SUBMIT=spark-submit
+else
+  SPARK_SUBMIT="$SPARK_HOME"/bin/spark-submit
+fi
+
+# submit the job to Spark
+"$SPARK_SUBMIT" \
+  --class net.fnothaft.g2pilot.G2Pilot \
+  --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
+  --conf spark.kryo.registrator=org.bdgenomics.adam.serialization.ADAMKryoRegistrator \
+  --conf spark.kryoserializer.buffer.mb=4 \
+  --conf spark.kryo.referenceTracking=true \
+  --conf spark.executor.memory=${G2PILOT_EXECUTOR_MEMORY:-4g} \
+  ${G2PILOT_OPTS:- } \
+  --driver-memory ${G2PILOT_DRIVER_MEMORY:-4g} \
+  --jars "$G2PILOT_JARS" \
+  "$G2PILOT_CLI_JAR" \
+  "$@"
