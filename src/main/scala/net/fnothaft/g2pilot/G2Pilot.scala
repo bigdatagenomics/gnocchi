@@ -58,14 +58,7 @@ class G2Pilot(protected val args: G2PilotArgs) extends BDGSparkCommand[G2PilotAr
     val genotypes = sc.loadGenotypes(args.genotypes)
 
     // load in phenotype data
-    ParquetInputFormat.setReadSupportClass(job, classOf[AvroReadSupport[Phenotype]])
-    val phenotypes = sc.newAPIHadoopFile(args.phenotypes,
-                                      classOf[ParquetInputFormat[Phenotype]],
-                                      classOf[Void],
-                                      classOf[Phenotype],
-                                      ContextUtil.getConfiguration(job))
-                                        .map(kv => kv._2)
-
+    val phenotypes = LoadPhenotypes(args.phenotypes, sc)
 
     // if we have regions, then load and filter
     val filteredGenotypes = if (args.regions != null) {

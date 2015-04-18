@@ -6,7 +6,6 @@ protocol G2P {
   record Phenotype {
     string phenotype;
     string sampleId;
-    union { null, int } ageOfOnset;
-    union { null, string } description;
+    boolean hasPhenotype;
   }
 }
