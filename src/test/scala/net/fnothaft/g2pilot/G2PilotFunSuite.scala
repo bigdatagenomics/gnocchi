@@ -13,26 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@namespace("net.fnothaft.g2pilot.avro")
+package net.fnothaft.g2pilot
 
-// Loosely inspired by the schemas that the GA4GH are developing for G2P associations
-protocol G2P {
+import org.bdgenomics.utils.misc.SparkFunSuite
 
-  record Phenotype {
-    string phenotype;
-    string sampleId;
-    boolean hasPhenotype;
-  }
-
-  record Association {
-    string phenotype;
-    string chromosome;
-    long position;
-    string alternateAllele;
-    double oddsRatioHet;
-    double oddsRatioHomAlt;
-    double chiSquared;
-    double log10PNullHypothesis;
-    double majorAlleleFrequency;
-  }
+trait G2PilotFunSuite extends SparkFunSuite {
+  override val appName: String = "g2pilot"
+  override val properties: Map[String, String] = Map(("spark.serializer", "org.apache.spark.serializer.KryoSerializer"),
+    ("spark.kryo.registrator", "net.fnothaft.g2pilot.G2PilotKryoRegistrator"),
+    ("spark.kryoserializer.buffer.mb", "4"),
+    ("spark.kryo.referenceTracking", "true"))
 }

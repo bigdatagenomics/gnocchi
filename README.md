@@ -1,7 +1,7 @@
 # g2pilot
 
 Demo code showing how one could possibly do genotype-phenotype analysis using ADAM.
-This is work-in-progress and doesn't work yet.
+This is work-in-progress. Currently, we implement a simple case/control analysis using a Chi squared test.
 
 # Build
 
@@ -24,6 +24,29 @@ use a cluster, refer to Spark's [cluster overview](http://spark.apache.org/docs/
 Once Spark is installed, set the environment variable `SPARK_HOME` to point to the Spark
 installation root directory. Then, you can run `g2pilot` via `./bin/g2pilot-submit`.
 
+We include test data. You can run with the test data by running:
+
+```
+./bin/g2pilot-submit testData/sample.vcf testData/samplePhenotypes.csv file:${PWD}/testData/associations testData/partitionStrategy.json
+```
+
+Once this runs, you can use the [Kite SDK](http://kitesdk.org/docs/1.0.0/Install-Kite.html) to view the output:
+
+```
+kite-dataset show dataset:file:${PWD}/testData/associations
+```
+
+## Phenotype Input
+
+We accept phenotype inputs in a CSV format:
+
+```
+Sample,Phenotype,Has Phenotype
+mySample,a phenotype,true
+```
+
+The `has phenotype` column is binary true/false. See the test data for more descriptions.
+
 # License
 
-This project is under an [Apache 2.0 license](LICENSE.txt).
+This project is released under an [Apache 2.0 license](LICENSE.txt).

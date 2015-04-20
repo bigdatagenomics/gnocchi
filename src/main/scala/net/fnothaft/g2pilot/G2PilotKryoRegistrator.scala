@@ -13,26 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@namespace("net.fnothaft.g2pilot.avro")
+package net.fnothaft.g2pilot
 
-// Loosely inspired by the schemas that the GA4GH are developing for G2P associations
-protocol G2P {
+import com.esotericsoftware.kryo.Kryo
+import org.apache.spark.serializer.KryoRegistrator
+import org.bdgenomics.adam.serialization.AvroSerializer
+import org.bdgenomics.formats.avro.Genotype
+import net.fnothaft.g2pilot.avro.Phenotype
 
-  record Phenotype {
-    string phenotype;
-    string sampleId;
-    boolean hasPhenotype;
-  }
-
-  record Association {
-    string phenotype;
-    string chromosome;
-    long position;
-    string alternateAllele;
-    double oddsRatioHet;
-    double oddsRatioHomAlt;
-    double chiSquared;
-    double log10PNullHypothesis;
-    double majorAlleleFrequency;
+class G2PilotKryoRegistrator extends KryoRegistrator {
+  override def registerClasses(kryo: Kryo) {
+    kryo.register(classOf[Genotype], new AvroSerializer[Genotype]())
+    kryo.register(classOf[Phenotype], new AvroSerializer[Phenotype]())
   }
 }
