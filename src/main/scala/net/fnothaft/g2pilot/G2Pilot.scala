@@ -15,7 +15,8 @@
  */
 package net.fnothaft.g2pilot
 
-import net.fnothaft.g2pilot.avro.Phenotype
+import java.io.File
+import net.fnothaft.g2pilot.avro.{ Association, Phenotype }
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SparkContext._
 import org.apache.spark.{ Logging, SparkContext }
@@ -25,6 +26,8 @@ import org.bdgenomics.adam.rdd.BroadcastRegionJoin
 import org.bdgenomics.formats.avro._
 import org.bdgenomics.utils.cli._
 import org.bdgenomics.utils.parquet.rdd.BDGParquetContext._
+import org.kitesdk.data.{ DatasetDescriptor, Datasets, Formats, View }
+import org.kitesdk.data.mapreduce.DatasetKeyOutputFormat
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import parquet.avro.AvroReadSupport
 import parquet.hadoop.ParquetInputFormat
@@ -45,6 +48,12 @@ class G2PilotArgs extends Args4jBase {
 
   @Argument(required = true, metaVar = "PHENOTYPES", usage = "The phenotypes to process.", index = 1)
   var phenotypes: String = null
+
+  @Argument(required = true, metaVar = "ASSOCIATIONS", usage = "The location to save associations to.", index = 2)
+  var associations: String = null
+
+  @Argument(required = true, metaVar = "PARTITIONING", usage = "The output partitioning format.", index = 3)
+  var partitioning: String = null
 
   @Args4jOption(required = false, name = "-regions", usage = "The regions to filter genotypes by.")
   var regions: String = null
@@ -82,8 +91,25 @@ class G2Pilot(protected val args: G2PilotArgs) extends BDGSparkCommand[G2PilotAr
     // key both genotypes and phenotypes by the sample and join
     val g2p = filteredGenotypes.keyBy(_.getSampleId)
       .join(phenotypes.keyBy(_.getSampleId))
+    
+    // score associations
+    val associations = ScoreAssociation(g2p)
 
-    // for now, let's just count the number of g2p pairs that we have
-    println("Have " + g2p.count() + " genotype-to-phenotype pairs.")
+    // set up kite dataset
+    val schema = Association.getClassSchema
+
+    val descBuilder = new DatasetDescriptor.Builder()
+      .schema(schema)
+      .partitionStrategy(new File(args.partitioning))
+      .format(Formats.PARQUET)
+
+    val dataset: View[Association] = Datasets.create("dataset:" + args.associations,
+                                                     descBuilder.build(),
+                                                     classOf[Association])
+    DatasetKeyOutputFormat.configure(job).writeTo(dataset)
+
+    // save dataset
+    associations.map(r => (r, null.asInstanceOf[Void]))
+      .saveAsNewAPIHadoopDataset(job.getConfiguration)
   }
 }

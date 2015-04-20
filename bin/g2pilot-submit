@@ -50,7 +50,7 @@ fi
 "$SPARK_SUBMIT" \
   --class net.fnothaft.g2pilot.G2Pilot \
   --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
-  --conf spark.kryo.registrator=net.fnothaft.g2pilot.G2Pilot \
+  --conf spark.kryo.registrator=net.fnothaft.g2pilot.G2PilotKryoRegistrator \
   --conf spark.kryoserializer.buffer.mb=4 \
   --conf spark.kryo.referenceTracking=true \
   --conf spark.executor.memory=${G2PILOT_EXECUTOR_MEMORY:-4g} \

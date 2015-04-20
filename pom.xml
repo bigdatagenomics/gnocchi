@@ -241,6 +241,16 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-data-core</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-data-mapreduce</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-avro</artifactId>
       <version>${parquet.version}</version>
@@ -251,6 +261,11 @@
       <version>${utils.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bdgenomics.bdg-utils</groupId>
+      <artifactId>bdg-utils-misc</artifactId>
+      <version>${utils.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
@@ -307,33 +322,6 @@
         </exclusion>
         <exclusion>
           <groupId>org.sonatype.sisu.inject</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-client</artifactId>
-      <version>${hadoop.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>asm</groupId>
-          <artifactId>asm</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.jboss.netty</groupId>
-          <artifactId>netty</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.codehaus.jackson</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.sonatype.sisu.inject</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>javax.servlet</groupId>
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
