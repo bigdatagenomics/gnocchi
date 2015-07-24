@@ -30,17 +30,22 @@ private[g2pilot] case class GPKey(allele: String, dosage: Int, hasPhenotype: Boo
 
 object ScoreAssociation extends Serializable with Logging {
 
+  // store the natural log of 10 as a constant
   val LOG10 = mathLog(10.0)
 
+  /**
+   *
+   */
   private[g2pilot] def toRecord(kv: (String, (Genotype, Phenotype))): Option[((ReferencePosition, String), GPKey)] = {
+    // extract the (sample ID, (site genotype, sample phenotype)) from the key-value pair we got
     val (s, (g, p)) = kv
 
-    // get position
+    // get the position that we're looking at
     val v = g.getVariant
     val pos = ReferencePosition(v.getContig.getContigName,
                                 v.getStart)
 
-    // what are genotypes?
+    // what genotypes does the sample have?
     val key = asScalaBuffer(g.getAlleles).toList match {
       case List(GenotypeAllele.Ref, GenotypeAllele.Ref) => {
         Some(GPKey("N", 0, p.getHasPhenotype))
@@ -52,6 +57,8 @@ object ScoreAssociation extends Serializable with Logging {
         Some(GPKey(v.getAlternateAllele, 2, p.getHasPhenotype))
       }
       case _ => {
+        // We discard any genotypes that are not diploid, as the statistical model we are using for
+        // association testing uses 2 degrees of freedom (i.e., we assume biallelic diploid sites)
         log.warn("Discarding sample %s alt %s at pos %s with genotype: %s".format(s,
                                                                                   g.getVariant
                                                                                     .getAlternateAllele,
@@ -65,6 +72,20 @@ object ScoreAssociation extends Serializable with Logging {
     key.map(v => ((pos, p.getPhenotype), v))
   }
 
+  /**
+   * Runs a chi squared test to rule out the null hypothesis that there is no association
+   * at this site.
+   *
+   * @param homRefNP The number of samples with a homozygous reference genotype and without the phenotype.
+   * @param hetNP The number of samples with a heterozygous genotype and without the phenotype.
+   * @param homAltNP The number of samples with a homozygous alternate genotype and without the phenotype.
+   * @param homRefP The number of samples with a homozygous reference genotype and with the phenotype.
+   * @param hetP The number of samples with a heterozygous genotype and with the phenotype.
+   * @param homAltP The number of samples with a homozygous alternate genotype and with the phenotype.
+   * @return Returns a tuple of four doubles. This tuple contains the odds ratio for an association with
+   *         the heterozygous genotype, the odds ratio for an association with the homozygous alt genotype,
+   *         the chi squared statistic, and the log probability of the null hypothesis.
+   */
   private[g2pilot] def chiSquared(homRefNP: Int, hetNP: Int, homAltNP: Int,
                                   homRefP: Int, hetP: Int, homAltP: Int): (Double, Double, Double, Double) = {
     // odds ratio for het
@@ -99,6 +120,14 @@ object ScoreAssociation extends Serializable with Logging {
     (oHet, oHom, χ2, logP)
   }
 
+  /**
+   * Computes the genotype-to-phenotype association statistics at this site. This is done using
+   * a Chi squared test.
+   *
+   * @param A tuple describing the site, and the data we've observed. Contains ((the position of the site, the phenotype
+   *        we are testing), a map describing the genotypes we've observed).
+   * @return If there are any alternate alleles at the site, returns genotype/phenotype association statistics.
+   */
   private[g2pilot] def toAssociation(site: ((ReferencePosition, String), HashMap[GPKey, Int])): Option[Association] = {
     // unpack observation
     val ((pos, phenotype), map) = site
@@ -167,6 +196,9 @@ object ScoreAssociation extends Serializable with Logging {
     }
   }
 
+  /**
+   * 
+   */
   def apply(rdd: RDD[(String, (Genotype, Phenotype))]): RDD[Association] = {
     rdd.flatMap(toRecord)
       .aggregateByKey(HashMap[GPKey, Int]())((m, v) => {
