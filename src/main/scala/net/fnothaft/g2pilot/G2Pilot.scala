@@ -24,14 +24,14 @@ import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.BroadcastRegionJoin
 import org.bdgenomics.formats.avro._
+import org.bdgenomics.utils.misc.HadoopUtil
 import org.bdgenomics.utils.cli._
-import org.bdgenomics.utils.parquet.rdd.BDGParquetContext._
 import org.kitesdk.data.{ DatasetDescriptor, Datasets, Formats, View }
 import org.kitesdk.data.mapreduce.DatasetKeyOutputFormat
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
-import parquet.avro.AvroReadSupport
-import parquet.hadoop.ParquetInputFormat
-import parquet.hadoop.util.ContextUtil
+import org.apache.parquet.avro.AvroReadSupport
+import org.apache.parquet.hadoop.ParquetInputFormat
+import org.apache.parquet.hadoop.util.ContextUtil
 
 object G2Pilot extends BDGCommandCompanion {
   val commandName = "g2pilot"
@@ -62,7 +62,7 @@ class G2PilotArgs extends Args4jBase {
 class G2Pilot(protected val args: G2PilotArgs) extends BDGSparkCommand[G2PilotArgs] {
   val companion = G2Pilot
 
-  def run(sc: SparkContext, job: Job) {
+  def run(sc: SparkContext) {
     // load in genotype data
     val genotypes = sc.loadGenotypes(args.genotypes)
 
@@ -97,7 +97,6 @@ class G2Pilot(protected val args: G2PilotArgs) extends BDGSparkCommand[G2PilotAr
 
     // set up kite dataset
     val schema = Association.getClassSchema
-
     val descBuilder = new DatasetDescriptor.Builder()
       .schema(schema)
       .partitionStrategy(new File(args.partitioning))
@@ -106,6 +105,7 @@ class G2Pilot(protected val args: G2PilotArgs) extends BDGSparkCommand[G2PilotAr
     val dataset: View[Association] = Datasets.create("dataset:" + args.associations,
                                                      descBuilder.build(),
                                                      classOf[Association])
+    val job = HadoopUtil.newJob
     DatasetKeyOutputFormat.configure(job).writeTo(dataset)
 
     // save dataset

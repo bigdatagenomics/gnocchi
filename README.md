@@ -1,4 +1,4 @@
-# g2pilot
+# gnocchi
 
 Demo code showing how one could possibly do genotype-phenotype analysis using ADAM.
 This is work-in-progress. Currently, we implement a simple case/control analysis using a Chi squared test.
