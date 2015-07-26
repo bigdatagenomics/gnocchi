@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.g2pilot
+package net.fnothaft.gnocchi
 
-import net.fnothaft.g2pilot.avro.Phenotype
+import net.fnothaft.gnocchi.avro.Phenotype
 
 class LoadPhenotypeSuite extends G2PilotFunSuite {
 

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.g2pilot
+package net.fnothaft.gnocchi
 
-import net.fnothaft.g2pilot.avro.Phenotype
+import net.fnothaft.gnocchi.avro.Phenotype
 import org.apache.spark.{ Logging, SparkContext }
 import org.apache.spark.rdd.RDD
 
@@ -30,7 +30,7 @@ object LoadPhenotypes extends Serializable with Logging {
       .map(parseLine)
   }
 
-  private[g2pilot] def parseLine(line: String): Phenotype = {
+  private[gnocchi] def parseLine(line: String): Phenotype = {
     val splits = line.split(",")
     assert(splits.length == 3, "Line was incorrectly formatted, did not contain sample, phenotype, hasPhenotype:\n%s".format(line))
 
