@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.g2pilot
+package net.fnothaft.gnocchi
 
-import net.fnothaft.g2pilot.avro.{ Association, Phenotype }
+import net.fnothaft.gnocchi.avro.{ Association, Phenotype }
 import org.apache.spark.SparkContext._
 import org.apache.spark.Logging
 import org.apache.spark.rdd.RDD
@@ -25,7 +25,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.HashMap
 import scala.math.{ log => mathLog }
 
-private[g2pilot] case class GPKey(allele: String, dosage: Int, hasPhenotype: Boolean) {
+private[gnocchi] case class GPKey(allele: String, dosage: Int, hasPhenotype: Boolean) {
 }
 
 object ScoreAssociation extends Serializable with Logging {
@@ -36,7 +36,7 @@ object ScoreAssociation extends Serializable with Logging {
   /**
    *
    */
-  private[g2pilot] def toRecord(kv: (String, (Genotype, Phenotype))): Option[((ReferencePosition, String), GPKey)] = {
+  private[gnocchi] def toRecord(kv: (String, (Genotype, Phenotype))): Option[((ReferencePosition, String), GPKey)] = {
     // extract the (sample ID, (site genotype, sample phenotype)) from the key-value pair we got
     val (s, (g, p)) = kv
 
@@ -86,7 +86,7 @@ object ScoreAssociation extends Serializable with Logging {
    *         the heterozygous genotype, the odds ratio for an association with the homozygous alt genotype,
    *         the chi squared statistic, and the log probability of the null hypothesis.
    */
-  private[g2pilot] def chiSquared(homRefNP: Int, hetNP: Int, homAltNP: Int,
+  private[gnocchi] def chiSquared(homRefNP: Int, hetNP: Int, homAltNP: Int,
                                   homRefP: Int, hetP: Int, homAltP: Int): (Double, Double, Double, Double) = {
     // odds ratio for het
     val oHet = (homRefNP * hetP).toDouble / (homRefP * hetNP).toDouble
@@ -128,7 +128,7 @@ object ScoreAssociation extends Serializable with Logging {
    *        we are testing), a map describing the genotypes we've observed).
    * @return If there are any alternate alleles at the site, returns genotype/phenotype association statistics.
    */
-  private[g2pilot] def toAssociation(site: ((ReferencePosition, String), HashMap[GPKey, Int])): Option[Association] = {
+  private[gnocchi] def toAssociation(site: ((ReferencePosition, String), HashMap[GPKey, Int])): Option[Association] = {
     // unpack observation
     val ((pos, phenotype), map) = site
 
