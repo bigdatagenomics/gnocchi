@@ -1,8 +1,8 @@
-// this is a test script to generate data that can be used to test the g2pilot application
-// to use this, hack together a g2pilot shell
+// this is a test script to generate data that can be used to test the gnocchi application
+// to use this, hack together a gnocchi shell
 
 import org.bdgenomics.formats.avro._
-import net.fnothaft.g2pilot.avro._
+import net.fnothaft.gnocchi.avro._
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.models.VariantContext
 import scala.collection.JavaConversions._

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@namespace("net.fnothaft.g2pilot.avro")
+@namespace("net.fnothaft.gnocchi.avro")
 
 // Loosely inspired by the schemas that the GA4GH are developing for G2P associations
 protocol G2P {

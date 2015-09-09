@@ -13,14 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.g2pilot
+package net.fnothaft.gnocchi
 
-import org.bdgenomics.utils.misc.SparkFunSuite
+import com.esotericsoftware.kryo.Kryo
+import org.apache.spark.serializer.KryoRegistrator
+import org.bdgenomics.adam.serialization.AvroSerializer
+import org.bdgenomics.formats.avro.Genotype
+import net.fnothaft.gnocchi.avro.Phenotype
 
-trait G2PilotFunSuite extends SparkFunSuite {
-  override val appName: String = "g2pilot"
-  override val properties: Map[String, String] = Map(("spark.serializer", "org.apache.spark.serializer.KryoSerializer"),
-    ("spark.kryo.registrator", "net.fnothaft.g2pilot.G2PilotKryoRegistrator"),
-    ("spark.kryoserializer.buffer.mb", "4"),
-    ("spark.kryo.referenceTracking", "true"))
+class G2PilotKryoRegistrator extends KryoRegistrator {
+  override def registerClasses(kryo: Kryo) {
+    kryo.register(classOf[Genotype], new AvroSerializer[Genotype]())
+    kryo.register(classOf[Phenotype], new AvroSerializer[Phenotype]())
+  }
 }
