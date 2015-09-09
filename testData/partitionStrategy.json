@@ -1,4 +1,0 @@
-[
-  { "type": "identity", "source": "phenotype", "name": "ph" },
-  { "type": "identity", "source": "chromosome", "name": "chr" }
-]

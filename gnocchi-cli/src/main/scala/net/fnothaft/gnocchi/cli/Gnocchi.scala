@@ -27,8 +27,6 @@ import org.bdgenomics.adam.rdd.BroadcastRegionJoin
 import org.bdgenomics.formats.avro._
 import org.bdgenomics.utils.misc.HadoopUtil
 import org.bdgenomics.utils.cli._
-import org.kitesdk.data.{ DatasetDescriptor, Datasets, Formats, View }
-import org.kitesdk.data.mapreduce.DatasetKeyOutputFormat
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import org.apache.parquet.avro.AvroReadSupport
 import org.apache.parquet.hadoop.ParquetInputFormat
@@ -53,11 +51,12 @@ class GnocchiArgs extends Args4jBase {
   @Argument(required = true, metaVar = "ASSOCIATIONS", usage = "The location to save associations to.", index = 2)
   var associations: String = null
 
-  @Argument(required = true, metaVar = "PARTITIONING", usage = "The output partitioning format.", index = 3)
-  var partitioning: String = null
-
   @Args4jOption(required = false, name = "-regions", usage = "The regions to filter genotypes by.")
   var regions: String = null
+
+  @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
+  var saveAsText = false
+
 }
 
 class Gnocchi(protected val args: GnocchiArgs) extends BDGSparkCommand[GnocchiArgs] {
@@ -96,21 +95,12 @@ class Gnocchi(protected val args: GnocchiArgs) extends BDGSparkCommand[GnocchiAr
     // score associations
     val associations = ScoreAssociation(g2p)
 
-    // set up kite dataset
-    val schema = Association.getClassSchema
-    val descBuilder = new DatasetDescriptor.Builder()
-      .schema(schema)
-      .partitionStrategy(new File(args.partitioning))
-      .format(Formats.PARQUET)
-
-    val dataset: View[Association] = Datasets.create("dataset:" + args.associations,
-                                                     descBuilder.build(),
-                                                     classOf[Association])
-    val job = HadoopUtil.newJob
-    DatasetKeyOutputFormat.configure(job).writeTo(dataset)
-
     // save dataset
-    associations.map(r => (r, null.asInstanceOf[Void]))
-      .saveAsNewAPIHadoopDataset(job.getConfiguration)
+    if (args.saveAsText) {
+      associations.map(_.toString)
+        .saveAsTextFile(args.associations)
+    } else {
+      associations.adamParquetSave(args.associations)
+    }
   }
 }

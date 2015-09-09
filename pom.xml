@@ -260,16 +260,6 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.kitesdk</groupId>
-        <artifactId>kite-data-core</artifactId>
-        <version>1.0.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.kitesdk</groupId>
-        <artifactId>kite-data-mapreduce</artifactId>
-        <version>1.0.0</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.avro</groupId>
         <artifactId>avro</artifactId>
         <version>${avro.version}</version>
