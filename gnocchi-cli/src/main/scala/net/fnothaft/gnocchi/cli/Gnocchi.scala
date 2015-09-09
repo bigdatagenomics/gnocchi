@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.g2pilot
+package net.fnothaft.gnocchi.cli
 
 import java.io.File
-import net.fnothaft.g2pilot.avro.{ Association, Phenotype }
+import net.fnothaft.gnocchi.avro.{ Association, Phenotype }
+import net.fnothaft.gnocchi._
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SparkContext._
 import org.apache.spark.{ Logging, SparkContext }
@@ -33,16 +34,16 @@ import org.apache.parquet.avro.AvroReadSupport
 import org.apache.parquet.hadoop.ParquetInputFormat
 import org.apache.parquet.hadoop.util.ContextUtil
 
-object G2Pilot extends BDGCommandCompanion {
-  val commandName = "g2pilot"
+object Gnocchi extends BDGCommandCompanion {
+  val commandName = "gnocchi"
   val commandDescription = "Pilot code for computing genotype/phenotype associations using ADAM"
 
   def apply(cmdLine: Array[String]) = {
-    new G2Pilot(Args4j[G2PilotArgs](cmdLine))
+    new Gnocchi(Args4j[GnocchiArgs](cmdLine))
   }
 }
 
-class G2PilotArgs extends Args4jBase {
+class GnocchiArgs extends Args4jBase {
   @Argument(required = true, metaVar = "GENOTYPES", usage = "The genotypes to process.", index = 0)
   var genotypes: String = null
 
@@ -59,8 +60,8 @@ class G2PilotArgs extends Args4jBase {
   var regions: String = null
 }
 
-class G2Pilot(protected val args: G2PilotArgs) extends BDGSparkCommand[G2PilotArgs] {
-  val companion = G2Pilot
+class Gnocchi(protected val args: GnocchiArgs) extends BDGSparkCommand[GnocchiArgs] {
+  val companion = Gnocchi
 
   def run(sc: SparkContext) {
     // load in genotype data
