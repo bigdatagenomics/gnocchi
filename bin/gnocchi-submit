@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#
+# Licensed to Big Data Genomics (BDG) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The BDG licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+set -e
+
+# Split args into Spark and GNOCCHI args
+DD=False  # DD is "double dash"
+PRE_DD=()
+POST_DD=()
+for ARG in "$@"; do
+  shift
+  if [[ $ARG == "--" ]]; then
+    DD=True
+    POST_DD=( "$@" )
+    break
+  fi
+  PRE_DD+=("$ARG")
+done
+
+if [[ $DD == True ]]; then
+  SPARK_ARGS="${PRE_DD[@]}"
+  GNOCCHI_ARGS="${POST_DD[@]}"
+else
+  SPARK_ARGS=()
+  GNOCCHI_ARGS="${PRE_DD[@]}"
+fi
+
+# does the user have GNOCCHI_OPTS set? if yes, then warn
+if [[ $DD == False && -n "$GNOCCHI_OPTS" ]]; then
+    echo "WARNING: Passing Spark arguments via GNOCCHI_OPTS was recently removed."
+    echo "Run gnocchi-submit instead as gnocchi-submit <spark-args> -- <gnocchi-args>"
+fi
+
+# Figure out where GNOCCHI is installed
+SCRIPT_DIR="$(cd `dirname $0`/..; pwd)"
+
+# Get list of required jars for GNOCCHI
+GNOCCHI_JARS=$("$SCRIPT_DIR"/bin/compute-gnocchi-jars.sh)
+
+# Split out the CLI jar, since it will be passed to Spark as the "primary resource".
+GNOCCHI_CLI_JAR=${GNOCCHI_JARS##*,}
+GNOCCHI_JARS=$(echo "$GNOCCHI_JARS" | rev | cut -d',' -f2- | rev)
+
+# append GNOCCHI_JARS to the --jars option, if any
+SPARK_ARGS=$("$SCRIPT_DIR"/bin/append_to_option.py , --jars $GNOCCHI_JARS $SPARK_ARGS)
+
+# Find spark-submit script
+if [ -z "$SPARK_HOME" ]; then
+  SPARK_SUBMIT=$(which spark-submit)
+else
+  SPARK_SUBMIT="$SPARK_HOME"/bin/spark-submit
+fi
+if [ -z "$SPARK_SUBMIT" ]; then
+  echo "SPARK_HOME not set and spark-submit not on PATH; Aborting."
+  exit 1
+fi
+echo "Using SPARK_SUBMIT=$SPARK_SUBMIT"
+
+# submit the job to Spark
+"$SPARK_SUBMIT" \
+  --class net.fnothaft.gnocchi.cli.Gnocchi \
+  --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
+  --conf spark.kryo.registrator=org.bdgenomics.adam.serialization.ADAMKryoRegistrator \
+  $SPARK_ARGS \
+  $GNOCCHI_CLI_JAR \
+  $GNOCCHI_ARGS

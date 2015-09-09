@@ -22,23 +22,12 @@ To run, you'll need to install Spark. If you are just evaluating locally, you ca
 use a cluster, refer to Spark's [cluster overview](http://spark.apache.org/docs/latest/cluster-overview.html).
 
 Once Spark is installed, set the environment variable `SPARK_HOME` to point to the Spark
-installation root directory. Then, you can run `g2pilot` via `./bin/g2pilot-submit`.
+installation root directory. Then, you can run `gnocchi` via `./bin/gnocchi-submit`.
 
 We include test data. You can run with the test data by running:
 
 ```
-./bin/g2pilot-submit testData/sample.vcf testData/samplePhenotypes.csv file:${PWD}/testData/associations testData/partitionStrategy.json
-```
-
-Once this runs, you can use the [Kite SDK](http://kitesdk.org/docs/1.0.0/Install-Kite.html) to view the output:
-
-```
-> kite-dataset show dataset:file:${PWD}/testData/associations
-2015-04-19 22:31:19.046 java[75387:1903] Unable to load realm info from SCDynamicStore
-SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-{"phenotype": "a phenotype", "chromosome": "1", "position": 100, "alternateAllele": "C", "oddsRatioHet": 2.25, "oddsRatioHomAlt": 6.0, "chiSquared": 13.074712643678161, "log10PNullHypothesis": -2.8391377768100514, "majorAlleleFrequency": 0.7142857142857143}
+./bin/gnocchi-submit testData/sample.vcf testData/samplePhenotypes.csv testData/associations -saveAsText
 ```
 
 ## Phenotype Input
