@@ -27,7 +27,7 @@ installation root directory. Then, you can run `gnocchi` via `./bin/gnocchi-subm
 We include test data. You can run with the test data by running:
 
 ```
-./bin/gnocchi-submit testData/sample.vcf testData/samplePhenotypes.csv testData/associations -saveAsText
+./bin/gnocchi-submit regressPhenotypes testData/sample.vcf testData/samplePhenotypes.csv testData/associations -saveAsText
 ```
 
 ## Phenotype Input
