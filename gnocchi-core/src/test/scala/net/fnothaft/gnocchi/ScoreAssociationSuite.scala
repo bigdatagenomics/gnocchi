@@ -21,7 +21,7 @@ import org.bdgenomics.formats.avro._
 import org.bdgenomics.utils.misc.MathUtils
 import scala.collection.JavaConversions._
 
-class ScoreAssociationSuite extends G2PilotFunSuite {
+class ScoreAssociationSuite extends GnocchiFunSuite {
 
   test("convert gp pairs") {
 

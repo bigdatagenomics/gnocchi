@@ -17,10 +17,9 @@ package net.fnothaft.gnocchi
 
 import org.bdgenomics.utils.misc.SparkFunSuite
 
-trait G2PilotFunSuite extends SparkFunSuite {
+trait GnocchiFunSuite extends SparkFunSuite {
   override val appName: String = "gnocchi"
   override val properties: Map[String, String] = Map(("spark.serializer", "org.apache.spark.serializer.KryoSerializer"),
     ("spark.kryo.registrator", "net.fnothaft.gnocchi.G2PilotKryoRegistrator"),
-    ("spark.kryoserializer.buffer.mb", "4"),
     ("spark.kryo.referenceTracking", "true"))
 }

@@ -17,7 +17,7 @@ package net.fnothaft.gnocchi
 
 import net.fnothaft.gnocchi.avro.Phenotype
 
-class LoadPhenotypeSuite extends G2PilotFunSuite {
+class LoadPhenotypeSuite extends GnocchiFunSuite {
 
   test("load simple phenotypes") {
     val p1 = LoadPhenotypes.parseLine("mySample, a phenotype, true")
