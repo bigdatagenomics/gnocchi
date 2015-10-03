@@ -32,16 +32,16 @@ import org.apache.parquet.avro.AvroReadSupport
 import org.apache.parquet.hadoop.ParquetInputFormat
 import org.apache.parquet.hadoop.util.ContextUtil
 
-object Gnocchi extends BDGCommandCompanion {
-  val commandName = "gnocchi"
+object RegressPhenotypes extends BDGCommandCompanion {
+  val commandName = "regressPhenotypes"
   val commandDescription = "Pilot code for computing genotype/phenotype associations using ADAM"
 
   def apply(cmdLine: Array[String]) = {
-    new Gnocchi(Args4j[GnocchiArgs](cmdLine))
+    new RegressPhenotypes(Args4j[RegressPhenotypesArgs](cmdLine))
   }
 }
 
-class GnocchiArgs extends Args4jBase {
+class RegressPhenotypesArgs extends Args4jBase {
   @Argument(required = true, metaVar = "GENOTYPES", usage = "The genotypes to process.", index = 0)
   var genotypes: String = null
 
@@ -59,8 +59,8 @@ class GnocchiArgs extends Args4jBase {
 
 }
 
-class Gnocchi(protected val args: GnocchiArgs) extends BDGSparkCommand[GnocchiArgs] {
-  val companion = Gnocchi
+class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
+  val companion = RegressPhenotypes
 
   def run(sc: SparkContext) {
     // load in genotype data
