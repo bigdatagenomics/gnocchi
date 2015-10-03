@@ -22,7 +22,8 @@ import org.bdgenomics.utils.cli._
 
 object GnocchiMain extends Logging {
 
-  private val commands = List(RegressPhenotypes)
+  private val commands = List(FillIn,
+                              RegressPhenotypes)
 
   private def printCommands() {
     println("\n")
