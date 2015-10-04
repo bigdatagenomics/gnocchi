@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi
+package net.fnothaft.gnocchi.association
 
+import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.avro.{ Association, Phenotype }
 import org.bdgenomics.adam.models.ReferencePosition
 import org.bdgenomics.formats.avro._

@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi
+package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.avro.Phenotype
 import org.apache.spark.{ Logging, SparkContext }
 import org.apache.spark.rdd.RDD
 
-object LoadPhenotypes extends Serializable with Logging {
+private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
 
   def apply(file: String,
             sc: SparkContext): RDD[Phenotype] = {
