@@ -15,6 +15,7 @@
  */
 package net.fnothaft.gnocchi.cli
 
+import htsjdk.samtools.ValidationStringency
 import java.io.File
 import net.fnothaft.gnocchi.avro.{ Association, Phenotype }
 import net.fnothaft.gnocchi.association._
@@ -57,6 +58,8 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
   var saveAsText = false
 
+  @Args4jOption(required = false, name = "-validationStringency", usage = "The level of validation to use on inputs. By default, strict. Choices are STRICT, LENIENT, SILENT.")
+  var validationStringency: String = "STRICT"
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -68,6 +71,11 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // load in phenotype data
     val phenotypes = LoadPhenotypes(args.phenotypes, sc)
+
+    // validate genotypes and phenotypes
+    LoadPhenotypes.validate(phenotypes,
+                            genotypes,
+                            ValidationStringency.valueOf(args.validationStringency))
 
     // if we have regions, then load and filter
     val filteredGenotypes = if (args.regions != null) {
