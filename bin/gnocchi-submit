@@ -76,7 +76,7 @@ echo "Using SPARK_SUBMIT=$SPARK_SUBMIT"
 "$SPARK_SUBMIT" \
   --class net.fnothaft.gnocchi.cli.GnocchiMain \
   --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
-  --conf spark.kryo.registrator=org.bdgenomics.adam.serialization.ADAMKryoRegistrator \
+  --conf spark.kryo.registrator=net.fnothaft.gnocchi.GnocchiKryoRegistrator \
   $SPARK_ARGS \
   $GNOCCHI_CLI_JAR \
   $GNOCCHI_ARGS
