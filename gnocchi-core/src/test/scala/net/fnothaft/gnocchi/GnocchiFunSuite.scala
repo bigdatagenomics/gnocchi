@@ -20,6 +20,6 @@ import org.bdgenomics.utils.misc.SparkFunSuite
 trait GnocchiFunSuite extends SparkFunSuite {
   override val appName: String = "gnocchi"
   override val properties: Map[String, String] = Map(("spark.serializer", "org.apache.spark.serializer.KryoSerializer"),
-    ("spark.kryo.registrator", "net.fnothaft.gnocchi.G2PilotKryoRegistrator"),
+    ("spark.kryo.registrator", "net.fnothaft.gnocchi.GnocchiKryoRegistrator"),
     ("spark.kryo.referenceTracking", "true"))
 }

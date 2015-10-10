@@ -21,7 +21,7 @@ import org.bdgenomics.adam.serialization.AvroSerializer
 import org.bdgenomics.formats.avro.Genotype
 import net.fnothaft.gnocchi.avro.Phenotype
 
-class G2PilotKryoRegistrator extends KryoRegistrator {
+class GnocchiKryoRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo) {
     kryo.register(classOf[Genotype], new AvroSerializer[Genotype]())
     kryo.register(classOf[Phenotype], new AvroSerializer[Phenotype]())
