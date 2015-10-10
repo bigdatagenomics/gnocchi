@@ -18,12 +18,15 @@ package net.fnothaft.gnocchi
 import com.esotericsoftware.kryo.Kryo
 import org.apache.spark.serializer.KryoRegistrator
 import org.bdgenomics.adam.serialization.AvroSerializer
-import org.bdgenomics.formats.avro.Genotype
-import net.fnothaft.gnocchi.avro.Phenotype
+import org.bdgenomics.formats.avro.{ Genotype, Variant }
+import net.fnothaft.gnocchi.avro.{ Association, Phenotype, Similarity }
 
 class GnocchiKryoRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo) {
+    kryo.register(classOf[Association], new AvroSerializer[Association]())
     kryo.register(classOf[Genotype], new AvroSerializer[Genotype]())
     kryo.register(classOf[Phenotype], new AvroSerializer[Phenotype]())
+    kryo.register(classOf[Similarity], new AvroSerializer[Similarity]())
+    kryo.register(classOf[Variant], new AvroSerializer[Variant]())
   }
 }
