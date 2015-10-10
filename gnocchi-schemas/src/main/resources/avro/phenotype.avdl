@@ -35,4 +35,10 @@ protocol G2P {
     double log10PNullHypothesis;
     double majorAlleleFrequency;
   }
+
+  record Similarity {
+    string from;
+    string to;
+    double similarity;
+  }
 }

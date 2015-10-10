@@ -1,0 +1,63 @@
+/**
+ * Copyright 2015 Frank Austin Nothaft
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package net.fnothaft.gnocchi.similarity
+
+import org.bdgenomics.formats.avro._
+import org.scalatest.FunSuite
+import scala.collection.JavaConverters._
+
+class SampleSimilaritySuite extends FunSuite {
+
+  test("should filter out reference calls") {
+    val gt = Genotype.newBuilder()
+      .setVariant(Variant.newBuilder()
+      .setContig(Contig.newBuilder()
+      .setContigName("1")
+      .build())
+      .setStart(1000L)
+      .setEnd(1001L)
+      .setReferenceAllele("A")
+      .setAlternateAllele("G")
+      .build())
+      .setAlleles(Seq(GenotypeAllele.Ref, GenotypeAllele.Ref).asJava)
+      .setSampleId("mySample")
+      .build()
+    val row = SampleSimilarity.filterAndJoin(gt, Map.empty)
+    assert(row.isEmpty)
+  }
+
+  test("correctly process nonref calls") {
+    val gt = Genotype.newBuilder()
+      .setVariant(Variant.newBuilder()
+      .setContig(Contig.newBuilder()
+      .setContigName("1")
+      .build())
+      .setStart(1000L)
+      .setEnd(1001L)
+      .setReferenceAllele("A")
+      .setAlternateAllele("G")
+      .build())
+      .setAlleles(Seq(GenotypeAllele.Alt, GenotypeAllele.Alt).asJava)
+      .setSampleId("mySample")
+      .build()
+    val row = SampleSimilarity.filterAndJoin(gt, Map(("mySample" -> 2),
+                                                     ("yourSample" -> 3)))
+    assert(row.isDefined)
+    val (_, (id, count)) = row.get
+    assert(id === 2)
+    assert(count > 1.99999 && count < 2.00001)
+  }
+}
