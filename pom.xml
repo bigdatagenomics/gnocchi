@@ -50,7 +50,7 @@
   </issueManagement>
 
   <properties>
-    <adam.version>0.17.2-SNAPSHOT</adam.version>
+    <adam.version>0.18.1</adam.version>
     <avro.version>1.7.6</avro.version>
     <hadoop.version>2.2.0</hadoop.version>
     <java.version>1.7</java.version>
