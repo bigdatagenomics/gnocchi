@@ -16,36 +16,51 @@
 package net.fnothaft.gnocchi.association
 
 import htsjdk.samtools.ValidationStringency
-import net.fnothaft.gnocchi.avro.Phenotype
-import org.apache.spark.SparkContext._
+import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype }
 import org.apache.spark.{ Logging, SparkContext }
-import org.apache.spark.rdd.RDD
-import org.bdgenomics.formats.avro.Genotype
+import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 
 private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
 
-  private[association] def validateSamples(pRdd: RDD[Phenotype],
-                                           sRdd: RDD[Genotype],
-                                           logFn: String => Unit): (Long, Long, RDD[String]) = {
+  private[association] def validateSamples[T](pDs: Dataset[Phenotype[T]],
+                                              sDs: Dataset[GenotypeState],
+                                              logFn: String => Unit): (Long, Long, Dataset[String]) = {
     // get sample ids
-    val genotypedSamples = sRdd.map(_.getSampleId)
+    val genotypedSamplesDF = sDs.toDF()
+    val genotypedSamples = genotypedSamplesDF.select(genotypedSamplesDF("sampleId"))
       .distinct
       .cache
-    val phenotypedSamples = pRdd.map(_.getSampleId)
+    val phenotypedSamplesDF = pDs.toDF()
+    val phenotypedSamples = phenotypedSamplesDF.select(phenotypedSamplesDF("sampleId"))
       .distinct
       .cache
     
     // log the number of samples we are regressing
-    log.info("Regressing across %d samples and %d observed phenotypes.".format(
+    logFn("Regressing across %d samples and %d observed phenotypes.".format(
       genotypedSamples.count,
-      pRdd.count))
+      phenotypedSamples.count))
     
     // which samples are we missing?
-    val missingInPts = genotypedSamples.subtract(phenotypedSamples).cache
-    val missingInGts = phenotypedSamples.subtract(genotypedSamples).cache
+    val gsPre = genotypedSamples.select(genotypedSamples("sampleId").as("gSampleId"))
+    val psPre = phenotypedSamples.select(phenotypedSamples("sampleId").as("pSampleId"))
+    val jt = gsPre.join(psPre, gsPre("gSampleId") === psPre("pSampleId"), "outer")
+      .cache
+    val missingInPts = jt.where(jt("pSampleId").isNull)
+      .select("gSampleId")
+      .rdd
+      .map(r => r match {
+        case Row(gSampleId: String) => gSampleId
+      }).cache
+    val missingInGts = jt.where(jt("gSampleId").isNull)
+      .select("pSampleId")
+      .rdd
+      .map(r => r match {
+        case Row(pSampleId: String) => pSampleId
+      }).cache
     val mipCount = missingInPts.count()
     val migCount = missingInGts.count()
-    
+    jt.unpersist()
+
     // record missing samples
     if (mipCount == 0) {
       log.info("All genotyped samples have a matching sample in the phenotypes.")
@@ -77,29 +92,33 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
     missingInGts.unpersist()
     missingInPts.unpersist()
     
-    (mipCount, migCount, genotypedSamples)
+    import genotypedSamples.sqlContext.implicits._
+    (mipCount, migCount, genotypedSamples.as[String])
   }
 
-  private[association] def validatePhenotypes(pRdd: RDD[Phenotype],
-                                              genotypedSamples: RDD[String],
-                                              logFn: String => Unit): Long = {
+  private[association] def validatePhenotypes[T](pDs: Dataset[Phenotype[T]],
+                                                 genotypedSamples: Dataset[String],
+                                                 logFn: String => Unit): Long = {
+
     // what phenotypes do we have? take the cartesian product vs samples
-    val phenotypes = pRdd.map(_.getPhenotype)
+    val phenotypesDF = pDs.toDF()
+    val phenotypes = phenotypesDF.select(phenotypesDF("phenotype"))
       .distinct
       .cache
-    val s2p = genotypedSamples.cartesian(phenotypes)
+    val s2p = genotypedSamples.toDF()
+      .withColumnRenamed("value", "sampleId")
+      .join(phenotypes)
     
     // do a left outer join to identify missing phenotypes
     // then flatmap and create error messages
-    val missing = s2p.leftOuterJoin(pRdd.map(p => (p.getSampleId, p.getPhenotype)))
-      .flatMap(kv => kv match {
-        case (sample, (phenotype, None)) => {
-          Some((phenotype,
-                "Missing observation of %s phenotype for sample %s.".format(phenotype,
-                                                                            sample)))
-        }
-        case _ => {
-          None
+    val pheno = phenotypesDF.select(phenotypesDF("sampleId").as("sample"), phenotypesDF("phenotype").as("pheno"))
+    val jt = s2p.join(pheno, s2p("sampleId") === pheno("sample") && s2p("phenotype") === pheno("pheno"), "left_outer")
+    val missing = jt.where(jt("sample").isNull).select(jt("sampleId"), jt("phenotype"))
+      .map(kv => kv match {
+        case Row(sampleId: String, phenotype: String) => {
+          (phenotype,
+           "Missing observation of %s phenotype for sample %s.".format(phenotype,
+                                                                       sampleId))
         }
       }).sortByKey()
         .map(kv => kv._2)
@@ -108,7 +127,7 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
     // log missing phenotype observations
     val missingCount = missing.count
     if (missingCount == 0) {
-      log.info("Have a phenotype observation for every phenotype for all genotyped samples.")
+      logFn("Have a phenotype observation for every phenotype for all genotyped samples.")
     } else {
       val plural = if (missingCount == 1) {
         ""
@@ -126,9 +145,9 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
     missingCount
   }
 
-  def validate(pRdd: RDD[Phenotype],
-               sRdd: RDD[Genotype],
-               stringency: ValidationStringency) {
+  def validate[T](pRdd: Dataset[Phenotype[T]],
+                  sRdd: Dataset[GenotypeState],
+                  stringency: ValidationStringency) {
     // we skip validation if stringency is set to silent
     if (stringency != ValidationStringency.SILENT) {
       val (logFn, endFn) = stringency match {
@@ -143,7 +162,7 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
       }
 
       // validate sample ids
-      val (mipCount, migCount, genotypedSamples) = validateSamples(pRdd, sRdd, logFn)
+      val (mipCount, migCount, genotypedSamples) = validateSamples[T](pRdd, sRdd, logFn)
 
       // validate phenotypes across samples
       val missingCount = validatePhenotypes(pRdd, genotypedSamples, logFn)
@@ -161,23 +180,38 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
     }
   }
 
-  def apply(file: String,
-            sc: SparkContext): RDD[Phenotype] = {
+  def apply[T](file: String,
+               sc: SparkContext)(implicit mT: Manifest[T]): Dataset[Phenotype[T]] = {
     log.info("Loading phenotypes from %s.".format(file))
 
+    // get sql context
+    val sqlContext = SQLContext.getOrCreate(sc)
+
+    // create parsing function
+    val parseFn = if (manifest[T] == manifest[Int]) {
+      (s: String) => s.toInt
+    } else if (manifest[T] == manifest[String]) {
+      (s: String) => s
+    } else if (manifest[T] == manifest[Boolean]) {
+      (s: String) => s == "true"
+    } else if (manifest[T] == manifest[Double]) {
+      (s: String) => s.toDouble
+    } else {
+      throw new IllegalArgumentException("Type not found.")
+    }
+
     // load and parse text file
-    sc.textFile(file)
-      .map(parseLine)
+    import sqlContext.implicits._
+    sqlContext.createDataset(sc.textFile(file)
+      .map(parseLine[T](_, parseFn)))
   }
 
-  private[gnocchi] def parseLine(line: String): Phenotype = {
+  private[gnocchi] def parseLine[T](line: String, parseFn: String => Any): Phenotype[T] = {
     val splits = line.split(",")
     assert(splits.length == 3, "Line was incorrectly formatted, did not contain sample, phenotype, hasPhenotype:\n%s".format(line))
 
-    Phenotype.newBuilder()
-      .setSampleId(splits(0).trim)
-      .setPhenotype(splits(1).trim)
-      .setHasPhenotype(splits(2).trim == "true")
-      .build()
+    Phenotype[T](splits(1).trim,
+                 splits(0).trim,
+                 parseFn(splits(2).trim).asInstanceOf[T])
   }
 }

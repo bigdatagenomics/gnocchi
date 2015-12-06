@@ -15,44 +15,32 @@
  */
 package net.fnothaft.gnocchi.similarity
 
-import org.bdgenomics.formats.avro._
+import net.fnothaft.gnocchi.models.GenotypeState
 import org.scalatest.FunSuite
 import scala.collection.JavaConverters._
 
 class SampleSimilaritySuite extends FunSuite {
 
   test("should filter out reference calls") {
-    val gt = Genotype.newBuilder()
-      .setVariant(Variant.newBuilder()
-      .setContig(Contig.newBuilder()
-      .setContigName("1")
-      .build())
-      .setStart(1000L)
-      .setEnd(1001L)
-      .setReferenceAllele("A")
-      .setAlternateAllele("G")
-      .build())
-      .setAlleles(Seq(GenotypeAllele.Ref, GenotypeAllele.Ref).asJava)
-      .setSampleId("mySample")
-      .build()
+    val gt = GenotypeState("1",
+                           1000L,
+                           1001L,
+                           "A",
+                           "G",
+                           "mySample",
+                           0)
     val row = SampleSimilarity.filterAndJoin(gt, Map.empty)
     assert(row.isEmpty)
   }
 
   test("correctly process nonref calls") {
-    val gt = Genotype.newBuilder()
-      .setVariant(Variant.newBuilder()
-      .setContig(Contig.newBuilder()
-      .setContigName("1")
-      .build())
-      .setStart(1000L)
-      .setEnd(1001L)
-      .setReferenceAllele("A")
-      .setAlternateAllele("G")
-      .build())
-      .setAlleles(Seq(GenotypeAllele.Alt, GenotypeAllele.Alt).asJava)
-      .setSampleId("mySample")
-      .build()
+    val gt = GenotypeState("1",
+                           1000L,
+                           1001L,
+                           "A",
+                           "G",
+                           "mySample",
+                           2)
     val row = SampleSimilarity.filterAndJoin(gt, Map(("mySample" -> 2),
                                                      ("yourSample" -> 3)))
     assert(row.isDefined)
