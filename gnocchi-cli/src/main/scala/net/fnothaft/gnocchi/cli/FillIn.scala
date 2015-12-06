@@ -17,7 +17,6 @@ package net.fnothaft.gnocchi.cli
 
 import java.io.File
 import net.fnothaft.gnocchi._
-import net.fnothaft.gnocchi.avro.{ Association, Phenotype }
 import net.fnothaft.gnocchi.imputation.FillGenotypes
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SparkContext._

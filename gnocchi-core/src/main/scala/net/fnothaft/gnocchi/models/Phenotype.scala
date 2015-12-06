@@ -13,32 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@namespace("net.fnothaft.gnocchi.avro")
+package net.fnothaft.gnocchi.models
 
-// Loosely inspired by the schemas that the GA4GH are developing for G2P associations
-protocol G2P {
-
-  record Phenotype {
-    string phenotype;
-    string sampleId;
-    boolean hasPhenotype;
-  }
-
-  record Association {
-    string phenotype;
-    string chromosome;
-    long position;
-    string alternateAllele;
-    double oddsRatioHet;
-    double oddsRatioHomAlt;
-    double chiSquared;
-    double log10PNullHypothesis;
-    double majorAlleleFrequency;
-  }
-
-  record Similarity {
-    string from;
-    string to;
-    double similarity;
-  }
+case class Phenotype[T](phenotype: String,
+                        sampleId: String,
+                        value: T) {
 }

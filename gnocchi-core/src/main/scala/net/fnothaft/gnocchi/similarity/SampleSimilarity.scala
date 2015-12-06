@@ -15,12 +15,13 @@
  */
 package net.fnothaft.gnocchi.similarity
 
-import net.fnothaft.gnocchi.avro.Similarity
+import net.fnothaft.gnocchi.models.{ GenotypeState, Similarity }
 import org.apache.spark.SparkContext._
 import org.apache.spark.Logging
 import org.apache.spark.mllib.linalg.{ Vector, Vectors }
 import org.apache.spark.mllib.linalg.distributed.{ MatrixEntry, RowMatrix }
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{ Dataset, Row }
 import org.bdgenomics.adam.models.VariantContext
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.formats.avro.{ Genotype, GenotypeAllele, Variant }
@@ -35,14 +36,19 @@ object SampleSimilarity extends Serializable with Logging {
    * @param similarityThreshold A parameter for approximating the similarity
    *    comparison. To ensure an exact comparison, set to 0.0.
    */
-  def apply(rdd: RDD[Genotype], similarityThreshold: Double = 0.5): RDD[Similarity] = {
+  def apply(ds: Dataset[GenotypeState], similarityThreshold: Double = 0.5): RDD[Similarity] = {
 
     // get sample id's and broadcast
-    val sampleIds = rdd.map(_.getSampleId)
+    val df = ds.toDF()
+    val sampleIds = df.select(df("sampleId"))
       .distinct
-      .collect
-      .zipWithIndex
-      .toMap
+      .rdd
+      .map(r => r match {
+        case Row(sampleId: String) => sampleId
+      }).collect
+        .zipWithIndex
+        .toMap
+    val rdd = ds.rdd
     val bcastIds = rdd.context.broadcast(sampleIds)
     val samples = sampleIds.size
     log.info("Have %d samples.".format(samples))
@@ -80,11 +86,9 @@ object SampleSimilarity extends Serializable with Logging {
    */
   private def entryToSimilarity(entry: MatrixEntry,
                                 idToSample: Map[Long, String]): Similarity = {
-    Similarity.newBuilder
-      .setFrom(idToSample(entry.i))
-      .setTo(idToSample(entry.j))
-      .setSimilarity(entry.value)
-      .build()
+    Similarity(idToSample(entry.i),
+               idToSample(entry.j),
+               entry.value)
   }
 
   /**
@@ -111,16 +115,11 @@ object SampleSimilarity extends Serializable with Logging {
    * @param ids Map between string sample ID and sample index.
    * @return Optionally returns (variant, (sample id, called dosage)).
    */
-  private[similarity] def filterAndJoin(gt: Genotype,
+  private[similarity] def filterAndJoin(gt: GenotypeState,
                                         ids: Map[String, Int]): Option[(Variant, (Int, Double))] = {
-    // how many times did we observe the alt allele here?
-    val altCount = gt.getAlleles
-      .asScala
-      .count(_ == GenotypeAllele.Alt)
-    
     // did we have any alt calls? if so, join against the sample id, else filter
-    if (altCount > 0) {
-      Some((gt.getVariant, (ids(gt.getSampleId), altCount.toDouble)))
+    if (gt.genotypeState != 0) {
+      Some((gt.variant, (ids(gt.sampleId), gt.genotypeState.toDouble)))
     } else {
       None
     }

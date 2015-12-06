@@ -41,10 +41,6 @@
   <dependencies>
     <dependency>
       <groupId>net.fnothaft</groupId>
-      <artifactId>gnocchi-schemas</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>net.fnothaft</groupId>
       <artifactId>gnocchi-core</artifactId>
     </dependency>
     <dependency>
@@ -74,6 +70,10 @@
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.version.prefix}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_${scala.version.prefix}</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>

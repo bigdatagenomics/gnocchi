@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi
+package net.fnothaft.gnocchi.models
 
-import org.bdgenomics.utils.misc.SparkFunSuite
+import org.bdgenomics.formats.avro.Variant
 
-trait GnocchiFunSuite extends SparkFunSuite {
-  override val appName: String = "gnocchi"
-  override val properties: Map[String, String] = Map(("spark.serializer", "org.apache.spark.serializer.KryoSerializer"),
-    ("spark.kryo.registrator", "org.bdgenomics.adam.serialization.ADAMKryoRegistrator"),
-    ("spark.kryo.referenceTracking", "true"))
+case class Association(variant: Variant,
+                       phenotype: String,
+                       logPValue: Double,
+                       statistics: Map[String, Any]) {
 }
+                       

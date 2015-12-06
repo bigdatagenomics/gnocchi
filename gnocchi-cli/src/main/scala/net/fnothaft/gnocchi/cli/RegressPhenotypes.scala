@@ -17,11 +17,13 @@ package net.fnothaft.gnocchi.cli
 
 import htsjdk.samtools.ValidationStringency
 import java.io.File
-import net.fnothaft.gnocchi.avro.{ Association, Phenotype }
 import net.fnothaft.gnocchi.association._
+import net.fnothaft.gnocchi.models.GenotypeState
+import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SparkContext._
 import org.apache.spark.{ Logging, SparkContext }
+import org.apache.spark.sql.SQLContext
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.BroadcastRegionJoin
@@ -60,6 +62,9 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-validationStringency", usage = "The level of validation to use on inputs. By default, strict. Choices are STRICT, LENIENT, SILENT.")
   var validationStringency: String = "STRICT"
+
+  @Args4jOption(required = false, name = "-ploidy", usage = "Ploidy to assume. Default value is 2 (diploid).")
+  var ploidy = 2
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -67,48 +72,32 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
     // load in genotype data
-    val genotypes = sc.loadGenotypes(args.genotypes)
+    val sqlContext = SQLContext.getOrCreate(sc)
+    import sqlContext.implicits._
+    val genotypes = sqlContext.read
+      .format("parquet")
+      .load(args.genotypes)
+    val genotypeStates = sqlContext.toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
+      .as[GenotypeState]
 
     // load in phenotype data
-    val phenotypes = LoadPhenotypes(args.phenotypes, sc)
+    val phenotypes = LoadPhenotypes[Boolean](args.phenotypes, sc)
 
     // validate genotypes and phenotypes
     LoadPhenotypes.validate(phenotypes,
-                            genotypes,
+                            genotypeStates,
                             ValidationStringency.valueOf(args.validationStringency))
 
-    // if we have regions, then load and filter
-    val filteredGenotypes = if (args.regions != null) {
-      // load in regions
-      val features = sc.loadFeatures(args.regions)
-
-      // key both genotype and feature RDDs by region and join
-      // then drop the feature
-      BroadcastRegionJoin.partitionAndJoin(features.keyBy(ReferenceRegion(_)),
-                                           genotypes.keyBy(gt => {
-                                             val v = gt.getVariant
-                                             ReferenceRegion(v.getContig
-                                               .getContigName,
-                                                             v.getStart,
-                                                             v.getEnd)
-                                           })).map(kv => kv._2)
-    } else {
-      genotypes
-    }
-
-    // key both genotypes and phenotypes by the sample and join
-    val g2p = filteredGenotypes.keyBy(_.getSampleId)
-      .join(phenotypes.keyBy(_.getSampleId))
-    
     // score associations
-    val associations = ScoreAssociation(g2p)
+    val associations = ScoreAssociation(genotypeStates, phenotypes)
 
     // save dataset
     if (args.saveAsText) {
-      associations.map(_.toString)
+      associations.rdd
+        .map(_.toString)
         .saveAsTextFile(args.associations)
     } else {
-      associations.adamParquetSave(args.associations)
+      associations.toDF.write.parquet(args.associations)
     }
   }
 }

@@ -15,11 +15,13 @@
  */
 package net.fnothaft.gnocchi.cli
 
+import net.fnothaft.gnocchi.models.GenotypeState
 import net.fnothaft.gnocchi.similarity.SampleSimilarity
+import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext._
 import org.apache.spark.{ Logging, SparkContext }
+import org.apache.spark.sql.SQLContext
 import org.bdgenomics.adam.rdd.ADAMContext._
-import org.bdgenomics.formats.avro._
 import org.bdgenomics.utils.misc.HadoopUtil
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
@@ -46,6 +48,9 @@ class ComputeSampleSimilarityArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
   var saveAsText = false
+
+  @Args4jOption(required = false, name = "-ploidy", usage = "Ploidy to assume. Default value is 2 (diploid).")
+  var ploidy = 2
 }
 
 class ComputeSampleSimilarity(protected val args: ComputeSampleSimilarityArgs) extends BDGSparkCommand[ComputeSampleSimilarityArgs] {
@@ -53,17 +58,26 @@ class ComputeSampleSimilarity(protected val args: ComputeSampleSimilarityArgs) e
 
   def run(sc: SparkContext) {
     // load in genotype data
-    val genotypes = sc.loadGenotypes(args.input)
+    val sqlContext = SQLContext.getOrCreate(sc)
+    import sqlContext.implicits._
+    val genotypes = sqlContext.read
+      .format("parquet")
+      .load(args.input)
+    val genotypeStates = sqlContext.toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = true)
+      .as[GenotypeState]
 
     // compute similarity
-    val similarities = SampleSimilarity(genotypes, args.similarityThreshold)
+    val similarities = SampleSimilarity(genotypeStates, args.similarityThreshold)
 
     // save to disk
-    if (args.saveAsText) {
-      similarities.map(_.toString)
-        .saveAsTextFile(args.output)
+    val format = if (args.saveAsText) {
+      "json"
     } else {
-      similarities.adamParquetSave(args.output)
+      "parquet"
     }
+    sqlContext.createDataFrame(similarities)
+      .write
+      .format(format)
+      .save(args.output)
   }
 }
