@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.similarity
+package net.fnothaft.gnocchi.sql
 
 import net.fnothaft.gnocchi.models.GenotypeState
 import org.scalatest.FunSuite
 import scala.collection.JavaConverters._
 
-class SampleSimilaritySuite extends FunSuite {
+class GenotypeStateMatrixSuite extends FunSuite {
 
   test("should filter out reference calls") {
     val gt = GenotypeState("1",
@@ -29,7 +29,7 @@ class SampleSimilaritySuite extends FunSuite {
                            "G",
                            "mySample",
                            0)
-    val row = SampleSimilarity.filterAndJoin(gt, Map.empty)
+    val row = GenotypeStateMatrix.filterAndJoin(gt, Map.empty)
     assert(row.isEmpty)
   }
 
@@ -41,7 +41,7 @@ class SampleSimilaritySuite extends FunSuite {
                            "G",
                            "mySample",
                            2)
-    val row = SampleSimilarity.filterAndJoin(gt, Map(("mySample" -> 2),
+    val row = GenotypeStateMatrix.filterAndJoin(gt, Map(("mySample" -> 2),
                                                      ("yourSample" -> 3)))
     assert(row.isDefined)
     val (_, (id, count)) = row.get
