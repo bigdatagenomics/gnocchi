@@ -24,6 +24,7 @@ object GnocchiMain extends Logging {
 
   private val commands = List(ComputeSampleSimilarity,
                               FillIn,
+                              ReduceDimensions,
                               RegressPhenotypes)
 
   private def printCommands() {
