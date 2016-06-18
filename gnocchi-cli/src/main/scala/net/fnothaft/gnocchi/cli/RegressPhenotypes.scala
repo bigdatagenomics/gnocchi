@@ -85,8 +85,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // validate genotypes and phenotypes
     LoadPhenotypes.validate(phenotypes,
-                            genotypeStates,
-                            ValidationStringency.valueOf(args.validationStringency))
+      genotypeStates,
+      ValidationStringency.valueOf(args.validationStringency))
 
     // score associations
     val associations = ScoreAssociation(genotypeStates, phenotypes)

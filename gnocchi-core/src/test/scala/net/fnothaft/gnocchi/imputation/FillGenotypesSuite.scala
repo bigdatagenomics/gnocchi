@@ -26,8 +26,8 @@ class FillGenotypesSuite extends GnocchiFunSuite {
   test("fill in a single variant context") {
     val v = Variant.newBuilder
       .setContig(Contig.newBuilder
-      .setContigName("1")
-      .build())
+        .setContigName("1")
+        .build())
       .setStart(1000L)
       .setEnd(1001L)
       .setReferenceAllele("A")
@@ -36,13 +36,13 @@ class FillGenotypesSuite extends GnocchiFunSuite {
     val vc = VariantContext.buildFromGenotypes(Seq(Genotype.newBuilder
       .setVariant(v)
       .setSampleId("sample1")
-      .setAlleles(Seq(GenotypeAllele.Ref,GenotypeAllele.Alt).asJava)
+      .setAlleles(Seq(GenotypeAllele.Ref, GenotypeAllele.Alt).asJava)
       .build()))
 
     val newGts = FillGenotypes.fillInVC(vc,
-                                        Set("sample1", "sample2", "sample3"),
-                                        Seq(GenotypeAllele.Ref))
-    
+      Set("sample1", "sample2", "sample3"),
+      Seq(GenotypeAllele.Ref))
+
     assert(newGts.size === 3)
     newGts.foreach(gt => gt.getSampleId match {
       case "sample1" => {
@@ -70,7 +70,7 @@ class FillGenotypesSuite extends GnocchiFunSuite {
     assert(input.map(_.getVariant).distinct.count === 3)
 
     val newGts = FillGenotypes(input,
-                               useNoCall = true).collect
+      useNoCall = true).collect
 
     assert(newGts.length === 6)
     assert(newGts.map(_.getVariant).toSet.size === 3)
@@ -89,7 +89,7 @@ class FillGenotypesSuite extends GnocchiFunSuite {
     assert(input.map(_.getVariant).distinct.count === 3)
 
     val newGts = FillGenotypes(input,
-                               ploidy = 1).collect
+      ploidy = 1).collect
 
     assert(newGts.length === 6)
     assert(newGts.map(_.getVariant).toSet.size === 3)

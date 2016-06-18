@@ -43,7 +43,7 @@ class ComputeSampleSimilarityArgs extends Args4jBase {
   var output: String = null
 
   @Args4jOption(required = false, name = "-similarityThreshold",
-                usage = "The minimum sample similarity to estimate. Default value is 0.5.")
+    usage = "The minimum sample similarity to estimate. Default value is 0.5.")
   var similarityThreshold = 0.5
 
   @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")

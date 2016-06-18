@@ -23,26 +23,26 @@ class GenotypeStateMatrixSuite extends FunSuite {
 
   test("should filter out reference calls") {
     val gt = GenotypeState("1",
-                           1000L,
-                           1001L,
-                           "A",
-                           "G",
-                           "mySample",
-                           0)
+      1000L,
+      1001L,
+      "A",
+      "G",
+      "mySample",
+      0)
     val row = GenotypeStateMatrix.filterAndJoin(gt, Map.empty)
     assert(row.isEmpty)
   }
 
   test("correctly process nonref calls") {
     val gt = GenotypeState("1",
-                           1000L,
-                           1001L,
-                           "A",
-                           "G",
-                           "mySample",
-                           2)
+      1000L,
+      1001L,
+      "A",
+      "G",
+      "mySample",
+      2)
     val row = GenotypeStateMatrix.filterAndJoin(gt, Map(("mySample" -> 2),
-                                                     ("yourSample" -> 3)))
+      ("yourSample" -> 3)))
     assert(row.isDefined)
     val (_, (id, count)) = row.get
     assert(id === 2)

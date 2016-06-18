@@ -65,6 +65,11 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.scalariform</groupId>
+          <artifactId>scalariform-maven-plugin</artifactId>
+          <version>0.1.4</version>
+        </plugin>
+        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>appassembler-maven-plugin</artifactId>
           <version>1.8</version>
@@ -173,6 +178,26 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.scalariform</groupId>
+        <artifactId>scalariform-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>format</goal>
+            </goals>
+            <configuration>
+              <alignParameters>true</alignParameters>
+              <alignSingleLineCaseStatements>true</alignSingleLineCaseStatements>
+              <doubleIndentClassDeclaration>true</doubleIndentClassDeclaration>
+              <preserveDanglingCloseParenthesis>true</preserveDanglingCloseParenthesis>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
   
   <profiles>

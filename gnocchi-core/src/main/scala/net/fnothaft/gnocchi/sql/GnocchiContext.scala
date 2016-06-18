@@ -23,7 +23,7 @@ import org.bdgenomics.formats.avro.Genotype
 
 object GnocchiContext {
 
-  implicit def gcFromSqlContext(sqlContext: SQLContext): GnocchiContext = 
+  implicit def gcFromSqlContext(sqlContext: SQLContext): GnocchiContext =
     new GnocchiContext(sqlContext)
 }
 
@@ -55,11 +55,11 @@ class GnocchiContext private[sql] (@transient sqlContext: SQLContext) extends Se
     }).reduce(_ + _)
 
     filteredGtFrame.select(filteredGtFrame("variant.contig.contigName").as("contig"),
-                           filteredGtFrame("variant.start").as("start"),
-                           filteredGtFrame("variant.end").as("end"),
-                           filteredGtFrame("variant.referenceAllele").as("ref"),
-                           filteredGtFrame("variant.alternateAllele").as("alt"),
-                           filteredGtFrame("sampleId"),
-                           genotypeState.as("genotypeState"))
+      filteredGtFrame("variant.start").as("start"),
+      filteredGtFrame("variant.end").as("end"),
+      filteredGtFrame("variant.referenceAllele").as("ref"),
+      filteredGtFrame("variant.alternateAllele").as("alt"),
+      filteredGtFrame("sampleId"),
+      genotypeState.as("genotypeState"))
   }
 }

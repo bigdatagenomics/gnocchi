@@ -37,8 +37,8 @@ object GenotypeStateMatrix extends Serializable with Logging {
       .map(r => r match {
         case Row(sampleId: String) => sampleId
       }).collect
-        .zipWithIndex
-        .toMap
+      .zipWithIndex
+      .toMap
     val rdd = ds.rdd
     val bcastIds = rdd.context.broadcast(sampleIds)
     val samples = sampleIds.size

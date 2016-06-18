@@ -50,7 +50,7 @@ object WideFlatPCA extends Serializable {
 
     // run svd - computeU is false because U = V
     val svd = matrix.computeSVD(components, computeU = false)
-    
+
     // alias V <-> U
     val uMat = svd.V
 
@@ -64,7 +64,7 @@ object WideFlatPCA extends Serializable {
 
     // invert sampleId map
     val idToSample = sampleIds.map(v => (v._2, v._1))
-    
+
     // add back ids and return
     import ds.sqlContext.implicits._
     ds.sqlContext.createDataset(uΣ.toArray

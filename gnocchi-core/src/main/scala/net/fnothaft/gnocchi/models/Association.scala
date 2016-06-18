@@ -22,4 +22,4 @@ case class Association(variant: Variant,
                        logPValue: Double,
                        statistics: Map[String, Any]) {
 }
-                       
+

@@ -23,12 +23,12 @@ class LoadPhenotypeSuite extends GnocchiFunSuite {
 
   def gs(sampleId: String): GenotypeState = {
     GenotypeState("1",
-                  0L,
-                  1L,
-                  "A",
-                  "T",
-                  sampleId,
-                  0)
+      0L,
+      1L,
+      "A",
+      "T",
+      sampleId,
+      0)
   }
 
   test("load simple phenotypes") {
@@ -36,7 +36,7 @@ class LoadPhenotypeSuite extends GnocchiFunSuite {
     assert(p1.sampleId === "mySample")
     assert(p1.phenotype === "a phenotype")
     assert(p1.value)
-    
+
     val p2 = LoadPhenotypes.parseLine[Boolean]("mySample, another phenotype, false")
     assert(p2.sampleId === "mySample")
     assert(p2.phenotype === "another phenotype")
@@ -49,10 +49,10 @@ class LoadPhenotypeSuite extends GnocchiFunSuite {
 
   ignore("load phenotypes from a file") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("samplePhenotypes.csv").getFile
-    
+
     val phenotypes = LoadPhenotypes[Boolean](filepath, sc)
       .collect()
-    
+
     assert(phenotypes.length === 2)
     assert(phenotypes.forall(_.sampleId == "mySample"))
     assert(phenotypes.filter(_.phenotype == "a phenotype").length === 1)
@@ -78,11 +78,11 @@ class LoadPhenotypeSuite extends GnocchiFunSuite {
 
     val (mp, mg, samples) = LoadPhenotypes.validateSamples(sqlContext.createDataset(Seq(
       makePheno("myPhenotype",
-                "mySample",
-                true))),
-                                                           sqlContext.createDataset(Seq(
-                                                               gs("mySample"))),
-                                                           logFn)
+        "mySample",
+        true))),
+      sqlContext.createDataset(Seq(
+        gs("mySample"))),
+      logFn)
     assert(mp === 0)
     assert(mg === 0)
 
@@ -102,11 +102,11 @@ class LoadPhenotypeSuite extends GnocchiFunSuite {
 
     val (mp, mg, samples) = LoadPhenotypes.validateSamples(sqlContext.createDataset(Seq(
       makePheno("myPhenotype",
-                       "notMySample",
-                       true))),
-                                                           sqlContext.createDataset(Seq(
-                                                               gs("mySample"))),
-                                                           logFn)
+        "notMySample",
+        true))),
+      sqlContext.createDataset(Seq(
+        gs("mySample"))),
+      logFn)
     assert(mp === 1)
     assert(mg === 1)
 
@@ -130,10 +130,10 @@ class LoadPhenotypeSuite extends GnocchiFunSuite {
 
     val count = LoadPhenotypes.validatePhenotypes(sqlContext.createDataset(Seq(
       makePheno("myPhenotype",
-                       "mySample",
-                       true))),
+        "mySample",
+        true))),
       sqlContext.createDataset(Seq("mySample")),
-                                                  logFn)
+      logFn)
     assert(count === 0)
 
     assert(logMsgs.isEmpty)
@@ -147,10 +147,10 @@ class LoadPhenotypeSuite extends GnocchiFunSuite {
 
     val count = LoadPhenotypes.validatePhenotypes(sqlContext.createDataset(Seq(
       makePheno("myPhenotype",
-                       "mySample",
-                       true))),
+        "mySample",
+        true))),
       sqlContext.createDataset(Seq("mySample", "notMySample")),
-                                                           logFn)
+      logFn)
     assert(count === 1)
 
     assert(logMsgs.size === 2)
