@@ -34,12 +34,12 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
     val phenotypedSamples = phenotypedSamplesDF.select(phenotypedSamplesDF("sampleId"))
       .distinct
       .cache
-    
+
     // log the number of samples we are regressing
     logFn("Regressing across %d samples and %d observed phenotypes.".format(
       genotypedSamples.count,
       phenotypedSamples.count))
-    
+
     // which samples are we missing?
     val gsPre = genotypedSamples.select(genotypedSamples("sampleId").as("gSampleId"))
     val psPre = phenotypedSamples.select(phenotypedSamples("sampleId").as("pSampleId"))
@@ -86,12 +86,12 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
       missingInGts.toLocalIterator
         .foreach(logFn)
     }
-    
+
     // unpersist phenotyped samples
     phenotypedSamples.unpersist()
     missingInGts.unpersist()
     missingInPts.unpersist()
-    
+
     import genotypedSamples.sqlContext.implicits._
     (mipCount, migCount, genotypedSamples.as[String])
   }
@@ -108,7 +108,7 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
     val s2p = genotypedSamples.toDF()
       .withColumnRenamed("value", "sampleId")
       .join(phenotypes)
-    
+
     // do a left outer join to identify missing phenotypes
     // then flatmap and create error messages
     val pheno = phenotypesDF.select(phenotypesDF("sampleId").as("sample"), phenotypesDF("phenotype").as("pheno"))
@@ -117,13 +117,13 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
       .map(kv => kv match {
         case Row(sampleId: String, phenotype: String) => {
           (phenotype,
-           "Missing observation of %s phenotype for sample %s.".format(phenotype,
-                                                                       sampleId))
+            "Missing observation of %s phenotype for sample %s.".format(phenotype,
+              sampleId))
         }
       }).sortByKey()
-        .map(kv => kv._2)
-        .cache
-    
+      .map(kv => kv._2)
+      .cache
+
     // log missing phenotype observations
     val missingCount = missing.count
     if (missingCount == 0) {
@@ -137,11 +137,11 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
       logFn("Have %d missing phenotype observation%s:".format(missingCount, plural))
       missing.toLocalIterator.foreach(logFn)
     }
-   
+
     // unpersist rdds
     missing.unpersist()
     phenotypes.unpersist()
- 
+
     missingCount
   }
 
@@ -153,11 +153,11 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
       val (logFn, endFn) = stringency match {
         case ValidationStringency.STRICT => {
           ((s: String) => log.error(s),
-           (c: Long) => throw new IllegalArgumentException("Exiting with %d errors.".format(c)))
+            (c: Long) => throw new IllegalArgumentException("Exiting with %d errors.".format(c)))
         }
         case _ => {
           ((s: String) => log.warn(s),
-           (c: Long) => log.warn("Had %d warnings.".format(c)))
+            (c: Long) => log.warn("Had %d warnings.".format(c)))
         }
       }
 
@@ -199,16 +199,16 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
 
     val pheno = if (manifest[T] == manifest[Int]) {
       IntPhenotype(splits(1).trim,
-                   splits(0).trim,
-                   splits(2).trim.toInt)
+        splits(0).trim,
+        splits(2).trim.toInt)
     } else if (manifest[T] == manifest[Boolean]) {
       BooleanPhenotype(splits(1).trim,
-                       splits(0).trim,
-                       splits(2).trim == "true")
+        splits(0).trim,
+        splits(2).trim == "true")
     } else if (manifest[T] == manifest[Double]) {
       DoublePhenotype(splits(1).trim,
-                      splits(0).trim,
-                      splits(2).trim.toDouble)
+        splits(0).trim,
+        splits(2).trim.toDouble)
     } else {
       throw new IllegalArgumentException("Type not found.")
     }

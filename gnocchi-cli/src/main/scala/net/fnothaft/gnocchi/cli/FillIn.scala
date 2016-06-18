@@ -49,11 +49,11 @@ class FillInArgs extends Args4jBase {
   var output: String = null
 
   @Args4jOption(required = false, name = "-useNoCall",
-                usage = "Fills in genotypes with NoCall alleles, instead of Ref.")
+    usage = "Fills in genotypes with NoCall alleles, instead of Ref.")
   var useNoCall = false
 
   @Args4jOption(required = false, name = "-ploidy",
-                usage = "Assumed ploidy. Default is 2 (diploid).")
+    usage = "Assumed ploidy. Default is 2 (diploid).")
   var ploidy = 2
 }
 
@@ -66,8 +66,8 @@ class FillIn(protected val args: FillInArgs) extends BDGSparkCommand[FillInArgs]
 
     // fill in genotypes
     val recomputedGenotypes = FillGenotypes(genotypes,
-                                            useNoCall = args.useNoCall,
-                                            ploidy = args.ploidy)
+      useNoCall = args.useNoCall,
+      ploidy = args.ploidy)
 
     // save to disk
     recomputedGenotypes.adamParquetSave(args.output)

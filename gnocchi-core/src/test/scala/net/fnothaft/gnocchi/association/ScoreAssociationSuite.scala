@@ -52,94 +52,94 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
       .setReferenceAllele("A")
       .setAlternateAllele("T")
       .build()
-    
+
     val homRefNP = (0 until 90).map(i => {
       val sample = "sample_%d".format(i)
       val gHomRef = GenotypeState(v1.getContig.getContigName,
-                                  v1.getStart,
-                                  v1.getEnd,
-                                  v1.getReferenceAllele,
-                                  v1.getAlternateAllele,
-                                  sample,
-                                  0)
+        v1.getStart,
+        v1.getEnd,
+        v1.getReferenceAllele,
+        v1.getAlternateAllele,
+        sample,
+        0)
       val pNot = BooleanPhenotype("a phenotype",
-                           sample,
-                           false)
+        sample,
+        false)
       (gHomRef, pNot)
     }).toSeq
 
     val homRefP = (90 until 100).map(i => {
       val sample = "sample_%d".format(i)
       val gHomRef = GenotypeState(v1.getContig.getContigName,
-                                  v1.getStart,
-                                  v1.getEnd,
-                                  v1.getReferenceAllele,
-                                  v1.getAlternateAllele,
-                                  sample,
-                                  0)
+        v1.getStart,
+        v1.getEnd,
+        v1.getReferenceAllele,
+        v1.getAlternateAllele,
+        sample,
+        0)
       val pHas = BooleanPhenotype("a phenotype",
-                           sample,
-                           true)
-                          (gHomRef, pHas)
+        sample,
+        true)
+      (gHomRef, pHas)
     }).toSeq
 
     val hetNP = (100 until 140).map(i => {
       val sample = "sample_%d".format(i)
       val gHet = GenotypeState(v1.getContig.getContigName,
-                               v1.getStart,
-                               v1.getEnd,
-                               v1.getReferenceAllele,
-                               v1.getAlternateAllele,
-                               sample,
-                               1)
+        v1.getStart,
+        v1.getEnd,
+        v1.getReferenceAllele,
+        v1.getAlternateAllele,
+        sample,
+        1)
       val pNot = BooleanPhenotype("a phenotype",
-                           sample,
-                           false)
-                          (gHet, pNot)
+        sample,
+        false)
+      (gHet, pNot)
     }).toSeq
 
     val hetP = (140 until 150).map(i => {
       val sample = "sample_%d".format(i)
       val gHet = GenotypeState(v1.getContig.getContigName,
-                               v1.getStart,
-                               v1.getEnd,
-                               v1.getReferenceAllele,
-                               v1.getAlternateAllele,
-                               sample,
-                               1)
+        v1.getStart,
+        v1.getEnd,
+        v1.getReferenceAllele,
+        v1.getAlternateAllele,
+        sample,
+        1)
       val pHas = BooleanPhenotype("a phenotype",
-                           sample,
-                           true)
+        sample,
+        true)
       (gHet, pHas)
     }).toSeq
 
     val homAltNP = (150 until 165).map(i => {
       val sample = "sample_%d".format(i)
       val gHomAlt = GenotypeState(v1.getContig.getContigName,
-                                  v1.getStart,
-                                  v1.getEnd,
-                                  v1.getReferenceAllele,
-                                  v1.getAlternateAllele,
-                                  sample,
-                                  2)
+        v1.getStart,
+        v1.getEnd,
+        v1.getReferenceAllele,
+        v1.getAlternateAllele,
+        sample,
+        2)
       val pNot = BooleanPhenotype("a phenotype",
-                           sample,
-                           false)
-                          (gHomAlt, pNot)
+        sample,
+        false)
+      (gHomAlt, pNot)
     }).toSeq
 
     val homAltP = (165 until 175).map(i => {
       val sample = "sample_%d".format(i)
       val gHomAlt = GenotypeState(v1.getContig.getContigName,
-                                  v1.getStart,
-                                  v1.getEnd,
-                                  v1.getReferenceAllele,
-                                  v1.getAlternateAllele,
-                                  sample,
-                                  2)
+        v1.getStart,
+        v1.getEnd,
+        v1.getReferenceAllele,
+        v1.getAlternateAllele,
+        sample,
+        2)
       val pHas = BooleanPhenotype("a phenotype",
-                           sample,
-                           true)
+        sample,
+        true)
       (gHomAlt, pHas)
     }).toSeq
 
@@ -149,9 +149,9 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
     val associations = ScoreAssociation(sqlContext.createDataset(gts),
-                                        sqlContext.createDataset(pts))
+      sqlContext.createDataset(pts))
       .collect()
-    
+
     assert(associations.length === 1)
     val association = associations.head
     assert(association.phenotype === "a phenotype")
@@ -159,11 +159,11 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
     assert(association.variant.getStart === 100L)
     assert(association.variant.getAlternateAllele === "C")
     assert(MathUtils.fpEquals(association.statistics("logOddsHet").asInstanceOf[Double],
-                              (90.0 * 10.0) / (40.0 * 10.0)))
+      (90.0 * 10.0) / (40.0 * 10.0)))
     assert(MathUtils.fpEquals(association.statistics("logOddsHom").asInstanceOf[Double],
-                              (90.0 * 10.0) / (15.0 * 10.0)))
+      (90.0 * 10.0) / (15.0 * 10.0)))
     assert(MathUtils.fpEquals(association.statistics("χ2").asInstanceOf[Double],
-                              13.074712643678161))
+      13.074712643678161))
     assert(MathUtils.fpEquals(association.logPValue, -2.8391377768100514))
   }
 }

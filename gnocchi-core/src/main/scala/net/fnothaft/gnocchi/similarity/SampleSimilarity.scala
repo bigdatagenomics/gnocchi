@@ -25,7 +25,7 @@ import org.apache.spark.sql.Dataset
 import scala.collection.JavaConverters._
 
 object SampleSimilarity extends Serializable with Logging {
-  
+
   /**
    * Computes the pairwise similarity of all samples in a genotyped dataset.
    *
@@ -36,7 +36,7 @@ object SampleSimilarity extends Serializable with Logging {
   def apply(ds: Dataset[GenotypeState], similarityThreshold: Double = 0.5): RDD[Similarity] = {
 
     // get matrix
-    val (matrix, sampleIds) = GenotypeStateMatrix(ds) 
+    val (matrix, sampleIds) = GenotypeStateMatrix(ds)
 
     // compute similarity
     log.info("Computing similarity with threshold %f.".format(similarityThreshold))
@@ -61,7 +61,7 @@ object SampleSimilarity extends Serializable with Logging {
   private def entryToSimilarity(entry: MatrixEntry,
                                 idToSample: Map[Long, String]): Similarity = {
     Similarity(idToSample(entry.i),
-               idToSample(entry.j),
-               entry.value)
+      idToSample(entry.j),
+      entry.value)
   }
 }

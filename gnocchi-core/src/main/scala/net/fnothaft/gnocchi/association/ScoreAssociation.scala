@@ -65,11 +65,11 @@ private[gnocchi] object ScoreAssociation extends Serializable {
     val het = (hetNP + hetP).toDouble
     val homAlt = (homAltNP + homAltP).toDouble
     val χ2 = (stat(homRefNP, homRef * np / n) +
-              stat(hetNP, het * np / n) +
-              stat(homAltNP, homAlt * np / n) +
-              stat(homRefP, homRef * p / n) +
-              stat(hetP, het * p / n) +
-              stat(homAltP, homAlt * p / n))
+      stat(hetNP, het * np / n) +
+      stat(homAltNP, homAlt * np / n) +
+      stat(homRefP, homRef * p / n) +
+      stat(hetP, het * p / n) +
+      stat(homAltP, homAlt * p / n))
 
     // for 2 degrees of freedom, CDF of chi squared distribution is F(x) = 1 - exp(-x / 2)
     // therefore, log probability of null hypothesis is -x / 2
@@ -88,26 +88,26 @@ private[gnocchi] object ScoreAssociation extends Serializable {
     val gdf = genotypes.toDF
     val pdf = phenotypes.toDF.withColumnRenamed("sampleId", "pSampleId")
     val joined = gdf.join(pdf, gdf("sampleId") === pdf("pSampleId")).drop("pSampleId")
-    
+
     // project chi squared stats per variant/sample/phenotype combo
     val sampleStats = joined.select(joined("contig").as("contig"),
-                                    joined("start").as("start"),
-                                    joined("end").as("end"),
-                                    joined("ref").as("ref"),
-                                    joined("alt").as("alt"),
-                                    joined("phenotype").as("phenotype"),
-                                    when(joined("genotypeState") === 0 && !joined("value"), 1)
-                                      .otherwise(0).as("0/0"),
-                                    when(joined("genotypeState") === 1 && !joined("value"), 1)
-                                      .otherwise(0).as("0/1"),
-                                    when(joined("genotypeState") === 2 && !joined("value"), 1)
-                                      .otherwise(0).as("0/2"),
-                                    when(joined("genotypeState") === 0 && joined("value"), 1)
-                                      .otherwise(0).as("1/0"),
-                                    when(joined("genotypeState") === 1 && joined("value"), 1)
-                                      .otherwise(0).as("1/1"),
-                                    when(joined("genotypeState") === 2 && joined("value"), 1)
-                                      .otherwise(0).as("1/2"))
+      joined("start").as("start"),
+      joined("end").as("end"),
+      joined("ref").as("ref"),
+      joined("alt").as("alt"),
+      joined("phenotype").as("phenotype"),
+      when(joined("genotypeState") === 0 && !joined("value"), 1)
+        .otherwise(0).as("0/0"),
+      when(joined("genotypeState") === 1 && !joined("value"), 1)
+        .otherwise(0).as("0/1"),
+      when(joined("genotypeState") === 2 && !joined("value"), 1)
+        .otherwise(0).as("0/2"),
+      when(joined("genotypeState") === 0 && joined("value"), 1)
+        .otherwise(0).as("1/0"),
+      when(joined("genotypeState") === 1 && joined("value"), 1)
+        .otherwise(0).as("1/1"),
+      when(joined("genotypeState") === 2 && joined("value"), 1)
+        .otherwise(0).as("1/2"))
 
     // aggregate by site/phenotype combo
     val chiSquaredPerSiteRDD = sampleStats.groupBy("contig", "start", "end", "ref", "alt", "phenotype")
@@ -120,42 +120,42 @@ private[gnocchi] object ScoreAssociation extends Serializable {
       .withColumnRenamed("sum(1/2)", "s12")
       .map(r => r match {
         case Row(contig: String,
-                 start: Long,
-                 end: Long,
-                 ref: String,
-                 alt: String,
-                 phenotype: String,
-                 s00: Long,
-                 s01: Long,
-                 s02: Long,
-                 s10: Long,
-                 s11: Long,
-                 s12: Long) => {
+          start: Long,
+          end: Long,
+          ref: String,
+          alt: String,
+          phenotype: String,
+          s00: Long,
+          s01: Long,
+          s02: Long,
+          s10: Long,
+          s11: Long,
+          s12: Long) => {
 
-                   // calculate chi squared statistic
-                   val (oHet, oHom, χ2, logP) = chiSquared(s00, s01, s02, s10, s11, s12)
+          // calculate chi squared statistic
+          val (oHet, oHom, χ2, logP) = chiSquared(s00, s01, s02, s10, s11, s12)
 
-                   Association(Variant.newBuilder()
-                     .setContig(Contig.newBuilder()
-                     .setContigName(contig)
-                     .build())
-                     .setStart(start)
-                     .setEnd(end)
-                     .setReferenceAllele(ref)
-                     .setAlternateAllele(alt)
-                     .build(),
-                               phenotype,
-                               logP,
-                               Map("logOddsHet" -> oHet,
-                                   "logOddsHom" -> oHom,
-                                   "χ2" -> χ2,
-                                   "s00" -> s00,
-                                   "s01" -> s01,
-                                   "s02" -> s02,
-                                   "s10" -> s10,
-                                   "s11" -> s11,
-                                   "s12" -> s12))
-                 }
+          Association(Variant.newBuilder()
+            .setContig(Contig.newBuilder()
+              .setContigName(contig)
+              .build())
+            .setStart(start)
+            .setEnd(end)
+            .setReferenceAllele(ref)
+            .setAlternateAllele(alt)
+            .build(),
+            phenotype,
+            logP,
+            Map("logOddsHet" -> oHet,
+              "logOddsHom" -> oHom,
+              "χ2" -> χ2,
+              "s00" -> s00,
+              "s01" -> s01,
+              "s02" -> s02,
+              "s10" -> s10,
+              "s11" -> s11,
+              "s12" -> s12))
+        }
       })
 
     // translate RDD back into dataset

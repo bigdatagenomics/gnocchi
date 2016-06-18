@@ -39,7 +39,7 @@ private[gnocchi] object FillGenotypes extends Serializable {
 
     // what samples are missing at this site?
     val missingSamples = decimateSamples(vc.genotypes.toIterator,
-                                         samples)
+      samples)
 
     // for these samples, create new genotypes
     val filledInGenotypes = missingSamples.toIterable

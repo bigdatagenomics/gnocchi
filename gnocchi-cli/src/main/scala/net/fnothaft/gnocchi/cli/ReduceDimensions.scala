@@ -57,7 +57,7 @@ class ReduceDimensions(protected val args: ReduceDimensionsArgs) extends BDGSpar
 
   def run(sc: SparkContext) {
     require(args.dimensions >= 1, "Dimensionality (%d) must be positive.".format(args.dimensions))
-    
+
     // load in genotype data
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
