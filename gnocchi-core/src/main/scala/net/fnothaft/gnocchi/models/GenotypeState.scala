@@ -15,6 +15,7 @@
  */
 package net.fnothaft.gnocchi.models
 
+import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 case class GenotypeState(contig: String,
@@ -24,6 +25,10 @@ case class GenotypeState(contig: String,
                          alt: String,
                          sampleId: String,
                          genotypeState: Int) {
+
+  def referenceAllele: (ReferenceRegion, String) = {
+    (ReferenceRegion(contig, start, end), alt)
+  }
 
   def variant: Variant = {
     Variant.newBuilder()

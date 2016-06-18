@@ -16,7 +16,7 @@
 package net.fnothaft.gnocchi.association
 
 import htsjdk.samtools.ValidationStringency
-import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype }
+import net.fnothaft.gnocchi.models._
 import org.apache.spark.{ Logging, SparkContext }
 import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 
@@ -187,31 +187,32 @@ private[gnocchi] object LoadPhenotypes extends Serializable with Logging {
     // get sql context
     val sqlContext = SQLContext.getOrCreate(sc)
 
-    // create parsing function
-    val parseFn = if (manifest[T] == manifest[Int]) {
-      (s: String) => s.toInt
-    } else if (manifest[T] == manifest[String]) {
-      (s: String) => s
+    // load and parse text file
+    import sqlContext.implicits._
+    sqlContext.createDataset(sc.textFile(file)
+      .map(parseLine[T]))
+  }
+
+  private[gnocchi] def parseLine[T](line: String)(implicit mT: Manifest[T]): Phenotype[T] = {
+    val splits = line.split(",")
+    assert(splits.length == 3, "Line was incorrectly formatted, did not contain sample, phenotype, hasPhenotype:\n%s".format(line))
+
+    val pheno = if (manifest[T] == manifest[Int]) {
+      IntPhenotype(splits(1).trim,
+                   splits(0).trim,
+                   splits(2).trim.toInt)
     } else if (manifest[T] == manifest[Boolean]) {
-      (s: String) => s == "true"
+      BooleanPhenotype(splits(1).trim,
+                       splits(0).trim,
+                       splits(2).trim == "true")
     } else if (manifest[T] == manifest[Double]) {
-      (s: String) => s.toDouble
+      DoublePhenotype(splits(1).trim,
+                      splits(0).trim,
+                      splits(2).trim.toDouble)
     } else {
       throw new IllegalArgumentException("Type not found.")
     }
 
-    // load and parse text file
-    import sqlContext.implicits._
-    sqlContext.createDataset(sc.textFile(file)
-      .map(parseLine[T](_, parseFn)))
-  }
-
-  private[gnocchi] def parseLine[T](line: String, parseFn: String => Any): Phenotype[T] = {
-    val splits = line.split(",")
-    assert(splits.length == 3, "Line was incorrectly formatted, did not contain sample, phenotype, hasPhenotype:\n%s".format(line))
-
-    Phenotype[T](splits(1).trim,
-                 splits(0).trim,
-                 parseFn(splits(2).trim).asInstanceOf[T])
+    pheno.asInstanceOf[Phenotype[T]]
   }
 }
