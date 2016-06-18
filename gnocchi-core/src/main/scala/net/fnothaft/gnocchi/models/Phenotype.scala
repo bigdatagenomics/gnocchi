@@ -15,7 +15,31 @@
  */
 package net.fnothaft.gnocchi.models
 
-case class Phenotype[T](phenotype: String,
+trait Phenotype[T] extends Product {
+  val phenotype: String
+  val sampleId: String
+  val value: T
+
+  def toDouble: Double
+}
+
+case class IntPhenotype(phenotype: String,
                         sampleId: String,
-                        value: T) {
+                        value: Int) extends Phenotype[Int] {
+
+  def toDouble: Double = value.toDouble
+}
+
+case class DoublePhenotype(phenotype: String,
+                           sampleId: String,
+                           value: Double) extends Phenotype[Double] {
+
+  def toDouble: Double = value
+}
+
+case class BooleanPhenotype(phenotype: String,
+                            sampleId: String,
+                            value: Boolean) extends Phenotype[Boolean] {
+
+  def toDouble: Double = if (value) 1.0 else 0.0
 }

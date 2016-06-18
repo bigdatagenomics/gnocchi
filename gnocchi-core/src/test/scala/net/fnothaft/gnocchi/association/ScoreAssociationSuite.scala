@@ -16,7 +16,7 @@
 package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.models.{ Association, GenotypeState, Phenotype }
+import net.fnothaft.gnocchi.models.{ Association, BooleanPhenotype, GenotypeState }
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.formats.avro._
@@ -62,7 +62,7 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
                                   v1.getAlternateAllele,
                                   sample,
                                   0)
-      val pNot = Phenotype("a phenotype",
+      val pNot = BooleanPhenotype("a phenotype",
                            sample,
                            false)
       (gHomRef, pNot)
@@ -77,7 +77,7 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
                                   v1.getAlternateAllele,
                                   sample,
                                   0)
-      val pHas = Phenotype("a phenotype",
+      val pHas = BooleanPhenotype("a phenotype",
                            sample,
                            true)
                           (gHomRef, pHas)
@@ -92,7 +92,7 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
                                v1.getAlternateAllele,
                                sample,
                                1)
-      val pNot = Phenotype("a phenotype",
+      val pNot = BooleanPhenotype("a phenotype",
                            sample,
                            false)
                           (gHet, pNot)
@@ -107,7 +107,7 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
                                v1.getAlternateAllele,
                                sample,
                                1)
-      val pHas = Phenotype("a phenotype",
+      val pHas = BooleanPhenotype("a phenotype",
                            sample,
                            true)
       (gHet, pHas)
@@ -122,7 +122,7 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
                                   v1.getAlternateAllele,
                                   sample,
                                   2)
-      val pNot = Phenotype("a phenotype",
+      val pNot = BooleanPhenotype("a phenotype",
                            sample,
                            false)
                           (gHomAlt, pNot)
@@ -137,7 +137,7 @@ class ScoreAssociationSuite extends GnocchiFunSuite {
                                   v1.getAlternateAllele,
                                   sample,
                                   2)
-      val pHas = Phenotype("a phenotype",
+      val pHas = BooleanPhenotype("a phenotype",
                            sample,
                            true)
       (gHomAlt, pHas)
