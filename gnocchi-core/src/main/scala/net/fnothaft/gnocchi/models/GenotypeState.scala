@@ -24,7 +24,7 @@ case class GenotypeState(contig: String,
                          ref: String,
                          alt: String,
                          sampleId: String,
-                         genotypeState: Double) {
+                         genotypeState: Int) {
 
   def referenceAllele: (ReferenceRegion, String) = {
     (ReferenceRegion(contig, start, end), alt)

@@ -1,0 +1,12 @@
+SampleID	pheno1	pheno2	pheno3	pheno4	pheno5
+sample1	1	0	0	0.8404	2.9080
+sample2	1	0	0	-0.8880	0.8252
+sample3	1	0	0	0.1001	1.3790	
+sample4	1	0	0	-0.5445	-1.0582
+sample5	2	0	0	0.3035	-0.4686
+sample6	2	0	0	-0.6003	-0.2725
+sample7	2	0	0	0.4900	1.0984
+sample8	3	0	0	0.7394	-0.2779
+sample9	3	0	0	1.7119	0.7015
+sample10	3	0	0	-0.1941	-2.0518
+
