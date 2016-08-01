@@ -25,9 +25,11 @@ PRE_DD=()
 POST_DD=()
 for ARG in "$@"; do
   shift
+  # echo $ARG
   if [[ $ARG == "--" ]]; then
     DD=True
     POST_DD=( "$@" )
+    echo $POST_DD
     break
   fi
   PRE_DD+=("$ARG")
@@ -76,7 +78,11 @@ echo "Using SPARK_SUBMIT=$SPARK_SUBMIT"
 "$SPARK_SUBMIT" \
   --class net.fnothaft.gnocchi.cli.GnocchiMain \
   --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
-  --conf spark.kryo.registrator=net.fnothaft.gnocchi.GnocchiKryoRegistrator \
+  --conf spark.kryo.registrator=org.bdgenomics.adam.serialization.ADAMKryoRegistrator \
   $SPARK_ARGS \
   $GNOCCHI_CLI_JAR \
   $GNOCCHI_ARGS
+echo "Done submiting the args to GnochiMain.main()"
+  # org.bdgenomics.adam.serialization.ADAMKryoRegistrator
+  # This was the old one. net.fnothaft.gnocchi.GnocchiKryoRegistrator
+  # org.bdgenomics.adam.AdamKryoRegistrator

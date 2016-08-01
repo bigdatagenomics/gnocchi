@@ -29,24 +29,31 @@ trait SiteRegression extends Serializable {
 
   protected def clipOrKeepState(gs: GenotypeState): Double
 
+  /* 
+  Takes in an RDD of GenotypeStates, constructs the proper observations array for each site, and feeds it into 
+  regressSite
+  */
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
     rdd.keyBy(_.sampleId)
+      // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
       .map(kvv => {
+        // unpack the entry of the joined rdd into id and actual info
         val (_, p) = kvv
+        // unpack the information into genotype state and pheno
         val (gs, pheno) = p
+        // unpack the 
         ((gs.referenceAllele, pheno.phenotype), p)
-      }).groupByKey()
+      }).groupByKey() // what are the keys here? (gs.referenceAllele, pheno.phenotype)?
       .map(site => {
         val (((pos, allele), phenotype), observations) = site
-
         // build array to regress on, and then regress
         regressSite(observations.map(p => {
           // unpack p
           val (genotypeState, phenotype) = p
           // return genotype and phenotype in the correct form
-          (clipOrKeepState(genotypeState), Array(phenotype.toDouble))
+          (clipOrKeepState(genotypeState), phenotype.toDouble)
         }).toArray, pos, allele, phenotype)
       })
   }
@@ -66,7 +73,7 @@ trait SiteRegression extends Serializable {
 trait Additive extends SiteRegression {
 
   protected def clipOrKeepState(gs: GenotypeState): Double = {
-    gs.genotypeState
+    gs.genotypeState.toDouble
   }
 }
 

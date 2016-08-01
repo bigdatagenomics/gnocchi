@@ -28,6 +28,10 @@ object GenotypeStateMatrix extends Serializable with Logging {
 
   def apply(ds: Dataset[GenotypeState]): (RowMatrix, Map[String, Int]) = {
 
+    // """
+    // Creates a matrix where the rows are sites and the columns are samples.
+    // The value at any given location is the genotype dose (Double) for a sample at that site. 
+    // """
     // get sample id's and broadcast
     val df = ds.toDF()
     df.cache()

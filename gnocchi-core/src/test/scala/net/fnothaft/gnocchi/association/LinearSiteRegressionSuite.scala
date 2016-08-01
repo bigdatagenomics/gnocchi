@@ -16,7 +16,7 @@
 package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.models.{ Association, BooleanPhenotype, GenotypeState }
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState }
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 
 class LinearSiteRegressionSuite extends GnocchiFunSuite {
