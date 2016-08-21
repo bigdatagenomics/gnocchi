@@ -120,14 +120,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // hard-coded stuff
     println("trying hard-coded stuff")
     val gnomeDF = sqlContext.read.parquet("/Users/Taner/Desktop/Unite/gnocchi/gnocchi-cli/src/test/resources/testData/parquetInputFiles/")
-    gnomeDF.printSchema()
-    gnomeDF.show()
+    // gnomeDF.printSchema()
+    // gnomeDF.show()
 
     // val absGenotypesPath = new File(args.genotypes).getAbsolutePath()
-    println("args.genotypes: " + args.genotypes)
+    // println("args.genotypes: " + args.genotypes)
 
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
-    println("parquetInputDestination: " + parquetInputDestination)
+    // println("parquetInputDestination: " + parquetInputDestination)
 
     val parquetFiles = new File(parquetInputDestination)
 
@@ -142,7 +142,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       // val parquetPath = ClassLoader.getSystemClassLoader.getResource(parquetPutDestination).getFile
       FileUtils.deleteDirectory(parquetFiles)
 
-      println("After deletion, does the parquet directory exist? " + parquetFiles.getAbsoluteFile().exists)
+      // println("After deletion, does the parquet directory exist? " + parquetFiles.getAbsoluteFile().exists)
 
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
@@ -153,7 +153,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     import sqlContext.implicits._
     val genotypes = sqlContext.read.parquet(parquetInputDestination)
 
-    println("Parquet destination being read in: " + parquetInputDestination)
+    // println("Parquet destination being read in: " + parquetInputDestination)
 
     genotypes.show()
 
