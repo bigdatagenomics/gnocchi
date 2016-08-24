@@ -41,7 +41,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ DataFrame, Dataset }
-import net.fnothaft.gnocchi.models.{ Phenotype, Association }
+import net.fnothaft.gnocchi.models.{ Phenotype, Association, AuxEncoders }
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -113,49 +113,24 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
-    // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     val absAssociationPath = new File(args.associations).getAbsolutePath()
     var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
-
-    // hard-coded stuff
-    println("trying hard-coded stuff")
-    val gnomeDF = sqlContext.read.parquet("/Users/Taner/Desktop/Unite/gnocchi/gnocchi-cli/src/test/resources/testData/parquetInputFiles/")
-    // gnomeDF.printSchema()
-    // gnomeDF.show()
-
-    // val absGenotypesPath = new File(args.genotypes).getAbsolutePath()
-    // println("args.genotypes: " + args.genotypes)
-
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
-    // println("parquetInputDestination: " + parquetInputDestination)
-
     val parquetFiles = new File(parquetInputDestination)
 
-    println("parquetInputDestination absolute File: " + parquetFiles.getAbsoluteFile())
-
-    println("Does the parquet directory exist? " + parquetFiles.getAbsoluteFile().exists)
-
+    // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!parquetFiles.getAbsoluteFile().exists) {
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     } else if (args.overwrite) {
-      // val parquetPath = ClassLoader.getSystemClassLoader.getResource(parquetPutDestination).getFile
       FileUtils.deleteDirectory(parquetFiles)
-
-      // println("After deletion, does the parquet directory exist? " + parquetFiles.getAbsoluteFile().exists)
-
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     }
 
     // read in parquet files
-    // val toReadIn = parquetInputDestination + ".."
     import sqlContext.implicits._
     val genotypes = sqlContext.read.parquet(parquetInputDestination)
-
-    // println("Parquet destination being read in: " + parquetInputDestination)
-
-    genotypes.show()
 
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
     val genotypeStates = sqlContext.toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
@@ -163,9 +138,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     /*
     For now, just going to use PLINK's Filtering functionality to create already-filtered vcfs from the BED. 
-    TODO: Write genotype filters for missingness, MAF, and genotype rate 
-    To do the filtering, create a genotypeState matrix and calculate which SNPs and Samples need to be filtered out.
-    Then go back into the Dataset of GenotypeStates and filter out those GenotypeStates.  
+    TODO: Write genotype filters for missingness, MAF, and genotyping rate 
+      - To do the filtering, create a genotypeState matrix and calculate which SNPs and Samples need to be filtered out.
+      - Then go back into the Dataset of GenotypeStates and filter out those GenotypeStates.  
     */
 
     // convert to genotypestatematrix dataframe
@@ -186,7 +161,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def loadPhenotypes(sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
     // """ 
-    // NEED TO INPUT METHODS FOR FILTERING SNPS AND SAMPLES
+    // SNPs and Samples are filtered out by PLINK when creating the VCF file. 
     // """
     if (args.associationType == "CHI_SQUARED") {
       assert(false, "CHI_SQUARED has been phased out.")
@@ -195,11 +170,12 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     assert(Option[String](args.phenoName).isDefined, "The model assumes a phenotype file with multiple phenotypes as columns and a phenoName must be given.")
 
     // assert covariates are given if -covar given
-    if (args.includeCovariates) assert(Option[String](args.covarNames).isDefined, "If the -covar flag is given, covarite names must be given using the -covarNames flag")
-
-    // assert that the primary phenotype isn't included in the covariates. 
-    for (covar <- args.covarNames.split(",")) {
-      assert(covar != args.phenoName, "Primary phenotype cannot be a covariate.")
+    if (args.includeCovariates) {
+      assert(Option[String](args.covarNames).isDefined, "If the -covar flag is given, covarite names must be given using the -covarNames flag")
+      // assert that the primary phenotype isn't included in the covariates. 
+      for (covar <- args.covarNames.split(",")) {
+        assert(covar != args.phenoName, "Primary phenotype cannot be a covariate.")
+      }
     }
 
     // Load phenotypes
@@ -217,6 +193,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
                       sc: SparkContext): Dataset[Association] = {
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
+    import AuxEncoders._
     import org.apache.spark.SparkContext._
     val associations = args.associationType match {
       case "ADDITIVE_LINEAR" => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
@@ -232,8 +209,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // save dataset
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
+    val associationsFile = new File(args.associations)
+    if (associationsFile.exists) {
+      FileUtils.deleteDirectory(associationsFile)
+    }
     if (args.saveAsText) {
-      associations.toDF.rdd.map(_.toString).saveAsTextFile(args.associations)
+      // associations.toDF.rdd.map(_.toString).saveAsTextFile(args.associations)
+      associations.rdd.saveAsTextFile(args.associations)
     } else {
       associations.toDF.write.parquet(args.associations)
     }

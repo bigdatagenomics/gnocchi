@@ -21,13 +21,7 @@ import org.apache.spark.{ Logging, SparkContext }
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 /*
-Should be able to load the relevant phenotypes from a textfile where the first line is a header. 
-
-Need to 1) Load only the relevant columns of the textfile
-        2) Convert the file into a Dataset[Phenotype[Array[T]]
-        3) Count [Optional] and cut out any samples with missing phenotypes. 
-        4) Count [Optional] and cut out any samples with missing covariates. 
-        5) Return the resulting Dataset[PHenotype[Array[T]]]
+Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.
 */
 
 private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with Logging {
@@ -106,15 +100,19 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with L
     val data = phenotypes.filter(line => line != header)
       // split the line by column
       .map(line => line.split("\t"))
-      // filter out samples missing the phenotype being regressed.
+      // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
       .filter(p => {
-        var keep = true
-        for (valueIndex <- indices) {
-          if (isMissing(p(valueIndex))) {
-            keep = false
+        if (p.length > 1) {
+          var keep = true
+          for (valueIndex <- indices) {
+            if (isMissing(p(valueIndex))) {
+              keep = false
+            }
           }
+          keep
+        } else {
+          false
         }
-        keep
       })
       // construct a phenotype object from the data in the sample
       .map(p => new MultipleRegressionDoublePhenotype(

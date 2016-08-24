@@ -20,6 +20,7 @@ import net.fnothaft.gnocchi.models._
 import org.apache.spark.{ Logging, SparkContext }
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, Row, SQLContext }
+
 /*
 Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.
 */
@@ -39,6 +40,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
 
     // get label indices
     val labels = header.split("\t").zipWithIndex
+
     assert(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
     // get the index of the phenotype to be regressed
@@ -56,7 +58,6 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
     val data = getAndFilterPhenotypes(phenotypes, header, primaryPhenoIndex, sc)
 
     // """Should be able to store the data in a more readable format as well."""
-    // val selectedData = filt
     return data
   }
 
@@ -79,15 +80,19 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
     val data = phenotypes.filter(line => line != header)
       // split the line by column
       .map(line => line.split("\t"))
-      // filter out samples missing the phenotype being regressed.
+      // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
       .filter(p => {
-        var keep = true
-        for (valueIndex <- indices) {
-          if (isMissing(p(valueIndex))) {
-            keep = false
+        if (p.length > 1) {
+          var keep = true
+          for (valueIndex <- indices) {
+            if (isMissing(p(valueIndex))) {
+              keep = false
+            }
           }
+          keep
+        } else {
+          false
         }
-        keep
       })
       // construct a phenotype object from the data in the sample
       .map(p => new MultipleRegressionDoublePhenotype(

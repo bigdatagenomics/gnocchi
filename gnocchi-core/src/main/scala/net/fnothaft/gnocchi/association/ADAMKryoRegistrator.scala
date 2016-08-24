@@ -26,7 +26,7 @@ import org.apache.spark.serializer.KryoRegistrator
 import org.bdgenomics.adam.util.{ TwoBitFileSerializer, TwoBitFile }
 import org.bdgenomics.formats.avro._
 import org.bdgenomics.adam.models._
-import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype }
+import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype, Association }
 import org.bdgenomics.adam.rdd.read.realignment._
 import scala.reflect.ClassTag
 
@@ -71,6 +71,7 @@ class ADAMKryoRegistrator extends KryoRegistrator {
     kryo.register(classOf[AlignmentRecord], new AvroSerializer[AlignmentRecord]())
     kryo.register(classOf[Genotype], new AvroSerializer[Genotype]())
     kryo.register(classOf[Variant], new AvroSerializer[Variant]())
+    kryo.register(classOf[Association])
     kryo.register(classOf[DatabaseVariantAnnotation], new AvroSerializer[DatabaseVariantAnnotation]())
     kryo.register(classOf[NucleotideContigFragment], new AvroSerializer[NucleotideContigFragment]())
     kryo.register(classOf[Contig], new AvroSerializer[Contig]())

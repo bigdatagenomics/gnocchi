@@ -21,6 +21,7 @@ import org.bdgenomics.adam.models.ReferenceRegion
 import scala.math.sqrt
 import scala.math.log10
 import org.apache.commons.math3.distribution.TDistribution
+import org.bdgenomics.formats.avro.{ Variant, Contig }
 
 trait LinearSiteRegression extends SiteRegression {
 
@@ -45,7 +46,7 @@ trait LinearSiteRegression extends SiteRegression {
     val x = new Array[Array[Double]](numObservations)
     var y = new Array[Double](numObservations)
 
-    // loop through observations, copying correct elements into sample array and filling the x matrix.
+    // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
     var sample = new Array[Double](observationLength)
     var genoSum = 0.0
@@ -72,24 +73,29 @@ trait LinearSiteRegression extends SiteRegression {
     // compute the regression parameters standard errors
     val standardErrors = ols.estimateRegressionParametersStandardErrors()
 
-    // get standard error for genotype parameter for p value calculation
+    // get standard error for genotype parameter (for p value calculation)
     val genoSE = standardErrors(1)
 
     // test statistic t for jth parameter is equal to bj/SEbj, the parameter estimate divided by its standard error
     val t = beta(1) / genoSE
 
     /* calculate p-value and report: 
-    / Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is 
-    / a t-distribution with N-p-1 degrees of freedom.
+      Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is 
+      a t-distribution with N-p-1 degrees of freedom.
     */
     val tDist = new TDistribution(numObservations - observationLength - 1)
     val pvalue = 1.0 - tDist.cumulativeProbability(t)
     val logPValue = log10(pvalue)
 
     // pack up the information into an Association object
-    val variant = null
+    val variant = new Variant()
+    val contig = new Contig()
+    contig.setContigName(locus.referenceName)
+    variant.setContig(contig)
+    variant.setStart(locus.start)
+    variant.setEnd(locus.end)
+    variant.setAlternateAllele(altAllele)
     val statistics = Map("rSquared" -> rSquared)
-    val phenotype = null
     val associationObject = new Association(variant, phenotype, logPValue, statistics)
 
     return associationObject
