@@ -18,6 +18,7 @@ package net.fnothaft.gnocchi.association
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.models.{ Association, GenotypeState }
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
+import org.bdgenomics.adam.models.ReferenceRegion
 
 class LinearSiteRegressionSuite extends GnocchiFunSuite {
 
@@ -34,9 +35,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(7) = (2, Array[Double](3))
     observations(8) = (2, Array[Double](3))
     observations(9) = (2, Array[Double](3))
-    val locus = null
-    val altAllele = null
-    val phenotype = null
+    val locus = ReferenceRegion("Name", 1, 2)
+    val altAllele = "C"
+    val phenotype = "MyPhenotype"
 
     //use additiveLinearRegression to regress on Ascombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
@@ -82,9 +83,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(8) = (12.0, Array[Double](10.84))
     observations(9) = (7.0, Array[Double](4.82))
     observations(10) = (5.0, Array[Double](5.68))
-    val locus = null
-    val altAllele = null
-    val phenotype = null
+    val locus = ReferenceRegion("Name", 1, 2)
+    val altAllele = "C"
+    val phenotype = "MyPhenotype"
 
     //use additiveLinearRegression to regress on Ascombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
@@ -109,9 +110,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(8) = (12.0, Array[Double](9.13))
     observations(9) = (7.0, Array[Double](7.26))
     observations(10) = (5.0, Array[Double](4.74))
-    val locus = null
-    val altAllele = null
-    val phenotype = null
+    val locus = ReferenceRegion("Name", 1, 2)
+    val altAllele = "C"
+    val phenotype = "MyPhenotype"
 
     //use additiveLinearRegression to regress on Ascombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
@@ -136,9 +137,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(8) = (12.0, Array[Double](8.15))
     observations(9) = (7.0, Array[Double](6.42))
     observations(10) = (5.0, Array[Double](5.73))
-    val locus = null
-    val altAllele = null
-    val phenotype = null
+    val locus = ReferenceRegion("Name", 1, 2)
+    val altAllele = "C"
+    val phenotype = "MyPhenotype"
 
     //use additiveLinearRegression to regress on Ascombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
@@ -163,9 +164,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(8) = (8.0, Array[Double](5.56))
     observations(9) = (8.0, Array[Double](7.91))
     observations(10) = (8.0, Array[Double](6.89))
-    val locus = null
-    val altAllele = null
-    val phenotype = null
+    val locus = ReferenceRegion("Name", 1, 2)
+    val altAllele = "C"
+    val phenotype = "MyPhenotype"
 
     //use additiveLinearRegression to regress on Ascombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
@@ -260,9 +261,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(35) = (89.40, Array[Double](94, 64.5, 139))
     observations(36) = (93.00, Array[Double](74, 74.0, 148))
     observations(37) = (93.59, Array[Double](89, 75.5, 179))
-    val locus = null
-    val altAllele = null
-    val phenotype = null
+    val locus = ReferenceRegion("Name", 1, 2)
+    val altAllele = "C"
+    val phenotype = "MyPhenotype"
 
     // use additiveLinearAssociation to regress on PIQ data
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
