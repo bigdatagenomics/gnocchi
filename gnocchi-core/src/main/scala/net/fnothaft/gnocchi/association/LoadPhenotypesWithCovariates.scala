@@ -17,20 +17,20 @@ package net.fnothaft.gnocchi.association
 
 import htsjdk.samtools.ValidationStringency
 import net.fnothaft.gnocchi.models._
-import org.apache.spark.{ Logging, SparkContext }
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 /*
 Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.
 */
 
-private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with Logging {
+private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
 
   def apply[T](file: String,
                phenoName: String,
                covarNames: String,
                sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
-    log.info("Loading phenotypes from %s.".format(file))
+    println("Loading phenotypes from %s.".format(file))
 
     // get the relevant parts of the phenotypes file and put into a DF
     val phenotypes = sc.textFile(file).persist()

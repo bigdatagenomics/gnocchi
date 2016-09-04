@@ -20,7 +20,7 @@ import net.fnothaft.gnocchi._
 import net.fnothaft.gnocchi.imputation.FillGenotypes
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SparkContext._
-import org.apache.spark.{ Logging, SparkContext }
+import org.apache.spark.SparkContext
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.BroadcastRegionJoin
