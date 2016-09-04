@@ -16,11 +16,10 @@
 package net.fnothaft.gnocchi.cli
 
 import java.util.logging.Level._
-import org.apache.spark.Logging
 import org.bdgenomics.adam.util.ParquetLogger
 import org.bdgenomics.utils.cli._
 
-object GnocchiMain extends Logging {
+object GnocchiMain {
 
   private val commands = List(ComputeSampleSimilarity,
     FillIn,
@@ -38,7 +37,7 @@ object GnocchiMain extends Logging {
   }
 
   def main(args: Array[String]) {
-    log.info("ADAM invoked with args: %s".format(args.mkString(" ")))
+    println("ADAM invoked with args: %s".format(args.mkString(" ")))
     if (args.size < 1) {
       printCommands()
     } else {
