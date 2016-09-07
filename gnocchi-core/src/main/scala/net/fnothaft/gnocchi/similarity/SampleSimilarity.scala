@@ -18,13 +18,12 @@ package net.fnothaft.gnocchi.similarity
 import net.fnothaft.gnocchi.models.{ GenotypeState, Similarity }
 import net.fnothaft.gnocchi.sql.GenotypeStateMatrix
 import org.apache.spark.SparkContext._
-import org.apache.spark.Logging
 import org.apache.spark.mllib.linalg.distributed.MatrixEntry
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import scala.collection.JavaConverters._
 
-object SampleSimilarity extends Serializable with Logging {
+object SampleSimilarity extends Serializable {
 
   /**
    * Computes the pairwise similarity of all samples in a genotyped dataset.
@@ -39,7 +38,7 @@ object SampleSimilarity extends Serializable with Logging {
     val (matrix, sampleIds) = GenotypeStateMatrix(ds)
 
     // compute similarity
-    log.info("Computing similarity with threshold %f.".format(similarityThreshold))
+    println("Computing similarity with threshold %f.".format(similarityThreshold))
     val similarity = matrix.columnSimilarities(similarityThreshold)
 
     // reverse sample ID map and broadcast
