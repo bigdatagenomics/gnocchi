@@ -37,8 +37,6 @@ class GnocchiContext private[sql] (@transient sqlContext: SQLContext) extends Se
 
   def toGenotypeStateDataFrame(gtFrame: DataFrame, ploidy: Int, sparse: Boolean = false): DataFrame = {
 
-
-
     val filteredGtFrame = if (sparse) {
       // if we want the sparse representation, we prefilter
       val sparseFilter = (0 until ploidy).map(i => {
