@@ -19,7 +19,7 @@ import net.fnothaft.gnocchi.models.GenotypeState
 import net.fnothaft.gnocchi.similarity.SampleSimilarity
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext._
-import org.apache.spark.{ Logging, SparkContext }
+import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.utils.misc.HadoopUtil
