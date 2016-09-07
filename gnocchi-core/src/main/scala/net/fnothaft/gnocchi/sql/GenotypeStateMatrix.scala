@@ -17,14 +17,13 @@ package net.fnothaft.gnocchi.sql
 
 import net.fnothaft.gnocchi.models.GenotypeState
 import org.apache.spark.SparkContext._
-import org.apache.spark.Logging
 import org.apache.spark.mllib.linalg.{ Vector, Vectors }
 import org.apache.spark.mllib.linalg.distributed.{ MatrixEntry, RowMatrix }
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, Row }
 import org.bdgenomics.formats.avro.Variant
 
-object GenotypeStateMatrix extends Serializable with Logging {
+object GenotypeStateMatrix extends Serializable {
 
   def apply(ds: Dataset[GenotypeState]): (RowMatrix, Map[String, Int]) = {
 
@@ -46,14 +45,14 @@ object GenotypeStateMatrix extends Serializable with Logging {
     val rdd = ds.rdd
     val bcastIds = rdd.context.broadcast(sampleIds)
     val samples = sampleIds.size
-    log.info("Have %d samples.".format(samples))
+    println("Have %d samples.".format(samples))
 
     // filter out reference calls and join against sample id's, then group by pos
     val samplesByVariant = rdd.flatMap(filterAndJoin(_, bcastIds.value))
       .groupByKey
       .cache
     val sites = samplesByVariant.count
-    log.info("Have %d sites.".format(sites))
+    println("Have %d sites.".format(sites))
 
     // create matrix by mapping sites into rows
     val matrix = new RowMatrix(samplesByVariant.map(siteToRow(_, samples)), sites, samples)
