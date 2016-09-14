@@ -57,7 +57,7 @@
     <parquet.version>1.7.0</parquet.version>
     <scala.version>2.10.4</scala.version>
     <scala.version.prefix>2.10</scala.version.prefix>
-    <spark.version>1.6.1</spark.version>
+    <spark.version>1.6.2</spark.version>
     <!-- Edit the following line to configure the Hadoop (HDFS) version. -->
     <utils.version>0.2.3</utils.version>
   </properties>
