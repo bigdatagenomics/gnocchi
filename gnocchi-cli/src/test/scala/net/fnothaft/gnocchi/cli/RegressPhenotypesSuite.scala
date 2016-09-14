@@ -128,6 +128,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
 
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("5snps10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
+    println(genoFilePath)
     val destination = "src/test/resources/testData/Association"
     // val destination = "~/Users/Taner/desktop/associations"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -covar -covarNames pheno4,pheno5 -overwriteParquet"
@@ -150,3 +151,5 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   }
 
 }
+// genoFilePath 
+// ./bin/gnocchi-submit regressPhenotypes gnocchi-cli/target/test-classes/5snps10samples.vcf gnocchi-cli/target/test-classes/10samples5Phenotypes2covars.txt ADDITIVE_LINEAR TestDataResults -saveAsText -phenoName pheno1 -covar -covarNames pheno4,pheno5 -overwriteParquet
