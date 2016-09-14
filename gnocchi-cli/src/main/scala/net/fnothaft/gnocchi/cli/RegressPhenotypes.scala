@@ -16,7 +16,7 @@
 package net.fnothaft.gnocchi.cli
 
 import htsjdk.samtools.ValidationStringency
-import java.io.File
+import java.io.{ FileNotFoundException, File }
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
 import net.fnothaft.gnocchi.sql.GnocchiContext._
@@ -37,6 +37,7 @@ import org.apache.parquet.hadoop.util.ContextUtil
 
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import java.nio.file.{ Paths, Files }
+import org.apache.hadoop.fs.{ FileSystem, Path }
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
 import org.apache.spark.rdd.RDD
@@ -113,6 +114,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
+    /* 
     val absAssociationPath = new File(args.associations).getAbsolutePath()
     var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
@@ -127,6 +129,63 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     }
+
+*/
+    // Check for the genotypes file first.
+    // val genoFile = new File(args.genotypes)
+    // assert(genoFile.exists, "Path to genotypes VCF file is incorrect or the file is missing.")
+
+    val absAssociationPath = new Path(args.associations)
+    val fs =
+      Option(absAssociationPath.getFileSystem(sc.hadoopConfiguration))
+        .getOrElse(throw new FileNotFoundException(
+          s"Couldn't find filesystem for ${absAssociationPath.toUri} with Hadoop configuration ${sc.hadoopConfiguration}"))
+    var parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
+    val parquetFiles = new File(parquetInputDestination)
+
+    // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
+    if (!fs.exists(absAssociationPath)) {
+      val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
+      Vcf2ADAM(cmdLine).run(sc)
+    } else if (args.overwrite) {
+      FileUtils.deleteDirectory(parquetFiles)
+      val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
+      Vcf2ADAM(cmdLine).run(sc)
+    }
+
+    // // println(args.associations)
+    // val absAssociationPath = args.associations //new File(args.associations) //.getAbsolutePath()
+    // println(absAssociationPath)
+    // // println(absAssociationPath)
+    // // var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
+    // var parquetInputDestination = absAssociationPath + "/parquetFiles/"
+    // println(parquetInputDestination)
+    // // println(parquetInputDestination)
+    // // parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
+    // // println(parquetInputDestination)
+    // val parquetFiles = new File(parquetInputDestination)
+    // println(parquetInputDestination)
+    // println(parquetFiles.exists)
+    // println(parquetFiles.getAbsoluteFile)
+    // println(parquetFiles.getAbsoluteFile.exists)
+
+    // println("Genotypes? ")
+    // val a = new File(args.genotypes)
+    // println(a.exists)
+
+    // /* Check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet
+    //  using vcf2adam.
+    // */
+    // // if (!parquetFiles.getAbsoluteFile().exists) {
+    // if (!parquetFiles.exists) {
+    //   val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
+    //   Vcf2ADAM(cmdLine).run(sc)
+    //   println(parquetFiles.getAbsoluteFile().exists)
+    // } else if (args.overwrite) {
+    //   FileUtils.deleteDirectory(parquetFiles)
+    //   val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
+    //   Vcf2ADAM(cmdLine).run(sc)
+    // }
 
     // read in parquet files
     import sqlContext.implicits._
