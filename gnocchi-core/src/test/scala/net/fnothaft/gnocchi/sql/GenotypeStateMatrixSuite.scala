@@ -28,6 +28,7 @@ class GenotypeStateMatrixSuite extends FunSuite {
       "A",
       "G",
       "mySample",
+      0,
       0)
     val row = GenotypeStateMatrix.filterAndJoin(gt, Map.empty)
     assert(row.isEmpty)
@@ -40,7 +41,8 @@ class GenotypeStateMatrixSuite extends FunSuite {
       "A",
       "G",
       "mySample",
-      2)
+      2,
+      0)
     val row = GenotypeStateMatrix.filterAndJoin(gt, Map(("mySample" -> 2),
       ("yourSample" -> 3)))
     assert(row.isDefined)
