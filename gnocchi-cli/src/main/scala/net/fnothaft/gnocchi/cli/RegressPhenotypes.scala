@@ -17,12 +17,14 @@ package net.fnothaft.gnocchi.cli
 
 import htsjdk.samtools.ValidationStringency
 import java.io.{ FileNotFoundException, File }
+import scala.collection.immutable.HashSet
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
+import net.fnothaft.gnocchi.sql.GenotypeStateMatrix
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SparkContext._
-import org.apache.spark.{ Logging, SparkContext }
+import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.adam.rdd.ADAMContext._
@@ -69,10 +71,10 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-phenoName", usage = "The phenotype to regress.") // need to have check for this flag somewhere if the associaiton type is on of the multiple regressions.
   var phenoName: String = null
 
-  @Args4jOption(required = false, name = "-covar", usage = "Whether to include covariates.") // this will be used to construct the original phenotypes array in LoadPhenotypes. 
+  @Args4jOption(required = false, name = "-covar", usage = "Whether to include covariates.") // this will be used to construct the original phenotypes array in LoadPhenotypes.
   var includeCovariates = false
 
-  @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields. 
+  @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
   var covarNames: String = null
 
   @Args4jOption(required = false, name = "-regions", usage = "The regions to filter genotypes by.")
@@ -89,6 +91,15 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-overwriteParquet", usage = "Overwrite parquet file that was created in the vcf conversion.")
   var overwrite = false
+
+  @Args4jOption(required = false, name = "-maf", usage = "Missingness per individual threshold. Default value is 0.01.")
+  var maf = 0.01
+
+  @Args4jOption(required = false, name = "-mind", usage = "Missingness per marker threshold. Default value is 0.1.")
+  var mind = 0.1
+
+  @Args4jOption(required = false, name = "-geno", usage = "Allele frequency threshold. Default value is 0.")
+  var geno = 0
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -99,10 +110,10 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // Load in genotype data
     val genotypeStates = loadGenotypes(sc)
 
-    // Load in phenotype data 
+    // Load in phenotype data
     val phenotypes = loadPhenotypes(sc)
 
-    // Perform analysis 
+    // Perform analysis
     val associations = performAnalysis(genotypeStates, phenotypes, sc)
 
     // Log the results
@@ -192,18 +203,19 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val genotypes = sqlContext.read.parquet(parquetInputDestination)
 
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
-    val genotypeStates = sqlContext.toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-      .as[GenotypeState]
+
+    val genotypeStates = sqlContext
+      .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
 
     /*
-    For now, just going to use PLINK's Filtering functionality to create already-filtered vcfs from the BED. 
-    TODO: Write genotype filters for missingness, MAF, and genotyping rate 
+    For now, just going to use PLINK's Filtering functionality to create already-filtered vcfs from the BED.
+    TODO: Write genotype filters for missingness, MAF, and genotyping rate
       - To do the filtering, create a genotypeState matrix and calculate which SNPs and Samples need to be filtered out.
-      - Then go back into the Dataset of GenotypeStates and filter out those GenotypeStates.  
+      - Then go back into the Dataset of GenotypeStates and filter out those GenotypeStates.
     */
 
     // convert to genotypestatematrix dataframe
-    // 
+    //
     // .as[GenotypeState]
 
     // apply filters: MAF, genotyping rate; (throw out SNPs with low MAF or genotyping rate)
@@ -213,9 +225,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // apply filters: missingness; (throw out samples missing too many SNPs)
     // val finalGenotypeStates =
 
-    // return genotypeStates
-    return genotypeStates
+    // mind filter
+    genotypeStates.registerTempTable("genotypeStates")
 
+    genotypeStates.show()
+    val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
+    // TODO: Resolve with "IN" sql command once spark2.0 is integrated
+    val filteredGenotypeStates = genotypeStates.filter(($"sampleId").isin(mindDF.collect().map(r => r(0)): _*))
+    return filteredGenotypeStates.as[GenotypeState]
   }
 
   def loadPhenotypes(sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
