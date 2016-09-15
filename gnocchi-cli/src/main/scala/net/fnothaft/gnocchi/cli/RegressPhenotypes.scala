@@ -33,6 +33,7 @@ import org.bdgenomics.formats.avro._
 import org.bdgenomics.utils.misc.HadoopUtil
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
+import scala.math.exp
 import org.apache.parquet.avro.AvroReadSupport
 import org.apache.parquet.hadoop.ParquetInputFormat
 import org.apache.parquet.hadoop.util.ContextUtil
@@ -228,7 +229,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // mind filter
     genotypeStates.registerTempTable("genotypeStates")
 
-    genotypeStates.show()
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
     // TODO: Resolve with "IN" sql command once spark2.0 is integrated
     val filteredGenotypeStates = genotypeStates.filter(($"sampleId").isin(mindDF.collect().map(r => r(0)): _*))
@@ -291,7 +291,11 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     }
     if (args.saveAsText) {
       // associations.toDF.rdd.map(_.toString).saveAsTextFile(args.associations)
-      associations.rdd.saveAsTextFile(args.associations)
+      // associations.rdd.saveAsTextFile(args.associations)
+      associations.rdd.map(r => "%s, %s, %s"
+        .format(r.variant.getContig.getContigName,
+          r.variant.getContig.getContigMD5, exp(r.logPValue).toString))
+        .saveAsTextFile(args.associations)
     } else {
       associations.toDF.write.parquet(args.associations)
     }
