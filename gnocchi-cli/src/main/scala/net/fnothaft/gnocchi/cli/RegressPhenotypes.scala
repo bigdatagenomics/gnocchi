@@ -148,10 +148,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // assert(genoFile.exists, "Path to genotypes VCF file is incorrect or the file is missing.")
     val absAssociationsPath = args.associations
     val hdfs = FileSystem.get(sc.hadoopConfiguration)
-    val associationsPath = new Path(args.associations)
     val parquetInputDestination = absAssociationsPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
     val parquetPath = new Path(parquetInputDestination)
-    if (!hdfs.exists(associationsPath)) {
+    if (!hdfs.exists(parquetPath)) {
       throw new FileNotFoundException(s"Could not find filesystme for ${args.associations} with Hadoop configuration ${sc.hadoopConfiguration}")
     }
 
