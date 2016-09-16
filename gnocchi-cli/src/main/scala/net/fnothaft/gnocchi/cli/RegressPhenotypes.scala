@@ -164,13 +164,17 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!hdfs.exists(parquetPath)) {
+      println("\n\n\n\n\n\n ParquetFile doesn't exist \n\n\n\n\n\n\n")
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     } else if (args.overwrite) {
+      println("\n\n\n\n\n\n ParquetFile is being overwritten \n\n\n\n\n\n\n")
       hdfs.delete(parquetPath, true)
       //      FileUtils.deleteDirectory(parquetFiles)
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
+    } else {
+      println("\n\n\n\n\n\n ParquetFile already exists \n\n\n\n\n\n\n")
     }
 
     // // println(args.associations)
