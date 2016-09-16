@@ -146,21 +146,30 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // Check for the genotypes file first.
     // val genoFile = new File(args.genotypes)
     // assert(genoFile.exists, "Path to genotypes VCF file is incorrect or the file is missing.")
+    val absAssociationsPath = args.associations
+    val hdfs = FileSystem.get(sc.hadoopConfiguration)
+    val associationsPath = new Path(args.associations)
+    val parquetInputDestination = absAssociationsPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
+    val parquetPath = new Path(parquetInputDestination)
+    if (!hdfs.exists(associationsPath)) {
+      throw new FileNotFoundException(s"Could not find filesystme for ${args.associations} with Hadoop configuration ${sc.hadoopConfiguration}")
+    }
 
-    val absAssociationPath = new Path(args.associations)
-    val fs =
-      Option(absAssociationPath.getFileSystem(sc.hadoopConfiguration))
-        .getOrElse(throw new FileNotFoundException(
-          s"Couldn't find filesystem for ${absAssociationPath.toUri} with Hadoop configuration ${sc.hadoopConfiguration}"))
-    var parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
-    val parquetFiles = new File(parquetInputDestination)
+    // val absAssociationPath = new Path(args.associations)
+    // val fs =
+    //   Option(absAssociationPath.getFileSystem(sc.hadoopConfiguration))
+    //     .getOrElse(throw new FileNotFoundException(
+    //       s"Couldn't find filesystem for ${absAssociationPath.toUri} with Hadoop configuration ${sc.hadoopConfiguration}"))
+    // var parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
+    // val parquetFiles = new File(parquetInputDestination)
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
-    if (!fs.exists(absAssociationPath)) {
+    if (!hdfs.exists(parquetPath)) {
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     } else if (args.overwrite) {
-      FileUtils.deleteDirectory(parquetFiles)
+      hdfs.delete(parquetPath, true)
+      //      FileUtils.deleteDirectory(parquetFiles)
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     }
