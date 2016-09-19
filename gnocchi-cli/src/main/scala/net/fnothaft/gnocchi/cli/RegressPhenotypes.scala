@@ -146,12 +146,12 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // Check for the genotypes file first.
     // val genoFile = new File(args.genotypes)
     // assert(genoFile.exists, "Path to genotypes VCF file is incorrect or the file is missing.")
-    val absAssociationsPath = args.associations
+    val absAssociationsPath = args.genotypes
     val hdfs = FileSystem.get(sc.hadoopConfiguration)
     val parquetInputDestination = absAssociationsPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
     val parquetPath = new Path(parquetInputDestination)
     if (!hdfs.exists(parquetPath)) {
-      throw new FileNotFoundException(s"Could not find filesystme for ${args.associations} with Hadoop configuration ${sc.hadoopConfiguration}")
+      throw new FileNotFoundException(s"Could not find filesystem for ${args.genotypes} with Hadoop configuration ${sc.hadoopConfiguration}")
     }
 
     // val absAssociationPath = new Path(args.associations)
@@ -213,8 +213,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // read in parquet files
     import sqlContext.implicits._
-    val genotypes = sqlContext.read.parquet(parquetInputDestination)
-
+    //    val genotypes = sqlContext.read.parquet(parquetInputDestination)
+    val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
+    //    val genotypes = sc.loadGenotypes(parquetInputDestination).toDF()
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
 
     val genotypeStates = sqlContext

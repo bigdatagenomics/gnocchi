@@ -34,9 +34,9 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   }
 
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with ADDDITIVE_LINEAR but with no phenoName") {
-    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
-    val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    val destination = "src/test/resources/testData/Association"
+    val genoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
+    val phenoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
+    val destination = "File://src/test/resources/testData/Association"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     intercept[AssertionError] {
