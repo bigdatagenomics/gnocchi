@@ -146,11 +146,12 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // Check for the genotypes file first.
     // val genoFile = new File(args.genotypes)
     // assert(genoFile.exists, "Path to genotypes VCF file is incorrect or the file is missing.")
-    val absAssociationsPath = args.genotypes
+    val absAssociationsPath = args.associations
     val hdfs = FileSystem.get(sc.hadoopConfiguration)
     val parquetInputDestination = absAssociationsPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
     val parquetPath = new Path(parquetInputDestination)
-    if (!hdfs.exists(parquetPath)) {
+    val genoPath = new Path(args.genotypes)
+    if (!hdfs.exists(genoPath)) {
       throw new FileNotFoundException(s"Could not find filesystem for ${args.genotypes} with Hadoop configuration ${sc.hadoopConfiguration}")
     }
 
@@ -164,17 +165,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!hdfs.exists(parquetPath)) {
-      println("\n\n\n\n\n\n ParquetFile doesn't exist \n\n\n\n\n\n\n")
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     } else if (args.overwrite) {
-      println("\n\n\n\n\n\n ParquetFile is being overwritten \n\n\n\n\n\n\n")
       hdfs.delete(parquetPath, true)
       //      FileUtils.deleteDirectory(parquetFiles)
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
-    } else {
-      println("\n\n\n\n\n\n ParquetFile already exists \n\n\n\n\n\n\n")
     }
 
     // // println(args.associations)
