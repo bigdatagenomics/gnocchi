@@ -16,13 +16,8 @@
 package net.fnothaft.gnocchi.cli
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.models.{ Phenotype }
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
 import net.fnothaft.gnocchi.association._
-import net.fnothaft.gnocchi.models.GenotypeState
-import net.fnothaft.gnocchi.models.Association
+import java.io.File
 
 class RegressPhenotypesSuite extends GnocchiFunSuite {
 
@@ -36,8 +31,8 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with ADDDITIVE_LINEAR but with no phenoName") {
     val genoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
     val phenoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-
-    val destination = "File://src/test/resources/testData/Association"
+    val baseDir = new File(".").getAbsolutePath()
+    val destination = "File://" + baseDir + "src/test/resources/testData/Association"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     intercept[AssertionError] {
