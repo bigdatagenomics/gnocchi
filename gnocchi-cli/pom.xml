@@ -35,6 +35,26 @@
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-maven-plugin</artifactId>
       </plugin>
+<!--       <plugin>
+    	  <artifactId>maven-clean-plugin</artifactId>
+    	  <version>3.0.0</version>
+    	  <executions>
+          <execution>
+            <id>auto-clean</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+            <configuration>
+             <filesets>
+                <fileset>
+                  <directory>gnocchi-cli/target/appassembler/repo/com/esotericsoftware/kryo/kryo/2.24.0</directory>
+                </fileset>
+              </filesets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin> -->
     </plugins>
   </build>
 
@@ -60,11 +80,11 @@
         </exclusion>
       </exclusions>
     </dependency>
-    <!--<dependency>-->
-      <!--<groupId>com.esotericsoftware.kryo</groupId>-->
-      <!--<artifactId>kryo</artifactId>-->
-      <!--<version>2.21.1</version>-->
-    <!--</dependency>-->
+    <dependency>
+      <groupId>com.esotericsoftware.kryo</groupId>
+      <artifactId>kryo</artifactId>
+      <version>2.21.1</version>
+    </dependency>
     <dependency>
         <groupId>org.bdgenomics.adam</groupId>
         <artifactId>adam-cli_2.10</artifactId>
