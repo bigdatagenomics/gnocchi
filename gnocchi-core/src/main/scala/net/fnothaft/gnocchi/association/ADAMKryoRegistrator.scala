@@ -91,5 +91,6 @@ class ADAMKryoRegistrator extends KryoRegistrator {
     kryo.register(classOf[TwoBitFile], new TwoBitFileSerializer)
     kryo.register(classOf[GenotypeState])
     kryo.register(classOf[Phenotype[Array[Double]]])
+    kryo.register(classOf[scala.collection.mutable.WrappedArray.ofRef[_]])
   }
 }
