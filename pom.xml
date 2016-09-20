@@ -53,13 +53,14 @@
     <adam.version>0.19.0</adam.version>
     <avro.version>1.8.0</avro.version>
     <hadoop.version>2.6.0</hadoop.version>
+    <!-- <hadoop.version>2.6.0-cdh5.8.0</hadoop.version> -->
     <java.version>1.8</java.version>
     <parquet.version>1.7.0</parquet.version>
     <scala.version>2.10.4</scala.version>
     <scala.version.prefix>2.10</scala.version.prefix>
     <spark.version>1.6.2</spark.version>
     <!-- Edit the following line to configure the Hadoop (HDFS) version. -->
-    <utils.version>0.2.3</utils.version>
+    <utils.version>0.2.8</utils.version>
   </properties>
   
   <build>
