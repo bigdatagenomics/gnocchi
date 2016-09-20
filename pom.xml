@@ -286,6 +286,12 @@
         <groupId>org.bdgenomics.utils</groupId>
         <artifactId>utils-misc_${scala.version.prefix}</artifactId>
         <version>${utils.version}</version>
+	<exclusions>
+	  <exclusion>
+    	    <groupId>com.esotericsoftware.kryo</groupId>
+    	    <artifactId>kryo</artifactId>
+	  </exclusion>
+	</exclusions>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
