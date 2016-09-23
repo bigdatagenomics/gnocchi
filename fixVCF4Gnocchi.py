@@ -19,10 +19,10 @@ def fixVCFFile(filename):
 						isTrue = True
 				if isTrue:     
 					if not isfirst: 
-						myColumn = [5, 5] + list(row[i] for i in range(2,len(row)))  
-						writer.writerow(myColumn) # write it
+						myRow = [5, 5] + list(row[i] for i in range(2,len(row)))  
+						writer.writerow(myRow) # write it
 					else: 
-						writer.writerow(myColumn)
+						writer.writerow(row)
 						isfirst = False
 	close(fh)
 	move(output_file,"fixed_"+filename)
