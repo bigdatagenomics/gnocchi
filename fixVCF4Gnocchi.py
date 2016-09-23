@@ -15,15 +15,11 @@ def fixVCFFile(filename):
 			isfirst = True
 			for row in reader:     # read one row at a time
 				if len(row) >= 2:
-					if not row[0].startswith('#'):#'dbGaP SubjID': 
-						isTrue = True
-				if isTrue:     
-					if not isfirst: 
+					if not row[0].startswith('#'):#'dbGaP SubjID':     
 						myRow = [5, 5] + list(row[i] for i in range(2,len(row)))  
 						writer.writerow(myRow) # write it
 					else: 
 						writer.writerow(row)
-						isfirst = False
 	close(fh)
 	move(output_file,"fixed_"+filename)
 
