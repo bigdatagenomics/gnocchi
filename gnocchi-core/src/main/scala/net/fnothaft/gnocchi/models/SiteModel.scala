@@ -18,7 +18,7 @@ package net.fnothaft.gnocchi.models
 import org.apache.spark.mllib.regression.GeneralizedLinearModel
 
 class SiteModel (model: GeneralizedLinearModel,
-                 siteId: String,
+                 variantId: String,
                  pos: Long,
                  alt: String) {
 }

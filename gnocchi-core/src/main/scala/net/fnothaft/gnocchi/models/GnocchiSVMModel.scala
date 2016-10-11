@@ -13,7 +13,26 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
 */
+package org.nothaft.gnocchi.gnocchiModel
 
-class GnocchiSVMModel extends SVMModel with GnocchiPMMLExportable {
-  
+import org.apache.spark.SparkContext
+import org.apache.spark.annotation.Since
+import org.apache.spark.mllib.classification.impl.GLMClassificationModel
+import org.apache.spark.mllib.linalg.Vector
+import org.apache.spark.mllib.optimization._
+import org.apache.spark.mllib.pmml.PMMLExportable
+import org.apache.spark.mllib.regression._
+import org.apache.spark.mllib.util.{DataValidators, Loader, Saveable}
+import org.apache.spark.rdd.RDD
+
+class GnocchiSiteModel (variantId: String, 
+                       weights: Vector, 
+                       intercept: Double) extends SVMModel with GnocchiPMMLExportable {
+}
+
+object GnocchiSiteModel {
+
+  }
+
+  def gnocchiLoad(sc:SparkContext, path: String)
 }

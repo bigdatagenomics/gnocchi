@@ -23,7 +23,7 @@ import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.regression.LabeledPoint
 
 
-trait SGDSiteSVM extends SGDSiteRegression {
+trait UpdateOrGenerateSiteSVMwithSGD extends SVMSiteModelGeneration {
 
   def buildOrUpdateSiteModel(sc: SparkContext, siteData: RDD[(GenotypeState, Phenotype[Array[Double]])], pathOption: Option[String]): SVMModel = {
 
@@ -62,7 +62,7 @@ trait SGDSiteSVM extends SGDSiteRegression {
       .setMiniBatchFraction(miniBatchFraction)
     var weights: DenseVector = DenseVector(Array.fill(numFeatures)(0))
     if (hasModel(pathToModel)) {
-      val model = SVMModel.load(sc, pathToModel.get)
+      val model = GnocchiSVMModel.load(sc, pathToModel.get)
       weights = model.weights.toDense
     }
     (sgdmodel, weights)
@@ -79,11 +79,11 @@ trait SGDSiteSVM extends SGDSiteRegression {
   }
 }
 
-  object AdditiveSVMWithSGD extends SGDSiteSVM with SGDAdditive {
+  object AdditiveSVMWithSGD extends SGDSiteSVMGeneration with SGDAdditive {
     val regressionName = "Additive SVM with SGD"
   }
 
-  object DominantSVMWithSGD extends SGDSiteSVM with SGDDominant {
+  object DominantSVMWithSGD extends SGDSiteSVMGeneration with SGDDominant {
     val regressionName = "Dominant SVM with SGD"
   }
 

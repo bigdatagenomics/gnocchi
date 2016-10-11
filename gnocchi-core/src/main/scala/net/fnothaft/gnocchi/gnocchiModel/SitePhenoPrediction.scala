@@ -28,8 +28,8 @@ trait SitePhenoPrediction extends Serializable {
                      phenotypes: RDD[Phenotype[T]],
                      models: RDD[SiteModel]): RDD[Prediction] = {
       // join together samples w/ both genotype and phenotype and organize into sites
-      genotypes.keyBy(_.sampleId)
-        // join together the samples with both genotype and phenotype entry
+      val phenoGeno: RDD[(GenotypeState, Phenotype[T])] = genotypes.keyBy(_.sampleId)
+        // join together the samples with both genotype and phenotype entry (sampleId,(genoState, pheno))
         .join(phenotypes.keyBy(_.sampleId))
         .map(kvv => {
           // unpack the entry of the joined rdd into id and actual info
@@ -37,10 +37,12 @@ trait SitePhenoPrediction extends Serializable {
           // unpack the information into genotype state and pheno
           val (gs, pheno) = p
           // extract referenceAllele and phenotype and pack up with p, then group by key
-          ((gs.referenceAllele, pheno.phenotype), p)
+          (gs.gnocchiVariantId, p: (GenotypeState,Phenotype[T]))
         }).groupByKey()
-        // build or update model for each site
+//          .join(models.keyBy(_.variantId)
+//           build or update model for each site
         .map(site => {
+        // group by site the phenotype and genotypes. observations is an array of (GenotypeState, Phenotype) tuples.
         val (((pos, allele), phenotype), observations) = site
         // build array to regress on, and then regress
         val obsRDD = sc.parallelize(observations.toList)

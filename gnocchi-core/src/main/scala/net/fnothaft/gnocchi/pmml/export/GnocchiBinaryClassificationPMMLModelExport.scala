@@ -35,7 +35,7 @@ class GnocchiBinaryClassificationPMMLModelExport(
   private def populateBinaryClassificationPMML(): Unit = {
      pmml.getHeader.setDescription(description)
 
-     // !!! THIS IS WHERE THE SITE-SPECIFIC DESCRIPTION IS ADDED TO THE PMML EXPORT!!!
+     // THIS IS WHERE THE SITE-SPECIFIC DESCRIPTION IS ADDED TO THE PMML EXPORT
      pmml.getHeader.setApplication(variantId)
 
      if (model.weights.size > 0) {

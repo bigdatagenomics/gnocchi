@@ -16,7 +16,7 @@
 
 trait SVMSiteModelEvaluation extends SiteModelEvaluation {
 
-  def EvaluateModelAtSite(): _ = {
+  def evaluateModelAtSite(): _ = {
   }
 }
 

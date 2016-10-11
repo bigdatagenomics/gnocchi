@@ -42,7 +42,7 @@ import org.apache.parquet.hadoop.util.ContextUtil
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import java.nio.file.{Files, Paths}
 
-import net.fnothaft.gnocchi.gnocchiModel.{AdditiveSVMWithSGD, DominantSVMWithSGD}
+import net.fnothaft.gnocchi.gnocchiModel.{AdditiveSVMWithSGD$Generation, DominantSVMWithSGD$Generation}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
@@ -293,8 +293,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 //      case "DOMINANT_LINEAR_SGD" => DominantSgdLinear(genotypeStates.rdd, phenotypes)
 //      case "ADDITIVE_LOGISTIC_SGD" => AdditiveSgdLogistic(genotypeStates.rdd, phenotypes)
 //      case "DOMINANT_LOGISTIC_SGD" => DominantSgdLogistic(genotypeStates.rdd, phenotypes)
-      case "ADDITIVE_SVM_SGD" => AdditiveSVMWithSGD(genotypeStates.rdd, phenotypes)
-      case "DOMINANT_SVM_SGD" => DominantSVMWithSGD(genotypeStates.rdd, phenotypes)
+      case "ADDITIVE_SVM_SGD" => AdditiveSVMWithSGD$Generation(genotypeStates.rdd, phenotypes)
+      case "DOMINANT_SVM_SGD" => DominantSVMWithSGD$Generation(genotypeStates.rdd, phenotypes)
     }
     return sqlContext.createDataset(associations)
   }

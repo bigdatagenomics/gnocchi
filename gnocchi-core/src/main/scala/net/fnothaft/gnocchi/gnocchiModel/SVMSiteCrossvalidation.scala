@@ -16,7 +16,7 @@
 
 trait SVMSiteCrossValidation extends SiteCrossValidation {
 
-  def CrossvalidateAtSite(): _ = {
+  def crossvalidateAtSite(): _ = {
   }
 }
 

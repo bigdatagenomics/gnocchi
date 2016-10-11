@@ -42,4 +42,9 @@ case class GenotypeState(contig: String,
       .setAlternateAllele(alt)
       .build()
   }
+
+  def gnocchiVariantId = {
+    val posString = start.toString
+    s"$posString" + "_$alt"
+  }
 }

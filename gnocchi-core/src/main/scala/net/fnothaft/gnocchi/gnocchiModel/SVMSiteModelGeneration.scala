@@ -19,7 +19,9 @@ import net.fnothaft.gnocchi.models.{GenotypeState, Phenotype}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.GeneralizedLinearModel
-trait SGDSiteRegression extends Serializable {
+
+
+trait SVMSiteModelGeneration extends Serializable {
 
   val regressionName: String
 
