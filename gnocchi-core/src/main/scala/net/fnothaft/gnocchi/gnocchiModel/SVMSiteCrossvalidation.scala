@@ -14,16 +14,19 @@
   * limitations under the License.
   */
 
-trait SVMSiteCrossValidation extends SiteCrossValidation {
+import net.fnothaft.gnocchi.gnocchiModel.{Additive, Dominant, SiteCrossValidation}
 
-  def crossvalidateAtSite(): _ = {
-  }
+package net.fnothaft.gnocchi.gnocchiModel
+//trait SVMSiteCrossValidation extends SiteCrossValidation {
+//
+//  def crossvalidateAtSite(): _ = {
+//  }
+//}
+
+object AdditiveSVMSiteCrossValidation extends SiteCrossValidation with Additive {
+  val regressionName = "additiveSVMCrossvalidation"
 }
 
-object AdditiveSVMSiteCrossValidation extends SVMSiteCrossValidation with Additive {
-  val evaluationName = "additiveSVMCrossvalidation"
-}
-
-object DominantSVMSiteCrossValidation extends SVMSiteCrossValidation with Dominant {
-  val evaluationName = "dominantSVMCrossvalidation"
+object DominantSVMSiteCrossValidation extends SiteCrossValidation with Dominant {
+  val regressionName = "dominantSVMCrossvalidation"
 }

@@ -28,12 +28,14 @@ import org.apache.spark.rdd.RDD
     final def apply[T](sc: SparkContext,
                        numFolds: Double,
                        genotypes: RDD[GenotypeState],
-                       phenotypes: RDD[Phenotype[Array[Double]]]): Array[Double] = {
+                       phenotypes: RDD[Phenotype[Array[Double]]]): RDD[(String, Iterable[TestResult])] = {
       //sort the genotypes and phenotypes by sample. (sampleId,(genoState, pheno))
     val bySample = genotypes.keyBy(_.sampleId)
       .cogroup(phenotypes.keyBy(_.sampleId))
-    val finalResults = sc.emptyRDD([(String,TestResult)])
-    for (i<- 0 to numFolds) {
+    val empty = TestResult("",0.0)
+    var finalResults = sc.parallelize(List(("",empty )))
+    var i =0
+    while (i <= numFolds) {
       // randomly split into a folds
       val splitArray = bySample.randomSplit(Array(0.9, 0.1))
       val trainingIds = splitArray(0).map(sample=> {
@@ -72,15 +74,14 @@ import org.apache.spark.rdd.RDD
         evaluateModelAtSite(sc, variantId, (obs, model))
       })
       if (i == 0) {
-        var finalResults = results.keyBy(_.variantId)
+        var finalResults: RDD[(String, TestResult)] = results.keyBy(_.variantId)
       } else {
-        var finalResults = finalResults ++ results.keyBy(_.variantId)
+        var finalResults: RDD[(String, TestResult)] = finalResults ++ results.keyBy(_.variantId)
       }
-
+      i += 1
     }
-    finalResults.group
-
+    finalResults.groupByKey
   }
 
-  protected def crossValidateAtSite(): _
+//  protected def crossValidateAtSite(): _
 }
