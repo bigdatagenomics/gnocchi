@@ -13,10 +13,19 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
+package net.fnothaft.gnocchi.gnocchiModel
+
+import net.fnothaft.gnocchi.models.{GeneralizedLinearSiteModel, GenotypeState, Phenotype, TestResult}
+import net.fnothaft.gnocchi.transformations.GPM2TestResult
+import org.apache.spark.SparkContext
 
 trait SVMSiteModelEvaluation extends SiteModelEvaluation {
 
-  def evaluateModelAtSite(): _ = {
+  def evaluateModelAtSite(sc: SparkContext,
+                          variantId: String,
+                          dataAndModel:(Array[(GenotypeState, Phenotype[Array[Double]])], GeneralizedLinearSiteModel)): TestResult = {
+    // evaluate the model at the site and produce TestResult
+    GPM2TestResult(sc, variantId, dataAndModel,clipOrKeepState)
   }
 }
 

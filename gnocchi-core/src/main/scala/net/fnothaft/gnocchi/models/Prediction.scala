@@ -18,9 +18,10 @@ package net.fnothaft.gnocchi.models
 
 case class Prediction(sampleId: String,
                       predictedY: Double,
-                      description: String,
-                      genotype: GenotypeState,
-                      phenotype: Phenotype[Array[Double]])
+                      variantId: String,
+//                      description: String,
+//                      genotype: GenotypeState,
+//                      phenotype: Phenotype[Array[Double]])
                       {
 	
 }

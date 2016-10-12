@@ -15,7 +15,8 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{GenotypeState, Phenotype}
+import net.fnothaft.gnocchi.models.{GeneralizedLinearSiteModel, GenotypeState, Phenotype}
+import net.fnothaft.gnocchi.transformations.PnG2MatchedPairByVariant
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.GeneralizedLinearModel
@@ -32,23 +33,14 @@ trait SVMSiteModelGeneration extends Serializable {
   buildOrUpdateSiteModel
   */
   final def apply[T](sc: SparkContext,
-                     rdd: RDD[GenotypeState],
+                     genotypes: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[Array[Double]]],
-                     pathToModel: Option[String]): RDD[GeneralizedLinearModel] = {
+                     pathToModel: Option[String]): RDD[GeneralizedLinearSiteModel] = {
     // join together samples w/ both genotype and phenotype and organize into sites
-    rdd.keyBy(_.sampleId)
-      // join together the samples with both genotype and phenotype entry
-      .join(phenotypes.keyBy(_.sampleId))
-      .map(kvv => {
-        // unpack the entry of the joined rdd into id and actual info
-        val (_, p) = kvv
-        // unpack the information into genotype state and pheno
-        val (gs, pheno) = p
-        // extract referenceAllele and phenotype and pack up with p, then group by key
-        ((gs.referenceAllele, pheno.phenotype), p)
-      }).groupByKey()
+    // match genotypes and phenotypes and organize by variantId
+    val phenoGeno = PnG2MatchedPairByVariant(genotypes,phenotypes)
     // build or update model for each site
-      .map(site => {
+    phenoGeno.map(site => {
         val (((pos, allele), phenotype), observations) = site
         // build array to regress on, and then regress
         val obsRDD = sc.parallelize(observations.toList)
@@ -59,18 +51,18 @@ trait SVMSiteModelGeneration extends Serializable {
   protected def buildOrUpdateSiteModel(sc: SparkContext,
                                        siteData: RDD[(GenotypeState,
                                        Phenotype[Array[Double]])],
-                                       pathOption: Option[String]): GeneralizedLinearModel
+                                       pathOption: Option[String]): GeneralizedLinearSiteModel
 
 }
 
-trait SGDAdditive extends SGDSiteRegression {
+trait Additive {
 
   protected def clipOrKeepState(gs: GenotypeState): Double = {
     gs.genotypeState.toDouble
   }
 }
 
-trait SGDDominant extends SGDSiteRegression {
+trait Dominant {
 
   protected def clipOrKeepState(gs: GenotypeState): Double = {
     if (gs.genotypeState == 0) 0.0 else 1.0

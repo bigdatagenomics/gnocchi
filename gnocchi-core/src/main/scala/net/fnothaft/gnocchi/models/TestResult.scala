@@ -18,11 +18,12 @@ package net.fnothaft.gnocchi.models
 import org.bdgenomics.formats.avro.Variant
 
 
-case class TestResult(score: Double,
-                      numSamples: Int,
-                      lossFn: String,
-                      variant: Variant,
-                      desc: String){
+case class TestResult(variantId: String,
+                      result: Double) {
+//                      numSamples: Int,
+//                      lossFn: String,
+//                      variant: Variant,
+//                      desc: String){
 
 }
 

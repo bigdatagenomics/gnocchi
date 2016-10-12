@@ -25,7 +25,8 @@ case class GenotypeState(contig: String,
                          alt: String,
                          sampleId: String,
                          genotypeState: Int,
-                         missingGenotypes: Int) {
+                         missingGenotypes: Int,
+                         variantId: String = "No VariantId") {
 
   def referenceAllele: (ReferenceRegion, String) = {
     (ReferenceRegion(contig, start, end), alt)
@@ -43,7 +44,7 @@ case class GenotypeState(contig: String,
       .build()
   }
 
-  def gnocchiVariantId = {
+  def tempVariantId = {
     val posString = start.toString
     s"$posString" + "_$alt"
   }

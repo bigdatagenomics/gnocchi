@@ -1,8 +1,3 @@
-import net.fnothaft.gnocchi.gnocchiModel.SiteModel
-import net.fnothaft.gnocchi.models.{GenotypeState, Phenotype, Prediction}
-import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
-
 /**
   * Copyright 2016 Taner Dagdelen
   *
@@ -19,34 +14,39 @@ import org.apache.spark.rdd.RDD
   * limitations under the License.
   */
 
+package net.fnothaft.gnocchi.gnocchiModel
+
+import net.fnothaft.gnocchi.models._
+import net.fnothaft.gnocchi.transformations.PnG2MatchedPairByVariant
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+
 trait SiteModelEvaluation extends Serializable {
 
   protected def clipOrKeepState(gs: GenotypeState): Double
 
   final def apply[T](sc: SparkContext,
                      genotypes: RDD[GenotypeState],
-                     phenotypes: RDD[Phenotype[T]],
-                     models: RDD[SiteModel]): RDD[TestResult] = {
-    // join together samples w/ both genotype and phenotype and organize into sites
-    genotypes.keyBy(_.sampleId)
-      // join together the samples with both genotype and phenotype entry
-      .join(phenotypes.keyBy(_.sampleId))
-      .map(kvv => {
-        // unpack the entry of the joined rdd into id and actual info
-        val (_, p) = kvv
-        // unpack the information into genotype state and pheno
-        val (gs, pheno) = p
-        // extract referenceAllele and phenotype and pack up with p, then group by key
-        ((gs.referenceAllele, pheno.phenotype), p)
-      }).groupByKey()
+                     phenotypes: RDD[Phenotype[Array[Double]]],
+                     models: RDD[GeneralizedLinearSiteModel]): RDD[TestResult] = {
+
+    // match genotypes and phenotypes and organize by variantId
+    val phenoGeno = PnG2MatchedPairByVariant(genotypes,phenotypes)
+    // join RDD[(variantId, Array[(GenotypeState, Phenotype)])] with RDD[(variantId, GeneralizedLinearSiteModel)]
+    // to make RDD[(variantId, (Array[(GenotypeState, Phenotype)], GeneralizedLinearSiteModel))]
+    phenoGeno.join(models.keyBy(_.variantId))
       // build or update model for each site
       .map(site => {
-      val (((pos, allele), phenotype), observations) = site
-      // build array to regress on, and then regress
-      val obsRDD = sc.parallelize(observations.toList)
-      evaluateModelAtSites(obsRDD)
+      // group by site the phenotype and genotypes. observations is an array of (GenotypeState, Phenotype) tuples.
+      val (variantId, (obs, model)) = site
+      // call predict of the model for each site on the data for each site.
+      evaluateModelAtSite(sc, variantId, (obs, model))
     })
   }
 
-  protected def evaluateModelAtSite(): _
+  protected def evaluateModelAtSite(sc: SparkContext,
+                                     variantId: String,
+                                     dataAndModel:(Array[(GenotypeState, Phenotype[Array[Double]])], GeneralizedLinearSiteModel)): (String, Array[TestResult])
+
 }

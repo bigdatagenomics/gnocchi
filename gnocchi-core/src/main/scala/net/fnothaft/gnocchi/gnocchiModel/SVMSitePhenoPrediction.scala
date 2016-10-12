@@ -14,9 +14,18 @@
   * limitations under the License.
   */
 
-trait SVMSitePhenoPredicion extends SitePhenoPrediction {
+package net.fnothaft.gnocchi.gnocchiModel
 
-  def predictWithSite(): _ = {
+import net.fnothaft.gnocchi.models._
+import net.fnothaft.gnocchi.transformations.GPM2Predictions
+import org.apache.spark.SparkContext
+
+trait SVMSitePhenoPrediction extends SitePhenoPrediction {
+
+  def predictWithSite(sc: SparkContext,
+                      variantId: String,
+                      dataAndModel:(Array[(GenotypeState, Phenotype[Array[Double]])], GeneralizedLinearSiteModel)):(String,Array[Prediction]) = {
+    GPM2Predictions(sc, variantId, dataAndModel, clipOrKeepState)
   }
 }
 
@@ -24,6 +33,6 @@ object AdditiveSVMSitePhenoPrediction extends SVMSitePhenoPrediction with Additi
   val evaluationName = "additiveSVMPhenoPrediction"
 }
 
-object DominantSVMSitePhenoPrediciton extends SVMSitePhenoPredcition with Dominant {
+object DominantSVMSitePhenoPrediciton extends SVMSitePhenoPrediction with Dominant {
   val evaluationName = "dominantSVMPhenoPrediction"
 }

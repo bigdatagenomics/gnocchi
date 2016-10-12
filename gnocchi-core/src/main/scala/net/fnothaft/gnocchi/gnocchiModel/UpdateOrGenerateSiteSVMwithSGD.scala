@@ -21,32 +21,21 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.regression.LabeledPoint
+import net.fnothaft.gnocchi.transformations.GP2LabeledPoint
 
 
 trait UpdateOrGenerateSiteSVMwithSGD extends SVMSiteModelGeneration {
 
-  def buildOrUpdateSiteModel(sc: SparkContext, siteData: RDD[(GenotypeState, Phenotype[Array[Double]])], pathOption: Option[String]): SVMModel = {
+  def buildOrUpdateSiteModel(sc: SparkContext, siteData: RDD[(GenotypeState, Phenotype[Array[Double]])], pathOption: Option[String]): GnocchiSVMModel = {
 
     // transform the data
-    val siteLabeledPoints = transformData(siteData)
+    val (sampleId, siteLabeledPoints) = GP2LabeledPoint(clipOrKeepState, siteData)
 
     // load or generate the model
     val (svmmodel, weights) = loadOrGenerateModel(sc, pathOption)
 
     // fit/update and return the model
     updateModel(siteLabeledPoints, weights, svmmodel)
-  }
-
-  def transformData(siteData: RDD[(GenotypeState, Phenotype[Array[Double]])]): RDD[LabeledPoint] = {
-    // transform the data into design vector (x) and label (y)
-    siteData.map(sample => {
-      val (genoState, phenotype) = sample
-      val label = phenotype.value(0)
-      clipOrKeepState(genoState)
-      val featureList = List[Double](genoState.genotypeState) ::: phenotype.value.drop(1).toList
-      val features = new DenseVector(featureList.toArray)
-      new LabeledPoint(label, features)
-    })
   }
 
   def loadOrGenerateModel(sc: SparkContext, pathToModel: Option[String]): (SVMWithSGD, DenseVector) = {
@@ -79,11 +68,11 @@ trait UpdateOrGenerateSiteSVMwithSGD extends SVMSiteModelGeneration {
   }
 }
 
-  object AdditiveSVMWithSGD extends SGDSiteSVMGeneration with SGDAdditive {
+  object AdditiveSVMWithSGD extends UpdateOrGenerateSiteSVMwithSGD with Additive {
     val regressionName = "Additive SVM with SGD"
   }
 
-  object DominantSVMWithSGD extends SGDSiteSVMGeneration with SGDDominant {
+  object DominantSVMWithSGD extends UpdateOrGenerateSiteSVMwithSGD with Dominant {
     val regressionName = "Dominant SVM with SGD"
   }
 
