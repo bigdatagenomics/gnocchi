@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi
+package net.fnothaft.gnocchi.serialization
 
 import com.esotericsoftware.kryo.Kryo
 import org.apache.spark.serializer.KryoRegistrator
 import org.bdgenomics.adam.serialization.AvroSerializer
 import org.bdgenomics.formats.avro.{ Genotype, Variant }
-import net.fnothaft.gnocchi.avro.{ Association, Phenotype, Similarity }
+//import net.fnothaft.gnocchi.avro.{ Association, Phenotype, Similarity }
 
 class GnocchiKryoRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo) {

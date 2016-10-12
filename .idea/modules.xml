@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Gnocchi-test/Gnocchi-test.iml" filepath="$PROJECT_DIR$/Gnocchi-test/Gnocchi-test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gnocchi-cli/gnocchi-cli.iml" filepath="$PROJECT_DIR$/gnocchi-cli/gnocchi-cli.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gnocchi-core/gnocchi-core.iml" filepath="$PROJECT_DIR$/gnocchi-core/gnocchi-core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gnocchi-parent.iml" filepath="$PROJECT_DIR$/gnocchi-parent.iml" />
+    </modules>
+  </component>
+</project>
