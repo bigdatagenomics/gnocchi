@@ -74,7 +74,7 @@
     val logitArray = logit(data, model)
 
     // calculate the probability for each xi
-    
+
     // calculate the standard error for the genotypic predictor 
 
     // calculate Betap/SEp 
