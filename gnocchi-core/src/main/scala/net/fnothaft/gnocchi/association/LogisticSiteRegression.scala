@@ -13,8 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package net.fnothaft.gnocchi.association
 
- trait LinearSiteRegression extends SiteRegression {
+import breeze.numerics.log10
+import net.fnothaft.gnocchi.models.Association
+import org.apache.spark.SparkContext
+import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.param.Param
+import org.apache.spark.mllib.regression.{GeneralizedLinearModel, LabeledPoint}
+import org.bdgenomics.adam.models.ReferenceRegion
+import org.apache.spark
+import org.apache.spark.ml.classification.LogisticRegressionModel
+import org.apache.spark.mllib.linalg.{DenseVector, Vector}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SQLContext
+import org.apache.commons.math3.distribution.NormalDistribution
+import org.bdgenomics.formats.avro.{ Variant, Contig }
+
+
+trait LogisticSiteRegression extends SiteRegression {
 
   /**
    * This method will perform logistic regression on a single site.
@@ -25,7 +42,8 @@
    * @return The Association object that results from the linear regression
    */
 
-  def regressSite(observations: Array[(Double, Array[Double])],
+  def regressSite(sc: SparkContext,
+                  observations: Array[(Double, Array[Double])],
                   locus: ReferenceRegion,
                   altAllele: String,
                   phenotype: String): Association = {
@@ -50,66 +68,49 @@
       observations(i)._2.slice(1, observationLength).copyToArray(sample, 1)
 
       // pack up info into LabeledPoint object
-      lp(i) = new LabeledPoint(observations(i)._2(0), sample)
+      lp(i) = new LabeledPoint(observations(i)._2(0), new DenseVector(sample))
 
       // calculate Xi0^2 for each xi
       xiSq(i) = Math.pow(sample(0), 2)
     }
 
     // convert the labeled point RDD into a dataFrame
+    val sqlCtx = SQLContext.getOrCreate(sc)
+    import sqlCtx.implicits._
     val lpDF = sc.parallelize(lp).toDF
 
     // feed in the lp dataframe into the logistic regression solver and get the weights
-    val logreg = new LogisticRegression
+    val logReg = new LogisticRegression()
       .setFeaturesCol("features")
-      .setLabelsCol("label")
+      .setLabelCol("labels")
       .setStandardization(true) // is this necessary?
       .setTol(.001) // arbitrarily set at 1e-3
-    val logRegModel = logreg.fit(lpDF)
+      .setMaxIter(100) // arbitrarily set to 100
+    val logRegModel = logReg.fit(lpDF)
 
     /// USE WALD STATISTIC TO CALCULATE "P Value" ///
 
     // calculate the logit for each xi
-    val data = lpDF.toRDD.collect
-    val logitArray = logit(data, model)
+    val data = lp
+    val logitArray = logit(data, logRegModel)
 
     // calculate the probability for each xi
+    val probTimesXiArray = Array[Double](observations.length)
+    for (i <- 0 to observations.length) {
+      val pi = Math.exp(logitArray(i))/(1 + Math.exp(logitArray(i)))
+      probTimesXiArray(i) = xiSq(i)*pi*(1-pi)
+    }
 
-    // calculate the standard error for the genotypic predictor 
+    // calculate the standard error for the genotypic predictor
+    val standardError = probTimesXiArray.sum
 
-    // calculate Betap/SEp 
+    // calculate Beta_p/SEp
+    val w = logRegModel.coefficients(0)/standardError
 
-    // use normal deistribution to get the "p value" 
-
-
-    // create linear model
-    val ols = new OLSMultipleLinearRegression()
-
-    // input sample data 
-    ols.newSampleData(y, x)
-
-    // calculate coefficients
-    val beta = ols.estimateRegressionParameters()
-
-    // calculate Rsquared
-    val rSquared = ols.calculateRSquared()
-
-    // compute the regression parameters standard errors
-    val standardErrors = ols.estimateRegressionParametersStandardErrors()
-
-    // get standard error for genotype parameter (for p value calculation)
-    val genoSE = standardErrors(1)
-
-    // test statistic t for jth parameter is equal to bj/SEbj, the parameter estimate divided by its standard error
-    val t = beta(1) / genoSE
-
-    /* calculate p-value and report: 
-      Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is 
-      a t-distribution with N-p-1 degrees of freedom.
-    */
-    val tDist = new TDistribution(numObservations - observationLength - 1)
-    val pvalue = 1.0 - tDist.cumulativeProbability(t)
-    val logPValue = log10(pvalue)
+    // use normal distribution to get the "p value"
+    val normDist = new NormalDistribution()
+    val waldTest = 1.0 - normDist.cumulativeProbability(w)
+    val logWaldTest = log10(waldTest)
 
     // pack up the information into an Association object
     val variant = new Variant()
@@ -119,29 +120,27 @@
     variant.setStart(locus.start)
     variant.setEnd(locus.end)
     variant.setAlternateAllele(altAllele)
-    val statistics = Map("rSquared" -> rSquared)
-    val associationObject = new Association(variant, phenotype, logPValue, statistics)
-
-    return associationObject
+    val statistics = Map("'P Value' aka Wald Test" -> waldTest, "log of wald test" -> logWaldTest)
+    Association(variant, phenotype, logWaldTest, statistics)
   }
 
-  def logit(lpArray: Array[LabeledPoint], model: GeneralizedLinearModel): RDD[Double] = {
-    var logitResults = Array[Double](lpArray.length)
-    for (j <- lpArray.length) {
-      val res = Array[Double](lp.features.length)
+  def logit(lpArray: Array[LabeledPoint], model: LogisticRegressionModel): Array[Double] = {
+    val logitResults = Array[Double](lpArray.length)
+    for (j <- 0 to lpArray.length) {
+      var res = 0.0
       val lp = lpArray(j)
-      for (i <- in lp.features.length) {
-        res += lp.features(i)*model.weights(i)
+      for (i <- 0 to lp.features.size) {
+        res += lp.features(i)*model.coefficients(i)
       }
       logitResults(j) = res
     }
     logitResults
   }
 
-object AdditiveLinearAssociation extends LinearSiteRegression with Additive {
+object AdditiveLogisticAssociation extends LinearSiteRegression with Additive {
   val regressionName = "additiveLinearRegression"
 }
 
-object DominantLinearAssociation extends LinearSiteRegression with Dominant {
+object DominantLogisticAssociation extends LinearSiteRegression with Dominant {
   val regressionName = "dominantLinearRegression"
 }
