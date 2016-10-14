@@ -16,6 +16,6 @@
 package net.fnothaft.gnocchi.models
 
 object AuxEncoders {
-  implicit def associationEncoder: org.apache.spark.sql.Encoder[Association] =
-    org.apache.spark.sql.Encoders.kryo[Association]
+  implicit def associationEncoder: org.apache.spark.sql.Encoder[Association] = org.apache.spark.sql.Encoders.kryo[Association]
+  implicit def genotypeStateEncoder: org.apache.spark.sql.Encoder[GenotypeState] = org.apache.spark.sql.Encoders.kryo[GenotypeState]
 }

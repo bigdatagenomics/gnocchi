@@ -126,7 +126,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
-
     val absAssociationPath = new File(args.associations).getAbsolutePath()
     var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
@@ -141,7 +140,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     }
-
 
     // Check for the genotypes file first.
     // val genoFile = new File(args.genotypes)
