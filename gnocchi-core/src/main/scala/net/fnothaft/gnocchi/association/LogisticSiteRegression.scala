@@ -35,8 +35,10 @@
     // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
     val observationLength = observations(0)._2.length
     val numObservations = observations.length
-    val x = new Array[Array[Double]](numObservations)
-    var y = new Array[Double](numObservations)
+    val lp = new Array[LabeledPoint](numObservations)
+    val xiSq = new Array[Double](numObservations)
+//    val x = new Array[Array[Double]](numObservations)
+//    var y = new Array[Double](numObservations)
 
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
@@ -46,9 +48,39 @@
       sample = new Array[Double](observationLength)
       sample(0) = observations(i)._1.toDouble
       observations(i)._2.slice(1, observationLength).copyToArray(sample, 1)
-      x(i) = sample
-      y(i) = observations(i)._2(0)
+
+      // pack up info into LabeledPoint object
+      lp(i) = new LabeledPoint(observations(i)._2(0), sample)
+
+      // calculate Xi0^2 for each xi
+      xiSq(i) = Math.pow(sample(0), 2)
     }
+
+    // convert the labeled point RDD into a dataFrame
+    val lpDF = sc.parallelize(lp).toDF
+
+    // feed in the lp dataframe into the logistic regression solver and get the weights
+    val logreg = new LogisticRegression
+      .setFeaturesCol("features")
+      .setLabelsCol("label")
+      .setStandardization(true) // is this necessary?
+      .setTol(.001) // arbitrarily set at 1e-3
+    val logRegModel = logreg.fit(lpDF)
+
+    /// USE WALD STATISTIC TO CALCULATE "P Value" ///
+
+    // calculate the logit for each xi
+    val data = lpDF.toRDD.collect
+    val logitArray = logit(data, model)
+
+    // calculate the probability for each xi
+    
+    // calculate the standard error for the genotypic predictor 
+
+    // calculate Betap/SEp 
+
+    // use normal deistribution to get the "p value" 
+
 
     // create linear model
     val ols = new OLSMultipleLinearRegression()
@@ -92,7 +124,19 @@
 
     return associationObject
   }
-}
+
+  def logit(lpArray: Array[LabeledPoint], model: GeneralizedLinearModel): RDD[Double] = {
+    var logitResults = Array[Double](lpArray.length)
+    for (j <- lpArray.length) {
+      val res = Array[Double](lp.features.length)
+      val lp = lpArray(j)
+      for (i <- in lp.features.length) {
+        res += lp.features(i)*model.weights(i)
+      }
+      logitResults(j) = res
+    }
+    logitResults
+  }
 
 object AdditiveLinearAssociation extends LinearSiteRegression with Additive {
   val regressionName = "additiveLinearRegression"
