@@ -34,13 +34,14 @@ import org.bdgenomics.formats.avro.{ Variant, Contig }
 trait LogisticSiteRegression extends SiteRegression {
 
   /**
-   * This method will perform logistic regression on a single site.
-   * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
-   * @param locus A ReferenceRegion object representing the location in the genome of the site.
-   * @param altAllele A String specifying the value of the alternate allele that makes up the variant or SNP
-   * @param phenotype The name of the phenotype being regressed.
-   * @return The Association object that results from the linear regression
-   */
+    * This method will perform logistic regression on a single site.
+    *
+    * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
+    * @param locus        A ReferenceRegion object representing the location in the genome of the site.
+    * @param altAllele    A String specifying the value of the alternate allele that makes up the variant or SNP
+    * @param phenotype    The name of the phenotype being regressed.
+    * @return The Association object that results from the linear regression
+    */
 
   def regressSite(sc: SparkContext,
                   observations: Array[(Double, Array[Double])],
@@ -55,8 +56,8 @@ trait LogisticSiteRegression extends SiteRegression {
     val numObservations = observations.length
     val lp = new Array[LabeledPoint](numObservations)
     val xiSq = new Array[Double](numObservations)
-//    val x = new Array[Array[Double]](numObservations)
-//    var y = new Array[Double](numObservations)
+    //    val x = new Array[Array[Double]](numObservations)
+    //    var y = new Array[Double](numObservations)
 
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
@@ -97,15 +98,15 @@ trait LogisticSiteRegression extends SiteRegression {
     // calculate the probability for each xi
     val probTimesXiArray = Array[Double](observations.length)
     for (i <- 0 to observations.length) {
-      val pi = Math.exp(logitArray(i))/(1 + Math.exp(logitArray(i)))
-      probTimesXiArray(i) = xiSq(i)*pi*(1-pi)
+      val pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
+      probTimesXiArray(i) = xiSq(i) * pi * (1 - pi)
     }
 
     // calculate the standard error for the genotypic predictor
     val standardError = probTimesXiArray.sum
 
     // calculate Beta_p/SEp
-    val w = logRegModel.coefficients(0)/standardError
+    val w = logRegModel.coefficients(0) / standardError
 
     // use normal distribution to get the "p value"
     val normDist = new NormalDistribution()
@@ -130,12 +131,13 @@ trait LogisticSiteRegression extends SiteRegression {
       var res = 0.0
       val lp = lpArray(j)
       for (i <- 0 to lp.features.size) {
-        res += lp.features(i)*model.coefficients(i)
+        res += lp.features(i) * model.coefficients(i)
       }
       logitResults(j) = res
     }
     logitResults
   }
+}
 
 object AdditiveLogisticAssociation extends LinearSiteRegression with Additive {
   val regressionName = "additiveLinearRegression"
