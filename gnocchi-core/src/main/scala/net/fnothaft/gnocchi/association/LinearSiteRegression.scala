@@ -18,10 +18,10 @@ package net.fnothaft.gnocchi.association
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.bdgenomics.adam.models.ReferenceRegion
-import scala.math.sqrt
 import scala.math.log10
 import org.apache.commons.math3.distribution.TDistribution
-import org.bdgenomics.formats.avro.{ Variant, Contig }
+import org.apache.spark.SparkContext
+import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait LinearSiteRegression extends SiteRegression {
 
@@ -36,7 +36,8 @@ trait LinearSiteRegression extends SiteRegression {
   def regressSite(observations: Array[(Double, Array[Double])],
                   locus: ReferenceRegion,
                   altAllele: String,
-                  phenotype: String): Association = {
+                  phenotype: String,
+                  scOption: Option[SparkContext]): Association = {
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 

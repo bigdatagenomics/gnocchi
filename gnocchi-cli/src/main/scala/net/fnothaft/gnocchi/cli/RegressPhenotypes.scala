@@ -126,13 +126,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
-    val absAssociationPath = new File(args.associations).getAbsolutePath()
+    val absAssociationPath = new File(args.associations).getAbsolutePath
     var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
     val parquetFiles = new File(parquetInputDestination)
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
-    if (!parquetFiles.getAbsoluteFile().exists) {
+    if (!parquetFiles.getAbsoluteFile.exists) {
       val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     } else if (args.overwrite) {
@@ -205,7 +205,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     //   val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
     //   Vcf2ADAM(cmdLine).run(sc)
     // }
-    val parquetInputDestination = args.genotypes
+    //    val parquetInputDestination = args.genotypes
     // read in parquet files
     import sqlContext.implicits._
     //    val genotypes = sqlContext.read.parquet(parquetInputDestination)
@@ -240,7 +240,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
     // TODO: Resolve with "IN" sql command once spark2.0 is integrated
     val filteredGenotypeStates = genotypeStates.filter(($"sampleId").isin(mindDF.collect().map(r => r(0)): _*))
-    return filteredGenotypeStates.as[GenotypeState]
+    filteredGenotypeStates.as[GenotypeState]
   }
 
   def loadPhenotypes(sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
@@ -269,7 +269,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     } else {
       phenotypes = LoadPhenotypesWithoutCovariates(args.phenotypes, args.phenoName, sc)
     }
-    return phenotypes
+    phenotypes
   }
 
   def performAnalysis(genotypeStates: Dataset[GenotypeState],
@@ -280,12 +280,12 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     import AuxEncoders._
     import org.apache.spark.SparkContext._
     val associations = args.associationType match {
-      case "ADDITIVE_LINEAR" => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
-      // case "ADDITIVE_LOGISTIC" => assert(false, "Logistic regression is not implemented yet")
-      case "DOMINANT_LINEAR" => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
-      // case "DOMINANT_LOGISTIC" => assert(false, "Logistic regression is not implemented yet")
+      case "ADDITIVE_LINEAR"   => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes)
+      case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
+      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
     }
-    return sqlContext.createDataset(associations)
+    sqlContext.createDataset(associations)
   }
 
   def logResults(associations: Dataset[Association],

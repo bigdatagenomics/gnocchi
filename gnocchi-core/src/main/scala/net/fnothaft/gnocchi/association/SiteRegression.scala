@@ -15,11 +15,8 @@
  */
 package net.fnothaft.gnocchi.association
 
-import net.fnothaft.gnocchi.models.{
-  Association,
-  GenotypeState,
-  Phenotype
-}
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, Phenotype }
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 
@@ -67,7 +64,8 @@ trait SiteRegression extends Serializable {
   protected def regressSite(observations: Array[(Double, Array[Double])],
                             locus: ReferenceRegion,
                             altAllele: String,
-                            phenotype: String): Association
+                            phenotype: String,
+                            scOption: Option[SparkContext] = None): Association
 }
 
 trait Additive extends SiteRegression {
