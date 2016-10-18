@@ -1,0 +1,16 @@
+[36mDiscovery starting.[0m
+[36mDiscovery completed in 463 milliseconds.[0m
+[36mRun starting. Expected test count is: 7[0m
+[32mRegressPhenotypesSuite:[0m
+[32m- Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name[0m
+[32m- Test LoadPhenotypes: Read in a 2-line phenotype file; call with ADDDITIVE_LINEAR but with no phenoName[0m
+[32m- Test LoadPhenotypes: Read in a 2-line phenotype file; call with -covar but not -covarNames[0m
+[32m- Test loadGenotypes: output from vcf input[0m
+[32m- Test full pipeline: 1 snp, 10 samples, 1 phenotype, no covars[0m
+[32m- Test full pipeline: 1 snp, 10 samples, 12 samples in phenotype file (10 matches) 1 phenotype, no covar[0m
+[32m- Test full pipeline: 5 snps, 10 samples, 1 phenotype, 2 random noise covars[0m
+[36mRun completed in 34 seconds, 190 milliseconds.[0m
+[36mTotal number of tests run: 7[0m
+[36mSuites: completed 2, aborted 0[0m
+[36mTests: succeeded 7, failed 0, canceled 0, ignored 0, pending 0[0m
+[32mAll tests passed.[0m

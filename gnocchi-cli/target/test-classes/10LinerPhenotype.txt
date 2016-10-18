@@ -1,0 +1,12 @@
+SampleID	pheno1	pheno2	pheno3	pheno4	pheno5	
+sample1	11	12	13	14	15
+sample2	21	-9	23	24	25
+sample3	31	32	-9	34	35
+sample4	41	42	43	-9	45
+sample5	51	52	53	54	55
+sample6	61	62	63	64	65
+sample7	71	72	73	74	75
+sample8	81	82	83	84	85
+sample9	91	92	93	94	95
+sample10	101	102	103	104	105
+

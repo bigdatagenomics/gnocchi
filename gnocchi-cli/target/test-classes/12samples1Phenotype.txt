@@ -1,0 +1,14 @@
+SampleID	pheno1
+sample1	1
+sample2	1
+sample3	1
+sample4	1
+sample5	2
+sample6	2
+sample7	2
+sample8	3		
+sample9	3		
+sample10	3
+sample11	5
+sample12	10
+
