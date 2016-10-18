@@ -16,19 +16,18 @@
 package net.fnothaft.gnocchi.association
 
 import breeze.numerics.log10
+import breeze.linalg._
+import breeze.numerics._
 import net.fnothaft.gnocchi.models.Association
+import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.spark.SparkContext
 import org.apache.spark.ml.classification.LogisticRegression
-import org.apache.spark.ml.param.Param
-import org.apache.spark.mllib.regression.{ GeneralizedLinearModel, LabeledPoint }
+import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
-import org.apache.spark
 import org.apache.spark.ml.classification.LogisticRegressionModel
-import org.apache.spark.mllib.linalg.{ DenseVector, Vector }
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
-import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.bdgenomics.formats.avro.{ Variant, Contig }
+import org.apache.commons.math3.special.Gamma
+import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait LogisticSiteRegression extends SiteRegression {
 
@@ -47,37 +46,35 @@ trait LogisticSiteRegression extends SiteRegression {
                   altAllele: String,
                   phenotype: String,
                   scOption: Option[SparkContext]): Association = {
-    // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-    // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
-    // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
+    // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = observations(0)._2.length
     val numObservations = observations.length
     val lp = new Array[LabeledPoint](numObservations)
-    val xiSq = new Array[Double](numObservations)
-    //    val x = new Array[Array[Double]](numObservations)
-    //    var y = new Array[Double](numObservations)
+    val xixiT = new Array[DenseMatrix[Double]](numObservations)
 
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
-    var sample = new Array[Double](observationLength)
-    var genoSum = 0.0
-    for (i <- 0 until numObservations) {
-      sample = new Array[Double](observationLength)
-      sample(0) = observations(i)._1.toDouble
-      observations(i)._2.slice(1, observationLength).copyToArray(sample, 1)
+    var features = new Array[Double](observationLength)
+    for (i <- observations.indices) {
+      // rearrange variables into label and features
+      features = new Array[Double](observationLength)
+      features(0) = observations(i)._1.toDouble
+      observations(i)._2.slice(1, observationLength).copyToArray(features, 1)
+      val label = observations(i)._2(0)
 
       // pack up info into LabeledPoint object
-      lp(i) = new LabeledPoint(observations(i)._2(0), new DenseVector(sample))
+      lp(i) = new LabeledPoint(label, new org.apache.spark.mllib.linalg.DenseVector(features))
 
-      // calculate Xi0^2 for each xi
-      xiSq(i) = Math.pow(sample(0), 2)
+      // compute xi*xi.t for hessian matrix
+      val xiVector = DenseVector(1.0 +: features)
+      xixiT(i) = xiVector * xiVector.t
     }
 
-    assert(scOption.isDefined, "Spark Context must be fed into the logistic regression apply function as an optional parameter scOption. ")
+    assert(scOption.isDefined, "Spark Context must be fed into the logistic regression apply function as parameter scOption.")
     val sc = scOption.get
 
-    // convert the labeled point RDD into a dataFrame
+    // convert the labeled point RDD into a dataFrame for mllib's LogisticRegression
     val sqlCtx = SQLContext.getOrCreate(sc)
     import sqlCtx.implicits._
     val lpDF = sc.parallelize(lp).toDF
@@ -85,38 +82,47 @@ trait LogisticSiteRegression extends SiteRegression {
     // feed in the lp dataframe into the logistic regression solver and get the weights
     val logReg = new LogisticRegression()
       .setFeaturesCol("features")
-      .setLabelCol("labels")
+      .setLabelCol("label")
       .setStandardization(true) // is this necessary?
       .setTol(.001) // arbitrarily set at 1e-3
       .setMaxIter(100) // arbitrarily set to 100
+      .setFitIntercept(true)
+      .setThreshold(0.5)
+      .setStandardization(true)
     val logRegModel = logReg.fit(lpDF)
+    val b: Array[Double] = logRegModel.intercept +: logRegModel.coefficients.toArray
 
-    /// USE WALD STATISTIC TO CALCULATE "P Value" ///
+    /// CALCULATE WALD STATISTIC "P Value" ///
 
     // calculate the logit for each xi
     val data = lp
-    val logitArray = logit(data, logRegModel)
+    val logitArray = logit(data, b)
 
-    // calculate the probability for each xi
-    val probTimesXiArray = Array[Double](observations.length)
-    for (i <- 0 to observations.length) {
+    // calculate the hessian
+    val hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
+    for (i <- observations.indices) {
       val pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
-      probTimesXiArray(i) = xiSq(i) * pi * (1 - pi)
+      hessian += -xixiT(i) * pi * (1 - pi) // See ESL, page 120
     }
 
     // calculate the standard error for the genotypic predictor
-    val standardError = probTimesXiArray.sum
+    val fisherInfo = -hessian
+    val fishInv = inv(fisherInfo)
+    val standardErrors = sqrt(diag(fishInv))
 
-    // calculate Beta_p/SEp
-    val w = math.pow(logRegModel.coefficients(0) / standardError, 2)
+    // calculate Wald z-scores
+    val zScores: DenseVector[Double] = DenseVector(b) :/ standardErrors
+    val zScoresSquared = zScores :* zScores
 
-    // use chi squared distribution to get the "p value"
-    var chiDist = new ChiSquaredDistribution(2) // 2 degrees of freedom because there are 3 possible values.
-    if (regressionName == "dominantLogisticRegression") {
-      chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom because genotype is binary
-    }
-    val waldTestProb = 1.0 - chiDist.cumulativeProbability(w)
-    val logWaldTest = log10(waldTestProb)
+    // calculate cumulative probs
+    val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
+    val probs = zScoresSquared.map(zi => { chiDist.cumulativeProbability(zi) })
+
+    // calculate wald test statistics
+    val waldTests = 1d - probs
+
+    // calculate the log of the p-value for the genetic component
+    val logWaldTests = waldTests.map(t => { log10(t) })
 
     // pack up the information into an Association object
     val variant = new Variant()
@@ -126,19 +132,19 @@ trait LogisticSiteRegression extends SiteRegression {
     variant.setStart(locus.start)
     variant.setEnd(locus.end)
     variant.setAlternateAllele(altAllele)
-    val statistics = Map("'P Value' aka Wald Chi Squared" -> waldTestProb, "log of wald test" -> logWaldTest)
-    Association(variant, phenotype, logWaldTest, statistics)
+    val statistics = Map("weights" -> b,
+      "intercept" -> b(0),
+      "'P Values' aka Wald Tests" -> waldTests,
+      "log of wald tests" -> logWaldTests)
+    Association(variant, phenotype, waldTests(1), statistics)
   }
 
-  def logit(lpArray: Array[LabeledPoint], model: LogisticRegressionModel): Array[Double] = {
-    val logitResults = Array[Double](lpArray.length)
-    for (j <- 0 to lpArray.length) {
-      var res = 0.0
+  def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
+    val logitResults = new Array[Double](lpArray.length)
+    val bDense = DenseVector(b)
+    for (j <- logitResults.indices) {
       val lp = lpArray(j)
-      for (i <- 0 to lp.features.size) {
-        res += lp.features(i) * model.coefficients(i)
-      }
-      logitResults(j) = res
+      logitResults(j) = DenseVector(1.0 +: lp.features.toArray) dot bDense
     }
     logitResults
   }

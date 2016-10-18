@@ -276,14 +276,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
                       phenotypes: RDD[Phenotype[Array[Double]]],
                       sc: SparkContext): Dataset[Association] = {
     val sqlContext = SQLContext.getOrCreate(sc)
-    import sqlContext.implicits._
+    val contextOption = Option(sc)
     import AuxEncoders._
-    import org.apache.spark.SparkContext._
     val associations = args.associationType match {
       case "ADDITIVE_LINEAR"   => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes, contextOption)
       case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
-      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
+      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes, contextOption)
     }
     sqlContext.createDataset(associations)
   }
@@ -292,14 +291,11 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
                  sc: SparkContext) = {
     // save dataset
     val sqlContext = SQLContext.getOrCreate(sc)
-    import sqlContext.implicits._
     val associationsFile = new File(args.associations)
     if (associationsFile.exists) {
       FileUtils.deleteDirectory(associationsFile)
     }
     if (args.saveAsText) {
-      // associations.toDF.rdd.map(_.toString).saveAsTextFile(args.associations)
-      // associations.rdd.saveAsTextFile(args.associations)
       associations.rdd.map(r => "%s, %s, %s"
         .format(r.variant.getContig.getContigName,
           r.variant.getContig.getContigMD5, exp(r.logPValue).toString))

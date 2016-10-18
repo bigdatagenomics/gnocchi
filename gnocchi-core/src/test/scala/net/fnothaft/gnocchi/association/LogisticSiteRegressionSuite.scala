@@ -15,32 +15,25 @@
  */
 package net.fnothaft.gnocchi.association
 
+import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.models.{ Association, GenotypeState }
-import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-import org.apache.spark.SparkContext
 import org.bdgenomics.adam.models.ReferenceRegion
 
 class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
-  test("Test logisticRegression on binary data") {
-
+  sparkTest("Test logisticRegression on binary data") {
     // read in the data from binary.csv
     // data comes from: http://www.ats.ucla.edu/stat/sas/dae/binary.sas7bdat
+    // results can be found here: http://www.ats.ucla.edu/stat/sas/dae/logit.htm
     val pathToFile = ClassLoader.getSystemClassLoader.getResource("binary.csv").getFile
-    println(ClassLoader.getSystemClassLoader.getResource("binary.csv").getFile)
-    println(pathToFile.getClass)
-    println(sc.getClass)
     val csv = sc.textFile(pathToFile)
     val data = csv.map(line => line.split(",").map(elem => elem.toDouble)) //get rows
 
     // transform it into the right format
     val observations = data.map(row => {
-      val geno = row(0)
-      val covars = row.slice(0, row.length - 1)
-      val phenos = Array(row(row.length - 1)) ++ covars
-      println(geno)
-      println(phenos)
+      val geno: Double = row(0)
+      val covars: Array[Double] = row.slice(1, 3)
+      val phenos: Array[Double] = Array(row(3)) ++ covars
       (geno, phenos)
     }).collect()
     val altAllele = "No allele"
@@ -51,7 +44,16 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     // feed it into logisitic regression and compare the Wald Chi Squared tests
     val regressionResult = AdditiveLogisticAssociation.regressSite(observations, locus, altAllele, phenotype, scOption)
 
+    // Assert that the weights are correct within a threshold.
+    val estWeights: Array[Double] = regressionResult.statistics("weights").asInstanceOf[Array[Double]] :+ regressionResult.statistics("intercept").asInstanceOf[Double]
+    val compWeights = Array(-3.4495484, .0022939, .77701357, -0.5600314)
+    for (i <- 0 until 3) {
+      assert(estWeights(i) <= (compWeights(i) + .01), s"Weight $i incorrect")
+      assert(estWeights(i) >= (compWeights(i) - .01), s"Weight $i incorrect")
+    }
     //Assert that the Wald chi squared value is in the right threshold. Answer should be 0.0385
-    assert(regressionResult.statistics("'P Value' aka Wald Chi Squared") == 0.0385, "'P Value' aka Wald Chi Squared = " + regressionResult.statistics("'P Value' aka Wald Chi Squared"))
+    val pval: Array[Double] = regressionResult.statistics("'P Values' aka Wald Tests").asInstanceOf[DenseVector[Double]].toArray
+    assert(pval(1) <= 0.0385 + 0.01, "'P Values' aka Wald Tests = " + pval)
+    assert(pval(1) >= 0.0385 - 0.01, "'P Values' aka Wald Tests = " + pval)
   }
 }
