@@ -101,6 +101,12 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-geno", usage = "Allele frequency threshold. Default value is 0.")
   var geno = 0
+
+  @Args4jOption(required = false, name = "-getIDs", usage = "Whether to get IDs from PLINK MAP file")
+  var getIds = false
+
+  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
+  var mapFile: String = null
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -131,13 +137,23 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
     val parquetFiles = new File(parquetInputDestination)
 
+    var vcfPath = args.genotypes
+    if (args.getIds) {
+      val mapPath = args.mapFile
+      val oldName = new File(args.genotypes).getAbsolutePath.split("/").reverse(0)
+      val newVCFPath = new File(args.genotypes).getAbsolutePath.split("/").reverse.drop(1).reverse.mkString("/") + "withIds_" + oldName
+      val outpath = newVCFPath
+      GetAndFillVariantIds(sc, mapPath, vcfPath, outpath)
+      vcfPath = outpath
+    }
+
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!parquetFiles.getAbsoluteFile.exists) {
-      val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
+      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     } else if (args.overwrite) {
       FileUtils.deleteDirectory(parquetFiles)
-      val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
+      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     }
 
@@ -248,7 +264,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // SNPs and Samples are filtered out by PLINK when creating the VCF file. 
     // """
     if (args.associationType == "CHI_SQUARED") {
-      assert(false, "CHI_SQUARED has been phased out.")
+      assert(false, "CHI_SQUARED analysis has been phased out.")
     }
     // assert that a phenoName is given
     assert(Option[String](args.phenoName).isDefined, "The model assumes a phenotype file with multiple phenotypes as columns and a phenoName must be given.")
