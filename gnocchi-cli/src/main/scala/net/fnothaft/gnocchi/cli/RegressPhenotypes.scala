@@ -75,6 +75,9 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-covar", usage = "Whether to include covariates.") // this will be used to construct the original phenotypes array in LoadPhenotypes.
   var includeCovariates = false
 
+  @Args4jOption(required = false, name = "-covarFile", usage = "The covariates file path")
+  var covarFile: String = null
+
   @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
   var covarNames: String = null
 
@@ -102,11 +105,11 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-geno", usage = "Allele frequency threshold. Default value is 0.")
   var geno = 0
 
-  @Args4jOption(required = false, name = "-getIDs", usage = "Whether to get IDs from PLINK MAP file")
-  var getIds = false
-
-  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
-  var mapFile: String = null
+  //  @Args4jOption(required = false, name = "-getIDs", usage = "Whether to get IDs from PLINK MAP file")
+  //  var getIds = false
+  //
+  //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
+  //  var mapFile: String = null
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -138,14 +141,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val parquetFiles = new File(parquetInputDestination)
 
     var vcfPath = args.genotypes
-    if (args.getIds) {
-      val mapPath = args.mapFile
-      val oldName = new File(args.genotypes).getAbsolutePath.split("/").reverse(0)
-      val newVCFPath = new File(args.genotypes).getAbsolutePath.split("/").reverse.drop(1).reverse.mkString("/") + "withIds_" + oldName
-      val outpath = newVCFPath
-      GetAndFillVariantIds(sc, mapPath, vcfPath, outpath)
-      vcfPath = outpath
-    }
+    //    if (args.getIds) {
+    //      val mapPath = args.mapFile
+    //      val oldName = new File(args.genotypes).getAbsolutePath.split("/").reverse(0)
+    //      val newVCFPath = new File(args.genotypes).getAbsolutePath.split("/").reverse.drop(1).reverse.mkString("/") + "withIds_" + oldName
+    //      val outpath = newVCFPath
+    //      GetAndFillVariantIds(sc, mapPath, vcfPath, outpath)
+    //      vcfPath = outpath
+    //    }
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!parquetFiles.getAbsoluteFile.exists) {
@@ -271,7 +274,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // assert covariates are given if -covar given
     if (args.includeCovariates) {
-      assert(Option[String](args.covarNames).isDefined, "If the -covar flag is given, covarite names must be given using the -covarNames flag")
+      assert(Option[String](args.covarNames).isDefined, "If the -covar flag is given, covariate names must be given using the -covarNames flag")
       // assert that the primary phenotype isn't included in the covariates. 
       for (covar <- args.covarNames.split(",")) {
         assert(covar != args.phenoName, "Primary phenotype cannot be a covariate.")
@@ -281,7 +284,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // Load phenotypes
     var phenotypes: RDD[Phenotype[Array[Double]]] = null
     if (args.includeCovariates) {
-      phenotypes = LoadPhenotypesWithCovariates(args.phenotypes, args.phenoName, args.covarNames, sc)
+      phenotypes = LoadPhenotypesWithCovariates(args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc)
     } else {
       phenotypes = LoadPhenotypesWithoutCovariates(args.phenotypes, args.phenoName, sc)
     }

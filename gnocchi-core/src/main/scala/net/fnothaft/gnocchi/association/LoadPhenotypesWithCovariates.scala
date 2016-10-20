@@ -27,6 +27,7 @@ Takes in a text file containing phenotypes where the first line of the textfile 
 private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
 
   def apply[T](file: String,
+               covarFile: String,
                phenoName: String,
                covarNames: String,
                sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
@@ -34,12 +35,15 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
 
     // get the relevant parts of the phenotypes file and put into a DF
     val phenotypes = sc.textFile(file).persist()
+    val covars = sc.textFile(covarFile).persist()
 
     // separate header and data
     val header = phenotypes.first()
+    val covarHeader = covars.first()
 
     // get label indices
     val labels = header.split("\t").zipWithIndex
+    val covarLabels = covarHeader.split("\t").zipWithIndex
     assert(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
     // extract covarNames
@@ -64,7 +68,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       if (covar == phenoName) {
         assert(false, "One or more of the covariates has the same name as phenoName.")
       }
-      for (labelpair <- labels) {
+      for (labelpair <- covarLabels) {
         if (labelpair._1 == covar) {
           hasMatch = true
           covarIndices(i) = labelpair._2
@@ -75,13 +79,15 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     }
 
     // construct the phenotypes RDD, filtering out all samples that don't have the phenotype or one of the covariates
-    val data = getAndFilterPhenotypes(phenotypes, header, primaryPhenoIndex, covarIndices, sc)
+    val data = getAndFilterPhenotypes(phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
 
     return data
   }
 
   private[gnocchi] def getAndFilterPhenotypes(phenotypes: RDD[String],
+                                              covars: RDD[String],
                                               header: String,
+                                              covarHeader: String,
                                               primaryPhenoIndex: Int,
                                               covarIndices: Array[Int],
                                               sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
@@ -94,37 +100,63 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
 
     // split up the header for making the phenotype label later
     val splitHeader = header.split("\t")
+    val splitCovarHeader = covarHeader.split("\t")
+    val fullHeader = splitHeader ++ splitCovarHeader
+    val numInPheno = splitHeader.length
+    println("numInPheno: " + numInPheno)
+    println("covarIndices: " + covarIndices.toList)
+    val mergedIndices = covarIndices.map(elem => { elem + numInPheno })
 
     // construct the RDD of Phenotype objects from the data in the textfile
-    val indices = Array(primaryPhenoIndex) ++ covarIndices
+    val indices = Array(primaryPhenoIndex) ++ mergedIndices
+    println("indices: " + indices.toList)
+    val covarData = covars.filter(line => line != covarHeader)
+      .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
     val data = phenotypes.filter(line => line != header)
       // split the line by column
-      .map(line => line.split("\t"))
-      // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
-      .filter(p => {
-        if (p.length > 1) {
-          var keep = true
-          for (valueIndex <- indices) {
-            if (isMissing(p(valueIndex))) {
-              keep = false
-            }
+      .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
+    // merge the phenos and covariates into same RDD row
+    val joinedData = data.cogroup(covarData).map(pair => {
+      val (sampleId, (phenos, covariates)) = pair
+      val phenoArray = phenos.toArray
+      val covarArray = covariates.toArray
+      println(phenoArray.length)
+      println(covarArray.length)
+      val toret = phenoArray(0) ++ covarArray(0)
+      println(toret.length)
+      println()
+      toret
+    })
+    // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
+    val finalData = joinedData.filter(p => {
+      println("plength = " + p.length)
+      if (p.length > 2) {
+        var keep = true
+        for (valueIndex <- indices) {
+          println("index = " + valueIndex)
+          println(p.toList)
+          println("here: " + p(valueIndex).toDouble)
+          if (isMissing(p(valueIndex))) {
+            keep = false
           }
-          keep
-        } else {
-          false
         }
-      })
+        keep
+      } else {
+        false
+      }
+    })
       // construct a phenotype object from the data in the sample
       .map(p => new MultipleRegressionDoublePhenotype(
-        (for (i <- indices) yield splitHeader(i)).mkString(","), // phenotype labels string
+        (for (i <- indices) yield fullHeader(i)).mkString(","), // phenotype labels string
         p(0), // sampleID string
         for (i <- indices) yield p(i).toDouble) // phenotype values
         .asInstanceOf[Phenotype[Array[Double]]])
 
     // unpersist the textfile
     phenotypes.unpersist()
+    covars.unpersist()
 
-    return data
+    finalData
   }
 
   private[gnocchi] def isMissing(value: String): Boolean = {
