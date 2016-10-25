@@ -36,6 +36,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     // get the relevant parts of the phenotypes file and put into a DF
     val phenotypes = sc.textFile(file).persist()
     val covars = sc.textFile(covarFile).persist()
+    println("Loading covars form %s.".format(covarFile))
 
     // separate header and data
     val header = phenotypes.first()

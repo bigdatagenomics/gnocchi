@@ -140,13 +140,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
     val parquetFiles = new File(parquetInputDestination)
 
-    var vcfPath = args.genotypes
+    val vcfPath = args.genotypes
+    val posAndIds = GetVariantIds(sc, vcfPath)
     //    if (args.getIds) {
     //      val mapPath = args.mapFile
     //      val oldName = new File(args.genotypes).getAbsolutePath.split("/").reverse(0)
     //      val newVCFPath = new File(args.genotypes).getAbsolutePath.split("/").reverse.drop(1).reverse.mkString("/") + "withIds_" + oldName
     //      val outpath = newVCFPath
-    //      GetAndFillVariantIds(sc, mapPath, vcfPath, outpath)
+    //      GetVariantIds(sc, vcfPath)
     //      vcfPath = outpath
     //    }
 

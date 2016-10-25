@@ -17,30 +17,31 @@
 package net.fnothaft.gnocchi.cli
 
 import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 
-object GetAndFillVariantIds {
-  def apply(sc: SparkContext, mapPath: String, vcfPath: String, outPath: String) {
-    val mapLines = sc.textFile(mapPath)
-    val idsAndPos = mapLines.map(line => {
+object GetVariantIds {
+  def apply(sc: SparkContext, vcfPath: String): RDD[((String, String), String)] = {
+    val mapLines = sc.textFile(vcfPath)
+    mapLines.map(line => {
       val info = line.split("\t")
       val chrom = info(0)
       val variantId = info(1)
       val pos = info(3)
       ((chrom, pos), variantId)
     })
-    val vcfLines = sc.textFile(vcfPath)
-    val vcfPos = vcfLines.map(line => {
-      val info = line.split("\t")
-      val variantId = info(2)
-      val pos = info(1)
-      val chrom = info(0)
-      ((chrom, pos), info)
-    })
-    val editedVCF = idsAndPos.cogroup(vcfPos)
-      .map(variant => {
-        val ((chrom, pos), (variantId, vcfLine)) = variant
-        vcfLine.toList.head.slice(0, 2) + variantId.toList.head + vcfLine.toList.head.slice(3, vcfLine.toList.head.length)
-      })
-    editedVCF.saveAsTextFile(outPath)
+    //    val vcfLines = sc.textFile(vcfPath)
+    //    val vcfPos = vcfLines.map(line => {
+    //      val info = line.split("\t")
+    //      val variantId = info(2)
+    //      val pos = info(1)
+    //      val chrom = info(0)
+    //      ((chrom, pos), info)
+    //    })
+    //    val editedVCF = idsAndPos.cogroup(vcfPos)
+    //      .map(variant => {
+    //        val ((chrom, pos), (variantId, vcfLine)) = variant
+    //        vcfLine.toList.head.slice(0, 2) + variantId.toList.head + vcfLine.toList.head.slice(3, vcfLine.toList.head.length)
+    //      })
+    //    editedVCF.saveAsTextFile(outPath)
   }
 }
