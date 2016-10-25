@@ -43,8 +43,21 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     val covarHeader = covars.first()
 
     // get label indices
-    val labels = header.split("\t").zipWithIndex
-    val covarLabels = covarHeader.split("\t").zipWithIndex
+    val covarLen = covarHeader.split("\t").length
+    var covarLabels = Array(("", 0))
+    if (covarLen >= 2) {
+      covarLabels = covarHeader.split("\t").zipWithIndex
+    } else {
+      covarLabels = covarHeader.split(" ").zipWithIndex
+    }
+    assert(covarLabels.length >= 2, "Covars file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being covar values. A header with column labels must also be present. ")
+    val len = header.split("\t").length
+    var labels = Array(("", 0))
+    if (len >= 2) {
+      labels = header.split("\t").zipWithIndex
+    } else {
+      labels = header.split(" ").zipWithIndex
+    }
     assert(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
     // extract covarNames
