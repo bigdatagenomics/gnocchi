@@ -124,8 +124,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val phenotypes = loadPhenotypes(sc)
 
     // Perform analysis
+    println("the  problem is in performAnalysis")
     val associations = performAnalysis(genotypeStates, phenotypes, sc)
-
+    println("the problem is in logresults")
     // Log the results
     logResults(associations, sc)
   }
@@ -298,6 +299,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
     import AuxEncoders._
+    println("The problem is in performAnalysis in DominantLogisticAssociation")
     val associations = args.associationType match {
       case "ADDITIVE_LINEAR"   => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
       case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes, contextOption)

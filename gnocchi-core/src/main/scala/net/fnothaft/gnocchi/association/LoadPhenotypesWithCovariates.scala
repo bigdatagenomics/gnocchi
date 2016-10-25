@@ -130,7 +130,6 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       // split the line by column
       .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
     // merge the phenos and covariates into same RDD row
-    println("The prob is in joinedData.map")
     val joinedData = data.cogroup(covarData).map(pair => {
       val (sampleId, (phenos, covariates)) = pair
       val phenoArray = phenos.toArray
@@ -142,9 +141,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       println()
       toret
     })
-    println("No it's not")
     // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
-    println("The prob is in finalData")
     val finalData = joinedData.filter(p => {
       println("plength = " + p.length)
       if (p.length > 2) {
@@ -168,7 +165,6 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         p(0), // sampleID string
         for (i <- indices) yield p(i).toDouble) // phenotype values
         .asInstanceOf[Phenotype[Array[Double]]])
-    println("No it's not")
 
     // unpersist the textfile
     phenotypes.unpersist()
