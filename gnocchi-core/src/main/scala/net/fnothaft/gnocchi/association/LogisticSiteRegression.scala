@@ -47,6 +47,8 @@ trait LogisticSiteRegression extends SiteRegression {
                   phenotype: String,
                   scOption: Option[SparkContext]): Association = {
 
+    println("the problem is inside regress site")
+
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = observations(0)._2.length
     val numObservations = observations.length
@@ -136,6 +138,7 @@ trait LogisticSiteRegression extends SiteRegression {
       "intercept" -> b(0),
       "'P Values' aka Wald Tests" -> waldTests,
       "log of wald tests" -> logWaldTests)
+    println("or not")
     Association(variant, phenotype, waldTests(1), statistics)
   }
 
