@@ -33,6 +33,7 @@ trait SiteRegression extends Serializable {
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]],
                      scOption: Option[SparkContext] = None): RDD[Association] = {
+    println("the problem is in siteRegression")
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
