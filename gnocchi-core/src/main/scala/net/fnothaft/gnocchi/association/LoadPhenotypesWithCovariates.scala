@@ -114,12 +114,14 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
 
     // split up the header for making the phenotype label later
     var splitHeader = header.split("\t")
-    val headerTabDelimited = splitHeader.length == 1
+    val headerTabDelimited = splitHeader.length != 1
+    println("HeaderTab = " + headerTabDelimited)
     if (!headerTabDelimited) {
       splitHeader = header.split(" ")
     }
     var splitCovarHeader = covarHeader.split("\t")
-    val covarTabDelimited = splitCovarHeader.length == 1
+    val covarTabDelimited = splitCovarHeader.length != 1
+    println("covarTab = " + covarTabDelimited)
     if (!covarTabDelimited) {
       splitCovarHeader = covarHeader.split(" ")
     }
@@ -146,7 +148,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       data = phenotypes.filter(line => line != header)
         // split the line by column
         .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
-    } 
+    }
 
     // merge the phenos and covariates into same RDD row
     val joinedData = data.cogroup(covarData).map(pair => {
@@ -157,13 +159,15 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       println(covarArray.length)
       val toret = phenoArray(0) ++ covarArray(0)
       println(toret.length)
-      println()
+      println(toret)
       toret
     })
     // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
     val finalData = joinedData.filter(p => {
+      println("p: " + p.toList)
       println("plength = " + p.length)
       if (p.length > 2) {
+
         var keep = true
         for (valueIndex <- indices) {
           println("index = " + valueIndex)
