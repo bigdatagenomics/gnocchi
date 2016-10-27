@@ -36,8 +36,7 @@ trait LinearSiteRegression extends SiteRegression {
   def regressSite(observations: Array[(Double, Array[Double])],
                   locus: ReferenceRegion,
                   altAllele: String,
-                  phenotype: String,
-                  scOption: Option[SparkContext]): Association = {
+                  phenotype: String): Association = {
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 

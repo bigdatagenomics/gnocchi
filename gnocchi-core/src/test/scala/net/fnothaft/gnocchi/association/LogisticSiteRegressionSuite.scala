@@ -42,7 +42,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val scOption = Option(sc)
 
     // feed it into logisitic regression and compare the Wald Chi Squared tests
-    val regressionResult = AdditiveLogisticAssociation.regressSite(observations, locus, altAllele, phenotype, scOption)
+    val regressionResult = AdditiveLogisticAssociation.regressSite(observations, locus, altAllele, phenotype)
 
     // Assert that the weights are correct within a threshold.
     val estWeights: Array[Double] = regressionResult.statistics("weights").asInstanceOf[Array[Double]] :+ regressionResult.statistics("intercept").asInstanceOf[Double]

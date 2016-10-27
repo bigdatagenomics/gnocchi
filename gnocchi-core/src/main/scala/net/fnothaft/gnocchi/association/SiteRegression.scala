@@ -31,8 +31,7 @@ trait SiteRegression extends Serializable {
   regressSite
   */
   final def apply[T](rdd: RDD[GenotypeState],
-                     phenotypes: RDD[Phenotype[T]],
-                     scOption: Option[SparkContext] = None): RDD[Association] = {
+                     phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
     println("the problem is in siteRegression")
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
@@ -53,7 +52,7 @@ trait SiteRegression extends Serializable {
           val (genotypeState, phenotype) = p
           // return genotype and phenotype in the correct form
           (clipOrKeepState(genotypeState), phenotype.toDouble)
-        }).toArray, pos, allele, phenotype, scOption)
+        }).toArray, pos, allele, phenotype)
       })
   }
 
@@ -66,8 +65,7 @@ trait SiteRegression extends Serializable {
   protected def regressSite(observations: Array[(Double, Array[Double])],
                             locus: ReferenceRegion,
                             altAllele: String,
-                            phenotype: String,
-                            scOption: Option[SparkContext] = None): Association
+                            phenotype: String): Association
 }
 
 trait Additive extends SiteRegression {

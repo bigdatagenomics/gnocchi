@@ -44,16 +44,14 @@ trait LogisticSiteRegression extends SiteRegression {
   def regressSite(observations: Array[(Double, Array[Double])],
                   locus: ReferenceRegion,
                   altAllele: String,
-                  phenotype: String,
-                  scOption: Option[SparkContext]): Association = {
-
-    println("the problem is inside regress site")
+                  phenotype: String): Association = {
 
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = observations(0)._2.length
     val numObservations = observations.length
     val lp = new Array[LabeledPoint](numObservations)
     val xixiT = new Array[DenseMatrix[Double]](numObservations)
+    val xiVectors = new Array[DenseVector[Double]](numObservations)
 
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
@@ -70,42 +68,56 @@ trait LogisticSiteRegression extends SiteRegression {
 
       // compute xi*xi.t for hessian matrix
       val xiVector = DenseVector(1.0 +: features)
+      xiVectors(i) = xiVector
       xixiT(i) = xiVector * xiVector.t
     }
 
-    assert(scOption.isDefined, "Spark Context must be fed into the logistic regression apply function as parameter scOption.")
-    val sc = scOption.get
+    ///// Solve the LogisticRegression using Newton-Raphson algorithm (ESL p. 120) /////
 
-    // convert the labeled point RDD into a dataFrame for mllib's LogisticRegression
-    val sqlCtx = SQLContext.getOrCreate(sc)
-    import sqlCtx.implicits._
-    val lpDF = sc.parallelize(lp).toDF
+    // initialize parameters
+    var iter = 0
+    val maxIter = 100
+    var update = 1
+    val tolerance = 1e-3
+    var singular = false
+    var convergence = false
+    val beta = Array.fill[Double](observationLength + 1)(0.0)
+    var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
+    var score = DenseVector.zeros[Double](observationLength + 1)
+    var logitArray = Array.fill[Double](observationLength + 1)(0.0)
+    val data = lp
 
-    // feed in the lp dataframe into the logistic regression solver and get the weights
-    val logReg = new LogisticRegression()
-      .setFeaturesCol("features")
-      .setLabelCol("label")
-      .setStandardization(true) // is this necessary?
-      .setTol(.001) // arbitrarily set at 1e-3
-      .setMaxIter(100) // arbitrarily set to 100
-      .setFitIntercept(true)
-      .setThreshold(0.5)
-      .setStandardization(true)
-    val logRegModel = logReg.fit(lpDF)
-    val b: Array[Double] = logRegModel.intercept +: logRegModel.coefficients.toArray
+    // optimize using Newton-Raphson
+    while ((iter < maxIter) && !convergence && !singular) {
+      try {
+        // calculate the logit for each xi
+        logitArray = logit(data, beta)
+
+        // calculate the hessian and score
+        hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
+        score = DenseVector.zeros[Double](observationLength + 1)
+        for (i <- observations.indices) {
+          val pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
+          hessian += -xixiT(i) * pi * (1 - pi)
+          score += xiVectors(i) * (lp(i).label - pi)
+        }
+
+        // compute the update and check convergence
+        var update = -inv(hessian) * score
+        if (max(abs(update)) <= tolerance) {
+          convergence = true
+        }
+
+        // compute new weights
+        for (j <- beta.indices) {
+          beta(j) += update(j)
+        }
+      } catch {
+        case error: breeze.linalg.MatrixSingularException => singular = true
+      }
+    }
 
     /// CALCULATE WALD STATISTIC "P Value" ///
-
-    // calculate the logit for each xi
-    val data = lp
-    val logitArray = logit(data, b)
-
-    // calculate the hessian
-    val hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
-    for (i <- observations.indices) {
-      val pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
-      hessian += -xixiT(i) * pi * (1 - pi) // See ESL, page 120
-    }
 
     // calculate the standard error for the genotypic predictor
     val fisherInfo = -hessian
@@ -113,7 +125,7 @@ trait LogisticSiteRegression extends SiteRegression {
     val standardErrors = sqrt(diag(fishInv))
 
     // calculate Wald z-scores
-    val zScores: DenseVector[Double] = DenseVector(b) :/ standardErrors
+    val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
     val zScoresSquared = zScores :* zScores
 
     // calculate cumulative probs
@@ -134,11 +146,10 @@ trait LogisticSiteRegression extends SiteRegression {
     variant.setStart(locus.start)
     variant.setEnd(locus.end)
     variant.setAlternateAllele(altAllele)
-    val statistics = Map("weights" -> b,
-      "intercept" -> b(0),
+    val statistics = Map("weights" -> beta,
+      "intercept" -> beta(0),
       "'P Values' aka Wald Tests" -> waldTests,
       "log of wald tests" -> logWaldTests)
-    println("or not")
     Association(variant, phenotype, waldTests(1), statistics)
   }
 

@@ -302,9 +302,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     println("The problem is in performAnalysis in DominantLogisticAssociation")
     val associations = args.associationType match {
       case "ADDITIVE_LINEAR"   => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes, contextOption)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes)
       case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
-      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes, contextOption)
+      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
     }
     sqlContext.createDataset(associations)
   }
