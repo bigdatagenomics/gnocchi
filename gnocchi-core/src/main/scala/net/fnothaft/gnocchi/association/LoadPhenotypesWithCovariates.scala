@@ -149,6 +149,14 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         // split the line by column
         .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
     }
+    covarData.map(d => {
+      println("sampleId: " + d._1)
+      println("covars: " + d._2.toList)
+    })
+    data.map(d => {
+      println("sampleId: " + d._1)
+      println("data: " + d._2.toList)
+    })
 
     // merge the phenos and covariates into same RDD row
     val joinedData = data.cogroup(covarData).map(pair => {

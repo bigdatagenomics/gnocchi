@@ -124,9 +124,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val phenotypes = loadPhenotypes(sc)
 
     // Perform analysis
-    println("the  problem is in performAnalysis")
     val associations = performAnalysis(genotypeStates, phenotypes, sc)
-    println("the problem is in logresults")
+
     // Log the results
     logResults(associations, sc)
   }
