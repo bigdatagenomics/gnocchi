@@ -113,8 +113,16 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     import sqlContext.implicits._
 
     // split up the header for making the phenotype label later
-    val splitHeader = header.split("\t")
-    val splitCovarHeader = covarHeader.split("\t")
+    var splitHeader = header.split("\t")
+    val headerTabDelimited = splitHeader.length == 1
+    if (!headerTabDelimited) {
+      splitHeader = header.split(" ")
+    }
+    var splitCovarHeader = covarHeader.split("\t")
+    val covarTabDelimited = splitCovarHeader.length == 1
+    if (!covarTabDelimited) {
+      splitCovarHeader = covarHeader.split(" ")
+    }
     val fullHeader = splitHeader ++ splitCovarHeader
     val numInPheno = splitHeader.length
     println("numInPheno: " + numInPheno)
@@ -124,11 +132,22 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     // construct the RDD of Phenotype objects from the data in the textfile
     val indices = Array(primaryPhenoIndex) ++ mergedIndices
     println("indices: " + indices.toList)
-    val covarData = covars.filter(line => line != covarHeader)
-      .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
-    val data = phenotypes.filter(line => line != header)
+    var covarData = covars.filter(line => line != covarHeader)
+      .map(line => line.split(" ")).keyBy(splitLine => splitLine(0))
+    if (covarTabDelimited) {
+      covarData = covars.filter(line => line != covarHeader)
+        .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
+    }
+
+    var data = phenotypes.filter(line => line != header)
       // split the line by column
-      .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
+      .map(line => line.split(" ")).keyBy(splitLine => splitLine(0))
+    if (headerTabDelimited) {
+      data = phenotypes.filter(line => line != header)
+        // split the line by column
+        .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
+    } 
+
     // merge the phenos and covariates into same RDD row
     val joinedData = data.cogroup(covarData).map(pair => {
       val (sampleId, (phenos, covariates)) = pair
