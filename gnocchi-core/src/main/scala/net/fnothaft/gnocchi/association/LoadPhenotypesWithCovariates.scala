@@ -115,25 +115,25 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     // split up the header for making the phenotype label later
     var splitHeader = header.split("\t")
     val headerTabDelimited = splitHeader.length != 1
-    println("HeaderTab = " + headerTabDelimited)
+    //    println("HeaderTab = " + headerTabDelimited)
     if (!headerTabDelimited) {
       splitHeader = header.split(" ")
     }
     var splitCovarHeader = covarHeader.split("\t")
     val covarTabDelimited = splitCovarHeader.length != 1
-    println("covarTab = " + covarTabDelimited)
+    //    println("covarTab = " + covarTabDelimited)
     if (!covarTabDelimited) {
       splitCovarHeader = covarHeader.split(" ")
     }
     val fullHeader = splitHeader ++ splitCovarHeader
     val numInPheno = splitHeader.length
-    println("numInPheno: " + numInPheno)
-    println("covarIndices: " + covarIndices.toList)
+    //    println("numInPheno: " + numInPheno)
+    //    println("covarIndices: " + covarIndices.toList)
     val mergedIndices = covarIndices.map(elem => { elem + numInPheno })
 
     // construct the RDD of Phenotype objects from the data in the textfile
     val indices = Array(primaryPhenoIndex) ++ mergedIndices
-    println("indices: " + indices.toList)
+    //    println("indices: " + indices.toList)
     var covarData = covars.filter(line => line != covarHeader)
       .map(line => line.split(" ")).keyBy(splitLine => splitLine(0))
     if (covarTabDelimited) {
@@ -163,24 +163,24 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       val (sampleId, (phenos, covariates)) = pair
       val phenoArray = phenos.toArray
       val covarArray = covariates.toArray
-      println(phenoArray.length)
-      println(covarArray.length)
+      //      println(phenoArray.length)
+      //      println(covarArray.length)
       val toret = phenoArray(0) ++ covarArray(0)
-      println(toret.length)
-      println(toret)
+      //      println(toret.length)
+      //      println(toret)
       toret
     })
     // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
     val finalData = joinedData.filter(p => {
-      println("p: " + p.toList)
-      println("plength = " + p.length)
+      //      println("p: " + p.toList)
+      //      println("plength = " + p.length)
       if (p.length > 2) {
 
         var keep = true
         for (valueIndex <- indices) {
-          println("index = " + valueIndex)
-          println(p.toList)
-          println("here: " + p(valueIndex).toDouble)
+          //          println("index = " + valueIndex)
+          //          println(p.toList)
+          //          println("here: " + p(valueIndex).toDouble)
           if (isMissing(p(valueIndex))) {
             keep = false
           }

@@ -20,13 +20,8 @@ import breeze.linalg._
 import breeze.numerics._
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.apache.spark.SparkContext
-import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
-import org.apache.spark.ml.classification.LogisticRegressionModel
-import org.apache.spark.sql.SQLContext
-import org.apache.commons.math3.special.Gamma
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait LogisticSiteRegression extends SiteRegression {
@@ -115,6 +110,7 @@ trait LogisticSiteRegression extends SiteRegression {
       } catch {
         case error: breeze.linalg.MatrixSingularException => singular = true
       }
+      iter += 1
     }
 
     /// CALCULATE WALD STATISTIC "P Value" ///
