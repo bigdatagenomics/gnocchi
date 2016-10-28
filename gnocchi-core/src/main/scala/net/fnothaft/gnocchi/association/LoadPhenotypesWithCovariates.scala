@@ -149,11 +149,11 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         // split the line by column
         .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
     }
-    covarData.map(d => {
+    covarData.collect.map(d => {
       println("sampleId: " + d._1)
       println("covars: " + d._2.toList)
     })
-    data.map(d => {
+    data.collect.map(d => {
       println("sampleId: " + d._1)
       println("data: " + d._2.toList)
     })
