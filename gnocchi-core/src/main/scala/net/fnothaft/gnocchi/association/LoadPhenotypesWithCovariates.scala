@@ -135,19 +135,19 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     val indices = Array(primaryPhenoIndex) ++ mergedIndices
     //    println("indices: " + indices.toList)
     var covarData = covars.filter(line => line != covarHeader)
-      .map(line => line.split(" ")).keyBy(splitLine => splitLine(0))
+      .map(line => line.split(" ")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     if (covarTabDelimited) {
       covarData = covars.filter(line => line != covarHeader)
-        .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
+        .map(line => line.split("\t")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     }
 
     var data = phenotypes.filter(line => line != header)
       // split the line by column
-      .map(line => line.split(" ")).keyBy(splitLine => splitLine(0))
+      .map(line => line.split(" ")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     if (headerTabDelimited) {
       data = phenotypes.filter(line => line != header)
         // split the line by column
-        .map(line => line.split("\t")).keyBy(splitLine => splitLine(0))
+        .map(line => line.split("\t")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     }
     covarData.collect.map(d => {
       println("sampleId: " + d._1)
