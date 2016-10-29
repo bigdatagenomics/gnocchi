@@ -32,8 +32,8 @@ trait SiteRegression extends Serializable {
   */
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
-    rdd.collect.foreach(el => println(el))
-    phenotypes.collect.foreach(el => println(el))
+    rdd.take(5).foreach(el => println(el))
+    phenotypes.take(5).foreach(el => println(el))
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
