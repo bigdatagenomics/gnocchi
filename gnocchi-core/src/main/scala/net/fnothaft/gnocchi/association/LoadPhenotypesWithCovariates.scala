@@ -129,9 +129,12 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     val numInPheno = splitHeader.length
     //    println("numInPheno: " + numInPheno)
     //    println("covarIndices: " + covarIndices.toList)
+    println("\n\n\n\n covarIndices = " + covarIndices.toList + "\n\n\n\n\n")
     val mergedIndices = covarIndices.map(elem => { elem + numInPheno })
 
     // construct the RDD of Phenotype objects from the data in the textfile
+    println("\n\n\n\n primary Pheno Index = " + primaryPhenoIndex + "\n\n\n\n\n")
+    println("\n\n\n\n mergedIndices = " + mergedIndices.toList + "\n\n\n\n\n")
     val indices = Array(primaryPhenoIndex) ++ mergedIndices
     //    println("indices: " + indices.toList)
     var covarData = covars.filter(line => line != covarHeader)
@@ -171,6 +174,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       toret
     })
     // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
+    println(" \n\n\n\n\n\n indices: " + indices + "\n\n\n\n\n ")
     val finalData = joinedData.filter(p => {
       //      println("p: " + p.toList)
       //      println("plength = " + p.length)
