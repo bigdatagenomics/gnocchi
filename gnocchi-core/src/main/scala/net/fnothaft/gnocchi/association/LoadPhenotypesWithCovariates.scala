@@ -136,6 +136,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     println("\n\n\n\n primary Pheno Index = " + primaryPhenoIndex + "\n\n\n\n\n")
     println("\n\n\n\n mergedIndices = " + mergedIndices.toList + "\n\n\n\n\n")
     val indices = Array(primaryPhenoIndex) ++ mergedIndices
+    println(" \n\n\n\n\n\n indices: " + indices.toList + "\n\n\n\n\n ")
     //    println("indices: " + indices.toList)
     var covarData = covars.filter(line => line != covarHeader)
       .map(line => line.split(" ")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
@@ -152,11 +153,11 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         // split the line by column
         .map(line => line.split("\t")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     }
-    covarData.collect.map(d => {
+    covarData.take(10).map(d => {
       println("sampleId: " + d._1)
       println("covars: " + d._2.toList)
     })
-    data.collect.map(d => {
+    data.take(10).map(d => {
       println("sampleId: " + d._1)
       println("data: " + d._2.toList)
     })
@@ -174,7 +175,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       toret
     })
     // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
-    println(" \n\n\n\n\n\n indices: " + indices + "\n\n\n\n\n ")
+
     val finalData = joinedData.filter(p => {
       //      println("p: " + p.toList)
       //      println("plength = " + p.length)
