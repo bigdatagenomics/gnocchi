@@ -201,7 +201,8 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         p(0), // sampleID string
         for (i <- indices) yield p(i).toDouble) // phenotype values
         .asInstanceOf[Phenotype[Array[Double]]])
-
+    println("\n\n\n\n\n\n\n\n" + fullHeader + "\n\n\n\n\n\n")
+    println("\n\n\n\n\n\n\n\n" + indices.toList + "\n\n\n\n\n")
     // unpersist the textfile
     phenotypes.unpersist()
     covars.unpersist()
