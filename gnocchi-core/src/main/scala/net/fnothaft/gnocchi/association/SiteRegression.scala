@@ -60,9 +60,9 @@ trait SiteRegression extends Serializable {
         }).toArray, pos, allele, phenotype)
       })
 
-    println("\n\n\n\n\n" + toRet.take(10).toList)
-    println("\n\n\n\n\n\n\n associaitons: ")
-    toRet
+//    println("\n\n\n\n\n" + toRet.take(10).toList)
+//    println("\n\n\n\n\n\n\n associaitons: ")
+//    toRet
   }
 
   /**
