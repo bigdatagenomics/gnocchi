@@ -15,36 +15,23 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import htsjdk.samtools.ValidationStringency
-import java.io.{ FileNotFoundException, File }
-import scala.collection.immutable.HashSet
+import java.io.{ File }
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
-import net.fnothaft.gnocchi.sql.GenotypeStateMatrix
 import net.fnothaft.gnocchi.sql.GnocchiContext._
-import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
-import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.adam.rdd.ADAMContext._
-import org.bdgenomics.adam.rdd.BroadcastRegionJoin
 import org.bdgenomics.formats.avro._
-import org.bdgenomics.utils.misc.HadoopUtil
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import scala.math.exp
-import org.apache.parquet.avro.AvroReadSupport
-import org.apache.parquet.hadoop.ParquetInputFormat
-import org.apache.parquet.hadoop.util.ContextUtil
 
 import org.bdgenomics.adam.cli.Vcf2ADAM
-import java.nio.file.{ Paths, Files }
-import org.apache.hadoop.fs.{ FileSystem, Path }
 import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.WildcardFileFilter
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ DataFrame, Dataset }
+import org.apache.spark.sql.{ Dataset }
 import net.fnothaft.gnocchi.models.{ Phenotype, Association, AuxEncoders }
 
 object RegressPhenotypes extends BDGCommandCompanion {

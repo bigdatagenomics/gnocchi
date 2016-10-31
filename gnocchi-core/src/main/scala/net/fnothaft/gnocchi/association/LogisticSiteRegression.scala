@@ -116,24 +116,7 @@ trait LogisticSiteRegression extends SiteRegression {
     /// CALCULATE WALD STATISTIC "P Value" ///
 
     // calculate the standard error for the genotypic predictor
-    val fisherInfo = -hessian
-    val fishInv = inv(fisherInfo)
-    val standardErrors = sqrt(diag(fishInv))
-
-    // calculate Wald z-scores
-    val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
-    val zScoresSquared = zScores :* zScores
-
-    // calculate cumulative probs
-    val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
-    val probs = zScoresSquared.map(zi => { chiDist.cumulativeProbability(zi) })
-
-    // calculate wald test statistics
-    val waldTests = 1d - probs
-    println("\n\n\n\n\n\n\n\n WaldTest: " + waldTests(1) + " \n\n\n\n\n\n\n\n\n")
-
-    // calculate the log of the p-value for the genetic component
-    val logWaldTests = waldTests.map(t => { log10(t) })
+    var matrixSingular = false
 
     // pack up the information into an Association object
     val variant = new Variant()
@@ -143,11 +126,45 @@ trait LogisticSiteRegression extends SiteRegression {
     variant.setStart(locus.start)
     variant.setEnd(locus.end)
     variant.setAlternateAllele(altAllele)
-    val statistics = Map("weights" -> beta,
-      "intercept" -> beta(0),
-      "'P Values' aka Wald Tests" -> waldTests,
-      "log of wald tests" -> logWaldTests)
-    Association(variant, phenotype, waldTests(1), statistics)
+
+    var toRet = new Association(null,null,-9.0,null)
+    try {
+      val fisherInfo = -hessian
+      val fishInv = inv(fisherInfo)
+      val standardErrors = sqrt(diag(fishInv))
+
+      // calculate Wald z-scores
+      val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
+      val zScoresSquared = zScores :* zScores
+
+      // calculate cumulative probs
+      val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
+      val probs = zScoresSquared.map(zi => {
+        chiDist.cumulativeProbability(zi)
+      })
+
+      // calculate wald test statistics
+      val waldTests = 1d - probs
+      println("\n\n\n\n\n\n\n\n WaldTest: " + waldTests(1) + " \n\n\n\n\n\n\n\n\n")
+
+      // calculate the log of the p-value for the genetic component
+      val logWaldTests = waldTests.map(t => {
+        log10(t)
+      })
+
+      val statistics = Map("weights" -> beta,
+        "intercept" -> beta(0),
+        "'P Values' aka Wald Tests" -> waldTests,
+        "log of wald tests" -> logWaldTests)
+      toRet = Association(variant, phenotype, waldTests(1), statistics)
+    } catch {
+      case error: breeze.linalg.MatrixSingularException => matrixSingular = true
+    }
+    if (matrixSingular) {
+      val statistics = Map()
+      toRet = Association(variant, phenotype, -9.0, Map())
+    }
+    toRet
   }
 
   def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
