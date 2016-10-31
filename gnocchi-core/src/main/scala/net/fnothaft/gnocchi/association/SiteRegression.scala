@@ -40,7 +40,8 @@ trait SiteRegression extends Serializable {
     val toRet = rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
-      .map(kvv => {
+    println("\n\n\n\n\n Associations: " + toRet.take(10).toList)
+    toRet.map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
         val (_, p) = kvv
         // unpack the information into genotype state and pheno
