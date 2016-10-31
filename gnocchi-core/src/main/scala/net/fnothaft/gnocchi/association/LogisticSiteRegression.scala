@@ -179,7 +179,11 @@ trait LogisticSiteRegression extends SiteRegression {
     val bDense = DenseVector(b)
     for (j <- logitResults.indices) {
       val lp = lpArray(j)
+      println("lp.features: " + lp.features.toArray.toList)
+      println("b: " + b.toList)
+      println("bdense: " + bDense.toArray.toList)
       logitResults(j) = DenseVector(1.0 +: lp.features.toArray) dot bDense
+      println("logit: " + logitResults(j))
     }
     logitResults
   }
