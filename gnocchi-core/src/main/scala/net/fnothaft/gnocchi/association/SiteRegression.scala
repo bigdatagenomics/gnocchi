@@ -58,8 +58,9 @@ trait SiteRegression extends Serializable {
           (clipOrKeepState(genotypeState), phenotype.toDouble)
         }).toArray, pos, allele, phenotype)
       })
+
+    println("\n\n\n\n\n" + toRet.take(10).toList)
     println("\n\n\n\n\n\n\n associaitons: ")
-    println(toRet.take(10).toList)
     toRet
   }
 
