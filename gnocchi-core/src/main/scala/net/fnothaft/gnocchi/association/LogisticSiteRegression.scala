@@ -131,7 +131,7 @@ trait LogisticSiteRegression extends SiteRegression {
     try {
       val fisherInfo = -hessian
       val fishInv = inv(fisherInfo)
-      val standardErrors = sqrt(diag(fishInv))
+      val standardErrors = sqrt(abs(diag(fishInv)))
 
       // calculate Wald z-scores
       val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
