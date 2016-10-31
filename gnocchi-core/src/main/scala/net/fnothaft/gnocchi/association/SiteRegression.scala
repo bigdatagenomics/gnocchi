@@ -32,15 +32,15 @@ trait SiteRegression extends Serializable {
   */
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
-    rdd.take(100).foreach(el => println(el))
-    phenotypes.take(100).foreach(el => {
-      println(el)
-      println(el.asInstanceOf[MultipleRegressionDoublePhenotype].value.toList)
-    })
+//    rdd.take(100).foreach(el => println(el))
+//    phenotypes.take(100).foreach(el => {
+//      println(el)
+//      println(el.asInstanceOf[MultipleRegressionDoublePhenotype].value.toList)
+//    })
     val toRet = rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
-    println("\n\n\n\n\n Associations: " + toRet.take(10).toList)
+//    println("\n\n\n\n\n Associations: " + toRet.take(10).toList)
     toRet.map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
         val (_, p) = kvv

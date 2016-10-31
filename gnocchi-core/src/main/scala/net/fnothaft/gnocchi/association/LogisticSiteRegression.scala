@@ -81,6 +81,7 @@ trait LogisticSiteRegression extends SiteRegression {
     var score = DenseVector.zeros[Double](observationLength + 1)
     var logitArray = Array.fill[Double](observationLength + 1)(0.0)
     val data = lp
+    var pi = 0.0
 
     // optimize using Newton-Raphson
     while ((iter < maxIter) && !convergence && !singular) {
@@ -92,7 +93,7 @@ trait LogisticSiteRegression extends SiteRegression {
         hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
         score = DenseVector.zeros[Double](observationLength + 1)
         for (i <- observations.indices) {
-          val pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
+          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           hessian += -xixiT(i) * pi * (1 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
@@ -156,7 +157,10 @@ trait LogisticSiteRegression extends SiteRegression {
         "intercept" -> beta(0),
         "'P Values' aka Wald Tests" -> waldTests,
         "log of wald tests" -> logWaldTests,
-        "fisherInfo" -> fisherInfo)
+        "fisherInfo" -> fisherInfo,
+        "XiVectors" -> xiVectors,
+        "xixit" -> xixiT,
+        "prob" -> pi)
 
       toRet = Association(variant, phenotype, waldTests(1), statistics)
     } catch {
