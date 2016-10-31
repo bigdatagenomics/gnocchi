@@ -155,7 +155,9 @@ trait LogisticSiteRegression extends SiteRegression {
       val statistics = Map("weights" -> beta,
         "intercept" -> beta(0),
         "'P Values' aka Wald Tests" -> waldTests,
-        "log of wald tests" -> logWaldTests)
+        "log of wald tests" -> logWaldTests,
+        "fisherInfo" -> fisherInfo)
+
       toRet = Association(variant, phenotype, waldTests(1), statistics)
     } catch {
       case error: breeze.linalg.MatrixSingularException => matrixSingular = true
