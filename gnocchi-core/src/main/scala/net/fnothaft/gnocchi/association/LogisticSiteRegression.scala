@@ -158,9 +158,10 @@ trait LogisticSiteRegression extends SiteRegression {
         "'P Values' aka Wald Tests" -> waldTests,
         "log of wald tests" -> logWaldTests,
         "fisherInfo" -> fisherInfo,
-        "XiVectors" -> xiVectors,
-        "xixit" -> xixiT,
-        "prob" -> pi)
+        "XiVectors" -> xiVectors(0),
+        "xixit" -> xixiT(0),
+        "prob" -> pi,
+        "logitArray" -> logitArray(0))
 
       toRet = Association(variant, phenotype, waldTests(1), statistics)
     } catch {
