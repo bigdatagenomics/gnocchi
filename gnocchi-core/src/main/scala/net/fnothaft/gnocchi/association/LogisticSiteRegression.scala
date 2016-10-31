@@ -146,7 +146,7 @@ trait LogisticSiteRegression extends SiteRegression {
 
       // calculate wald test statistics
       val waldTests = 1d - probs
-      println("\n\n\n\n\n\n\n\n WaldTest: " + waldTests(1) + " \n\n\n\n\n\n\n\n\n")
+      println("WaldTest: " + waldTests(1))
 
       // calculate the log of the p-value for the genetic component
       val logWaldTests = waldTests.map(t => {
