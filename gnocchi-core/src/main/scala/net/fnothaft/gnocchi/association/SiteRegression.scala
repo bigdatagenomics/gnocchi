@@ -37,7 +37,7 @@ trait SiteRegression extends Serializable {
       println(el)
       println(el.asInstanceOf[MultipleRegressionDoublePhenotype].value.toList)
     })
-    rdd.keyBy(_.sampleId)
+    val toRet = rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
       .map(kvv => {
@@ -58,6 +58,9 @@ trait SiteRegression extends Serializable {
           (clipOrKeepState(genotypeState), phenotype.toDouble)
         }).toArray, pos, allele, phenotype)
       })
+    println("\n\n\n\n\n\n\n associaitons: ")
+    println(toRet.take(10).toList)
+    toRet
   }
 
   /**
