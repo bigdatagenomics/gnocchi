@@ -32,8 +32,8 @@ trait SiteRegression extends Serializable {
   */
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
-    rdd.take(5).foreach(el => println(el))
-    phenotypes.take(5).foreach(el => {
+    rdd.take(100).foreach(el => println(el))
+    phenotypes.take(100).foreach(el => {
       println(el)
       println(el.asInstanceOf[MultipleRegressionDoublePhenotype].value.toList)
     })

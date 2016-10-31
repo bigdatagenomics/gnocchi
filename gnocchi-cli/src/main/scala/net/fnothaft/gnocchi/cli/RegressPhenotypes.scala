@@ -292,7 +292,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
       case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
     }
-    associations.take(5).foreach(assoc => println(assoc))
+    associations.take(100).foreach(assoc => println(assoc))
     sqlContext.createDataset(associations)
   }
 
