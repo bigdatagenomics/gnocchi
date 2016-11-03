@@ -76,6 +76,7 @@ trait LogisticSiteRegression extends SiteRegression {
     val tolerance = 1e-3
     var singular = false
     var convergence = false
+    var nans = false
     val beta = Array.fill[Double](observationLength + 1)(0.0)
     var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
     var score = DenseVector.zeros[Double](observationLength + 1)
@@ -84,7 +85,7 @@ trait LogisticSiteRegression extends SiteRegression {
     var pi = 0.0
 
     // optimize using Newton-Raphson
-    while ((iter < maxIter) && !convergence && !singular) {
+    while ((iter < maxIter) && !convergence && !singular && !nans) {
       try {
         // calculate the logit for each xi
         logitArray = logit(data, beta)
@@ -110,6 +111,7 @@ trait LogisticSiteRegression extends SiteRegression {
         }
       } catch {
         case error: breeze.linalg.MatrixSingularException => singular = true
+        case error: breeze.linalg.NotConvergedException => nans = true
       }
       iter += 1
     }
