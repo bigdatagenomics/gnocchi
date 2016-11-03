@@ -15,7 +15,7 @@
  */
 package net.fnothaft.gnocchi.association
 
-import net.fnothaft.gnocchi.models.{Association, GenotypeState, MultipleRegressionDoublePhenotype, Phenotype}
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, MultipleRegressionDoublePhenotype, Phenotype }
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
@@ -32,16 +32,15 @@ trait SiteRegression extends Serializable {
   */
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
-//    rdd.take(100).foreach(el => println(el))
-//    phenotypes.take(100).foreach(el => {
-//      println(el)
-//      println(el.asInstanceOf[MultipleRegressionDoublePhenotype].value.toList)
-//    })
-    val toRet = rdd.keyBy(_.sampleId)
+    //    rdd.take(100).foreach(el => println(el))
+    //    phenotypes.take(100).foreach(el => {
+    //      println(el)
+    //      println(el.asInstanceOf[MultipleRegressionDoublePhenotype].value.toList)
+    //    })
+    rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
-//    println("\n\n\n\n\n Associations: " + toRet.take(10).toList)
-    toRet.map(kvv => {
+      .map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
         val (_, p) = kvv
         // unpack the information into genotype state and pheno
@@ -59,10 +58,6 @@ trait SiteRegression extends Serializable {
           (clipOrKeepState(genotypeState), phenotype.toDouble)
         }).toArray, pos, allele, phenotype)
       })
-
-//    println("\n\n\n\n\n" + toRet.take(10).toList)
-//    println("\n\n\n\n\n\n\n associaitons: ")
-//    toRet
   }
 
   /**
