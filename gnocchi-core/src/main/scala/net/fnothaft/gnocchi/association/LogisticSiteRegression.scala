@@ -71,11 +71,11 @@ trait LogisticSiteRegression extends SiteRegression {
 
     // initialize parameters
     var iter = 0
-    val maxIter = 1
-    var update = 1
+    val maxIter = 100
     val tolerance = 1e-3
     var singular = false
     var convergence = false
+    var update: DenseVector[Double] = DenseVector[Double]()
     val beta = Array.fill[Double](observationLength + 1)(0.0)
     var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
     var score = DenseVector.zeros[Double](observationLength + 1)
@@ -99,7 +99,7 @@ trait LogisticSiteRegression extends SiteRegression {
         }
 
         // compute the update and check convergence
-        var update = -inv(hessian) * score
+        update = -inv(hessian) * score
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
@@ -107,6 +107,12 @@ trait LogisticSiteRegression extends SiteRegression {
         // compute new weights
         for (j <- beta.indices) {
           beta(j) += update(j)
+        }
+
+        println("LOG_REG - b: " + beta.toList)
+        if (beta.exists(_.isNaN)) {
+          print("LOG_REG - Broke on line: " + iter)
+          iter = maxIter
         }
       } catch {
         case error: breeze.linalg.MatrixSingularException => singular = true
@@ -146,7 +152,7 @@ trait LogisticSiteRegression extends SiteRegression {
 
       // calculate wald test statistics
       val waldTests = 1d - probs
-      println("WaldTest: " + waldTests(1))
+//      println("WaldTest: " + waldTests(1))
 
       // calculate the log of the p-value for the genetic component
       val logWaldTests = waldTests.map(t => {
@@ -177,7 +183,7 @@ trait LogisticSiteRegression extends SiteRegression {
   def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val logitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
-    println("b: " + b.toList)
+//    println("b: " + b.toList)
     for (j <- logitResults.indices) {
       val lp = lpArray(j)
 //      println("lp.features: " + lp.features.toArray.toList)
