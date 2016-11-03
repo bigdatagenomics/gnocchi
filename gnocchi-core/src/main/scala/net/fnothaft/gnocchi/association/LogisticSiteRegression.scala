@@ -99,7 +99,7 @@ trait LogisticSiteRegression extends SiteRegression {
         }
 
         // compute the update and check convergence
-        var update = -Math.pow(0.5, iter) * inv(hessian) * score
+        var update = -inv(hessian) * score
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
@@ -177,7 +177,7 @@ trait LogisticSiteRegression extends SiteRegression {
   def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val logitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
-    lpArray
+
     for (j <- logitResults.indices) {
       val lp = lpArray(j)
       println("lp.features: " + lp.features.toArray.toList)
