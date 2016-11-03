@@ -111,7 +111,6 @@ trait LogisticSiteRegression extends SiteRegression {
         }
       } catch {
         case error: breeze.linalg.MatrixSingularException => singular = true
-        case error: breeze.linalg.NotConvergedException => nans = true
       }
       iter += 1
     }
