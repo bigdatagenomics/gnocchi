@@ -81,7 +81,6 @@ trait LogisticSiteRegression extends SiteRegression {
     var pi = 0.0
     var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
 
-
     // optimize using Newton-Raphson
     while ((iter < maxIter) && !convergence && !singular) {
       try {
@@ -166,7 +165,7 @@ trait LogisticSiteRegression extends SiteRegression {
         "XiVectors" -> xiVectors(0),
         "xixit" -> xixiT(0),
         "prob" -> pi)
-//        "logitArray" -> logitArray(0))
+      //        "logitArray" -> logitArray(0))
 
       toRet = Association(variant, phenotype, waldTests(1), statistics)
     } catch {
