@@ -71,12 +71,11 @@ trait LogisticSiteRegression extends SiteRegression {
 
     // initialize parameters
     var iter = 0
-    val maxIter = 100
+    val maxIter = 1
     var update = 1
     val tolerance = 1e-3
     var singular = false
     var convergence = false
-    var nans = false
     val beta = Array.fill[Double](observationLength + 1)(0.0)
     var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
     var score = DenseVector.zeros[Double](observationLength + 1)
