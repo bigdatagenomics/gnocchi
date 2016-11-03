@@ -84,7 +84,7 @@ trait LogisticSiteRegression extends SiteRegression {
     var pi = 0.0
 
     // optimize using Newton-Raphson
-    while ((iter < maxIter) && !convergence && !singular && !nans) {
+    while ((iter < maxIter) && !convergence && !singular) {
       try {
         // calculate the logit for each xi
         logitArray = logit(data, beta)
