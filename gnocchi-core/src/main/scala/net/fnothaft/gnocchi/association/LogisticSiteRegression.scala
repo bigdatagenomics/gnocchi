@@ -88,9 +88,12 @@ trait LogisticSiteRegression extends SiteRegression {
         val logitArray = logit(data, beta)
 
         // calculate the hessian and score
+
         hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
         var score = DenseVector.zeros[Double](observationLength + 1)
         for (i <- observations.indices) {
+          //          println(hessian)
+          //          println("\n")
           pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           hessian += -xixiT(i) * pi * (1 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
@@ -98,6 +101,8 @@ trait LogisticSiteRegression extends SiteRegression {
 
         // compute the update and check convergence
         update = -inv(hessian) * score
+        println(update)
+        println("\n")
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
@@ -109,7 +114,7 @@ trait LogisticSiteRegression extends SiteRegression {
 
         println("LOG_REG - b: " + beta.toList)
         if (beta.exists(_.isNaN)) {
-          print("LOG_REG - Broke on line: " + iter)
+          print("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
         }
       } catch {

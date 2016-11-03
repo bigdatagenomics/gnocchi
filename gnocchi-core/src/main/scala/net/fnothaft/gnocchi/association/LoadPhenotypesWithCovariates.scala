@@ -129,13 +129,13 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     val numInPheno = splitHeader.length
     //    println("numInPheno: " + numInPheno)
     //    println("covarIndices: " + covarIndices.toList)
-//    println("\n\n\n\n covarIndices = " + covarIndices.toList + "\n\n\n\n\n")
+    //    println("\n\n\n\n covarIndices = " + covarIndices.toList + "\n\n\n\n\n")
     val mergedIndices = covarIndices.map(elem => { elem + numInPheno })
 
     // construct the RDD of Phenotype objects from the data in the textfile
-//    println("\n\n\n\n primary Pheno Index = " + primaryPhenoIndex + "\n\n\n\n\n")
+    //    println("\n\n\n\n primary Pheno Index = " + primaryPhenoIndex + "\n\n\n\n\n")
     val indices = Array(primaryPhenoIndex) ++ mergedIndices
-//    println(" \n\n\n\n\n\n indices: " + indices.toList + "\n\n\n\n\n ")
+    //    println(" \n\n\n\n\n\n indices: " + indices.toList + "\n\n\n\n\n ")
     //    println("indices: " + indices.toList)
     var covarData = covars.filter(line => line != covarHeader)
       .map(line => line.split(" ")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
@@ -152,14 +152,14 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         // split the line by column
         .map(line => line.split("\t")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     }
-//    covarData.take(10).map(d => {
-//      println("sampleId: " + d._1)
-//      println("covars: " + d._2.toList)
-//    })
-//    data.take(10).map(d => {
-//      println("sampleId: " + d._1)
-//      println("data: " + d._2.toList)
-//    })
+    //    covarData.take(10).map(d => {
+    //      println("sampleId: " + d._1)
+    //      println("covars: " + d._2.toList)
+    //    })
+    //    data.take(10).map(d => {
+    //      println("sampleId: " + d._1)
+    //      println("data: " + d._2.toList)
+    //    })
 
     // merge the phenos and covariates into same RDD row
     val joinedData = data.cogroup(covarData).map(pair => {

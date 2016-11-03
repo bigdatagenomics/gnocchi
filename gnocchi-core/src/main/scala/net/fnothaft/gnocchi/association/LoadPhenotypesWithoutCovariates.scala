@@ -46,7 +46,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
     } else {
       labels = header.split(" ").zipWithIndex
     }
-//    val labels = header.split("\t").zipWithIndex
+    //    val labels = header.split("\t").zipWithIndex
 
     assert(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
