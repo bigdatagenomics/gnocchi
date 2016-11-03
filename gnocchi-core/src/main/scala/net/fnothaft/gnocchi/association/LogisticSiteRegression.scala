@@ -77,21 +77,20 @@ trait LogisticSiteRegression extends SiteRegression {
     var convergence = false
     var update: DenseVector[Double] = DenseVector[Double]()
     val beta = Array.fill[Double](observationLength + 1)(0.0)
-    var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
-    var score = DenseVector.zeros[Double](observationLength + 1)
-    var logitArray = Array.fill[Double](observationLength + 1)(0.0)
     val data = lp
     var pi = 0.0
+    var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
+
 
     // optimize using Newton-Raphson
     while ((iter < maxIter) && !convergence && !singular) {
       try {
         // calculate the logit for each xi
-        logitArray = logit(data, beta)
+        val logitArray = logit(data, beta)
 
         // calculate the hessian and score
         hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
-        score = DenseVector.zeros[Double](observationLength + 1)
+        var score = DenseVector.zeros[Double](observationLength + 1)
         for (i <- observations.indices) {
           pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           hessian += -xixiT(i) * pi * (1 - pi)
@@ -152,7 +151,7 @@ trait LogisticSiteRegression extends SiteRegression {
 
       // calculate wald test statistics
       val waldTests = 1d - probs
-//      println("WaldTest: " + waldTests(1))
+      //      println("WaldTest: " + waldTests(1))
 
       // calculate the log of the p-value for the genetic component
       val logWaldTests = waldTests.map(t => {
@@ -166,8 +165,8 @@ trait LogisticSiteRegression extends SiteRegression {
         "fisherInfo" -> fisherInfo,
         "XiVectors" -> xiVectors(0),
         "xixit" -> xixiT(0),
-        "prob" -> pi,
-        "logitArray" -> logitArray(0))
+        "prob" -> pi)
+//        "logitArray" -> logitArray(0))
 
       toRet = Association(variant, phenotype, waldTests(1), statistics)
     } catch {
@@ -183,14 +182,14 @@ trait LogisticSiteRegression extends SiteRegression {
   def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val logitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
-//    println("b: " + b.toList)
+    //    println("b: " + b.toList)
     for (j <- logitResults.indices) {
       val lp = lpArray(j)
-//      println("lp.features: " + lp.features.toArray.toList)
-//      println("b: " + b.toList)
-//      println("bdense: " + bDense.toArray.toList)
+      //      println("lp.features: " + lp.features.toArray.toList)
+      //      println("b: " + b.toList)
+      //      println("bdense: " + bDense.toArray.toList)
       logitResults(j) = DenseVector(1.0 +: lp.features.toArray) dot bDense
-//      println("logit: " + logitResults(j))
+      //      println("logit: " + logitResults(j))
     }
     logitResults
   }
