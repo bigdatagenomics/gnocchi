@@ -98,7 +98,7 @@ trait LogisticSiteRegression extends SiteRegression {
           //          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
           println("pi: " + pi)
-          hessian += -xixiT(i) * pi * (1 - pi)
+          hessian += -xixiT(i) * pi * (1.0 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
 
