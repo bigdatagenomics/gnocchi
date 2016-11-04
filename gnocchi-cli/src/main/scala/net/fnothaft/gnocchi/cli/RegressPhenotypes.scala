@@ -304,9 +304,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       FileUtils.deleteDirectory(associationsFile)
     }
     if (args.saveAsText) {
-      associations.rdd.map(r => "%s, %s, %s"
-        .format(r.variant.getContig.getContigName,
-          r.variant.getContig.getContigMD5, exp(r.logPValue).toString))
+      associations.rdd.keyBy(_.logPValue).sortBy(_._1).map(r => "%s, %s, %s"
+        .format(r._2.variant.getContig.getContigName,
+          r._2.variant.getStart, exp(r._2.logPValue).toString))
         .saveAsTextFile(args.associations)
     } else {
       associations.toDF.write.parquet(args.associations)
