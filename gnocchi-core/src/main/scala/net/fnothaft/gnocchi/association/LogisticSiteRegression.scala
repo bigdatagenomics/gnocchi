@@ -89,7 +89,7 @@ trait LogisticSiteRegression extends SiteRegression {
 
         // calculate the hessian and score
 
-        hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
+        hessian = DenseMatrix.eye[Double](observationLength + 1)
         var score = DenseVector.zeros[Double](observationLength + 1)
         for (i <- observations.indices) {
           //          println(hessian)
