@@ -104,7 +104,7 @@ trait LogisticSiteRegression extends SiteRegression {
         }
 
         // compute the update and check convergence
-        println(hessian(0))
+        println(hessian)
         update = -inv(hessian) * score
         println(update)
         println("\n")
