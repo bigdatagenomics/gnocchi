@@ -24,7 +24,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
     intercept[AssertionError] {
-      val p1 = LoadPhenotypesWithCovariates(filepath, filepath, "pheno2", "pheno2,pheno4", sc)
+      val p1 = LoadPhenotypesWithCovariates(false, filepath, filepath, "pheno2", "pheno2,pheno4", sc)
     }
   }
 

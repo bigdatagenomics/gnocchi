@@ -95,7 +95,9 @@ trait LogisticSiteRegression extends SiteRegression {
           //          println(hessian)
           //          println("\n")
           println("inside: " + logitArray(i))
-          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
+          //          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
+          pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
+          println("pi: " + pi)
           hessian += -xixiT(i) * pi * (1 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
@@ -197,6 +199,18 @@ trait LogisticSiteRegression extends SiteRegression {
       //      println("logit: " + logitResults(j))
     }
     logitResults
+  }
+
+  def logSumOfExponentials(exps: Array[Double]): Double = {
+    if (exps.length == 1) {
+      exps(0)
+    }
+    val maxExp = max(exps)
+    var sums = 0.0
+    for (i <- exps.indices) {
+      sums += java.lang.Math.exp(exps(i) - maxExp)
+    }
+    maxExp + Math.log(sums)
   }
 }
 
