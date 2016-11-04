@@ -145,7 +145,7 @@ trait LogisticSiteRegression extends SiteRegression {
     var toRet = new Association(null, null, -9.0, null)
     try {
       val fisherInfo = -hessian
-      val fishInv = inv(fisherInfo + dampener)
+      val fishInv = inv(fisherInfo)
       val standardErrors = sqrt(abs(diag(fishInv)))
 
       // calculate Wald z-scores
