@@ -46,7 +46,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     val covarIndices = Array(1, 2, 5)
     val header = "SampleId\tpheno1\tpheno2\tpheno3\tpheno4\tpheno5"
     val covarHeader = header
-    val p1 = LoadPhenotypesWithCovariates.getAndFilterPhenotypes(phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
+    val p1 = LoadPhenotypesWithCovariates.getAndFilterPhenotypes(false, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
     assert(p1.first().sampleId === "Sample1")
     assert(p1.first().phenotype === "pheno3,pheno1,pheno2,pheno5")
     assert(p1.first().value === Array(3.0, 1.0, 2.0, 5.0))
@@ -55,7 +55,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
   sparkTest("Test file format") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("BadFormatting.txt").getFile
     intercept[AssertionError] {
-      val p1 = LoadPhenotypesWithCovariates(filepath, filepath, "pheno3", "pheno1,pheno2,pheno5", sc)
+      val p1 = LoadPhenotypesWithCovariates(false, filepath, filepath, "pheno3", "pheno1,pheno2,pheno5", sc)
     }
   }
 
@@ -65,7 +65,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
       - make sure the right labels and values are set based on the CLI arguments that were given
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    val p1 = LoadPhenotypesWithCovariates(filepath, filepath, "pheno2", "pheno3,pheno4", sc)
+    val p1 = LoadPhenotypesWithCovariates(false, filepath, filepath, "pheno2", "pheno3,pheno4", sc)
     assert(p1.first().sampleId === "Sample1", "Sample ID was incorrect")
     assert(p1.first().phenotype === "pheno2,pheno3,pheno4", "Phenotype name was incorrect")
     assert(p1.first().value === Array(12.0, 13.0, 14.0), "Phenotype value was incorrect")
@@ -77,7 +77,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
     intercept[AssertionError] {
-      val p1 = LoadPhenotypesWithCovariates(filepath, filepath, "pheno", "pheno3,pheno4", sc)
+      val p1 = LoadPhenotypesWithCovariates(false, filepath, filepath, "pheno", "pheno3,pheno4", sc)
     }
     // assert(throwsError, "AssertionError should be thrown if user inputs a pheno name that doesn't match anything in the header.")
   }
@@ -88,7 +88,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
     intercept[AssertionError] {
-      val p1 = LoadPhenotypesWithCovariates(filepath, filepath, "pheno2", "pheno,pheno4", sc)
+      val p1 = LoadPhenotypesWithCovariates(false, filepath, filepath, "pheno2", "pheno,pheno4", sc)
     }
     // assert(throwsError, "AssertionError should be thrown if user inputs a covarName that doesn't match anything in the header.")
   }
@@ -99,7 +99,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
     val covarpath = ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
-    val p1 = LoadPhenotypesWithCovariates(filepath, covarpath, "pheno2", "pheno3,pheno4", sc)
+    val p1 = LoadPhenotypesWithCovariates(false, filepath, covarpath, "pheno2", "pheno3,pheno4", sc)
     // assert that it is the right size
     assert(p1.collect().length === 2)
     // assert that the contents are correct

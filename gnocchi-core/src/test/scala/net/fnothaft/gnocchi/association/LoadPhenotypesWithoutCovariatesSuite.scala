@@ -28,7 +28,7 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
     val phenotypes = sc.parallelize(List("Sample1\t1.0\t2.0\t3.0\t4.0\t5.0"))
     val primaryPhenoIndex = 3
     val header = "SampleId\tpheno1\tpheno2\tpheno3\tpheno4\tpheno5"
-    val p1 = LoadPhenotypesWithoutCovariates.getAndFilterPhenotypes(phenotypes, header, primaryPhenoIndex, sc)
+    val p1 = LoadPhenotypesWithoutCovariates.getAndFilterPhenotypes(false, phenotypes, header, primaryPhenoIndex, sc)
     assert(p1.first().sampleId === "Sample1")
     assert(p1.first().phenotype === "pheno3")
     assert(p1.first().value === Array(3.0))
@@ -37,13 +37,13 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
   sparkTest("Test file format") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("BadFormatting.txt").getFile
     intercept[AssertionError] {
-      val p1 = LoadPhenotypesWithoutCovariates(filepath, "pheno3", sc)
+      val p1 = LoadPhenotypesWithoutCovariates(false, filepath, "pheno3", sc)
     }
   }
 
   sparkTest("Read in a 2-line file") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    val p1 = LoadPhenotypesWithoutCovariates(filepath, "pheno2", sc)
+    val p1 = LoadPhenotypesWithoutCovariates(false, filepath, "pheno2", sc)
     assert(p1.first().sampleId === "Sample1", "Sample ID was incorrect")
     assert(p1.first().phenotype === "pheno2", "Phenotype name was incorrect")
     assert(p1.first().value === Array(12.0), "Phenotype value was incorrect")
@@ -55,7 +55,7 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
     intercept[AssertionError] {
-      val p1 = LoadPhenotypesWithoutCovariates(filepath, "pheno", sc)
+      val p1 = LoadPhenotypesWithoutCovariates(false, filepath, "pheno", sc)
     }
   }
 
@@ -64,7 +64,7 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
     make sure the right data survive the filters.
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
-    val p1 = LoadPhenotypesWithoutCovariates(filepath, "pheno2", sc)
+    val p1 = LoadPhenotypesWithoutCovariates(false, filepath, "pheno2", sc)
     // assert that it is the right size
     assert(p1.collect().length === 4)
     // assert that the contents are correct 
