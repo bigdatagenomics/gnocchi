@@ -183,7 +183,7 @@ trait LogisticSiteRegression extends SiteRegression {
     }
     if (matrixSingular) {
       val statistics = Map()
-      toRet = Association(variant, phenotype, -9.0, Map())
+      toRet = Association(variant, phenotype, 0.0, Map())
     }
     toRet
   }
