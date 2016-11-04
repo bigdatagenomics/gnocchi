@@ -208,7 +208,7 @@ trait LogisticSiteRegression extends SiteRegression {
     val maxExp = max(exps)
     var sums = 0.0
     for (i <- exps.indices) {
-      if (exps(i) != Double.MinValue) {
+      if (exps(i) != 1.2340980408667956E-4) {
         sums += java.lang.Math.exp(exps(i) - maxExp)
       }
     }
