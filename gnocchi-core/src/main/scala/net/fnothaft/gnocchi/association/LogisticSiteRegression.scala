@@ -94,6 +94,7 @@ trait LogisticSiteRegression extends SiteRegression {
         for (i <- observations.indices) {
           //          println(hessian)
           //          println("\n")
+          println("inside: " + logitArray(i))
           pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           hessian += -xixiT(i) * pi * (1 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
@@ -114,7 +115,7 @@ trait LogisticSiteRegression extends SiteRegression {
 
         println("LOG_REG - b: " + beta.toList)
         if (beta.exists(_.isNaN)) {
-          print("LOG_REG - Broke on iteration: " + iter)
+          println("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
         }
       } catch {

@@ -26,7 +26,8 @@ Takes in a text file containing phenotypes where the first line of the textfile 
 
 private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
 
-  def apply[T](file: String,
+  def apply[T](oneTwo: Boolean,
+               file: String,
                covarFile: String,
                phenoName: String,
                covarNames: String,
@@ -93,12 +94,13 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     }
 
     // construct the phenotypes RDD, filtering out all samples that don't have the phenotype or one of the covariates
-    val data = getAndFilterPhenotypes(phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
+    val data = getAndFilterPhenotypes(oneTwo, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
 
     return data
   }
 
-  private[gnocchi] def getAndFilterPhenotypes(phenotypes: RDD[String],
+  private[gnocchi] def getAndFilterPhenotypes(oneTwo: Boolean,
+                                              phenotypes: RDD[String],
                                               covars: RDD[String],
                                               header: String,
                                               covarHeader: String,
@@ -193,6 +195,12 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       } else {
         false
       }
+    }).map(p => {
+      if (oneTwo) {
+        p.slice(0, primaryPhenoIndex) ++ List((p(primaryPhenoIndex).toDouble - 1).toString) ++ p.slice(primaryPhenoIndex + 1, p.length)
+      } else {
+        p
+      }
     })
       // construct a phenotype object from the data in the sample
       .map(p => new MultipleRegressionDoublePhenotype(
@@ -200,8 +208,8 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         p(0), // sampleID string
         for (i <- indices) yield p(i).toDouble) // phenotype values
         .asInstanceOf[Phenotype[Array[Double]]])
-    println("\n\n\n\n\n\n\n\n" + fullHeader.toList + "\n\n\n\n\n\n")
-    println("\n\n\n\n\n\n\n\n" + indices.toList + "\n\n\n\n\n")
+    //    println("\n\n\n\n\n\n\n\n" + fullHeader.toList + "\n\n\n\n\n\n")
+    //    println("\n\n\n\n\n\n\n\n" + indices.toList + "\n\n\n\n\n")
     // unpersist the textfile
     phenotypes.unpersist()
     covars.unpersist()

@@ -16,7 +16,7 @@ def fixVCFFile(filename):
 			for row in reader:     # read one row at a time
 				if len(row) >= 2:
 					if not row[0].startswith('#'):#'dbGaP SubjID':     
-						myRow = list(row[i] for i in range(0,len(row)))  
+						myRow = list (row[0] -1) + list(row[i] for i in range(1,len(row)))  
 						writer.writerow(myRow) # write it
 					else: 
 						writer.writerow(row)

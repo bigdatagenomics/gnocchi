@@ -92,8 +92,8 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-geno", usage = "Allele frequency threshold. Default value is 0.")
   var geno = 0
 
-  //  @Args4jOption(required = false, name = "-getIDs", usage = "Whether to get IDs from PLINK MAP file")
-  //  var getIds = false
+  @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
+  var oneTwo = false
   //
   //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
   //  var mapFile: String = null
@@ -272,9 +272,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // Load phenotypes
     var phenotypes: RDD[Phenotype[Array[Double]]] = null
     if (args.includeCovariates) {
-      phenotypes = LoadPhenotypesWithCovariates(args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc)
+      phenotypes = LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc)
     } else {
-      phenotypes = LoadPhenotypesWithoutCovariates(args.phenotypes, args.phenoName, sc)
+      phenotypes = LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc)
     }
     phenotypes
   }

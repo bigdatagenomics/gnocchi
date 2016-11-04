@@ -27,7 +27,8 @@ Takes in a text file containing phenotypes where the first line of the textfile 
 
 private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
 
-  def apply[T](file: String,
+  def apply[T](oneTwo: Boolean,
+               file: String,
                phenoName: String,
                sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
     println("Loading phenotypes from %s.".format(file))
@@ -62,13 +63,14 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
     assert(phenoMatch, "The phenoName given doesn't match any of the phenotypes specified in the header of the phenotypes textfile.")
 
     // construct the phenotypes dataset, filtering out all samples that don't have the phenotype or one of the covariates
-    val data = getAndFilterPhenotypes(phenotypes, header, primaryPhenoIndex, sc)
+    val data = getAndFilterPhenotypes(oneTwo, phenotypes, header, primaryPhenoIndex, sc)
 
     // """Should be able to store the data in a more readable format as well."""
     return data
   }
 
-  private[gnocchi] def getAndFilterPhenotypes(phenotypes: RDD[String],
+  private[gnocchi] def getAndFilterPhenotypes(oneTwo: Boolean,
+                                              phenotypes: RDD[String],
                                               header: String,
                                               primaryPhenoIndex: Int,
                                               sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
@@ -80,7 +82,12 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
     import sqlContext.implicits._
 
     // split up the header for making the phenotype label later
-    val splitHeader = header.split("\t")
+    var splitHeader = header.split("\t")
+    val headerTabDelimited = splitHeader.length != 1
+    //    println("HeaderTab = " + headerTabDelimited)
+    if (!headerTabDelimited) {
+      splitHeader = header.split(" ")
+    }
 
     // construct the RDD of Phenotype objects from the data in the textfile
     val indices = Array(primaryPhenoIndex)
@@ -99,6 +106,12 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
           keep
         } else {
           false
+        }
+      }).map(p => {
+        if (oneTwo) {
+          p.slice(0, primaryPhenoIndex) ++ List((p(primaryPhenoIndex).toDouble - 1).toString) ++ p.slice(primaryPhenoIndex + 1, p.length)
+        } else {
+          p
         }
       })
       // construct a phenotype object from the data in the sample
