@@ -175,7 +175,7 @@ trait LogisticSiteRegression extends SiteRegression {
         "prob" -> pi)
       //        "logitArray" -> logitArray(0))
 
-      toRet = Association(variant, phenotype, waldTests(1), statistics)
+      toRet = Association(variant, phenotype, logWaldTests(1), statistics)
     } catch {
       case error: breeze.linalg.MatrixSingularException => matrixSingular = true
     }
@@ -208,7 +208,9 @@ trait LogisticSiteRegression extends SiteRegression {
     val maxExp = max(exps)
     var sums = 0.0
     for (i <- exps.indices) {
-      sums += java.lang.Math.exp(exps(i) - maxExp)
+      if (exps(i) != Double.MinValue) {
+        sums += java.lang.Math.exp(exps(i) - maxExp)
+      }
     }
     maxExp + Math.log(sums)
   }
