@@ -98,7 +98,6 @@ trait LogisticSiteRegression extends SiteRegression {
           println("inside: " + logitArray(i))
           //          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
-          println("pi: " + pi)
           hessian += -xixiT(i) * pi * (1.0 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
@@ -123,7 +122,10 @@ trait LogisticSiteRegression extends SiteRegression {
           iter = maxIter
         }
       } catch {
-        case error: breeze.linalg.MatrixSingularException => singular = true
+        case error: breeze.linalg.MatrixSingularException => {
+          singular = true
+          println("inside while loop: " + hessian)
+        }
       }
       iter += 1
     }
@@ -184,6 +186,7 @@ trait LogisticSiteRegression extends SiteRegression {
     if (matrixSingular) {
       val statistics = Map()
       toRet = Association(variant, phenotype, 0.0, Map())
+      println("in wald test: " + hessian)
     }
     toRet
   }
