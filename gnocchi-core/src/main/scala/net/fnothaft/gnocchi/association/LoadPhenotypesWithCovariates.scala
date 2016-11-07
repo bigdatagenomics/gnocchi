@@ -168,8 +168,8 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       val (sampleId, (phenos, covariates)) = pair
       val phenoArray = phenos.toArray
       val covarArray = covariates.toArray
-      //      println(phenoArray.length)
-      //      println(covarArray.length)
+      println(phenoArray.length)
+      println(covarArray.length)
       val toret = phenoArray(0) ++ covarArray(0)
       //      println(toret.length)
       //      println(toret)

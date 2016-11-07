@@ -52,6 +52,23 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     assert(p1.first().value === Array(3.0, 1.0, 2.0, 5.0))
   }
 
+  sparkTest("Test -oneTwo flag") {
+    val phenotypes = sc.parallelize(List("Sample1\t1.0\t2.0\t1.0\t4.0\t5.0", "Sample2\t1.0\t2.0\t2.0\t4.0\t5.0"))
+    val covars = sc.parallelize(List("Sample1\t1.0\t2.0\t3.0\t4.0\t5.0", "Sample2\t1.0\t2.0\t3.0\t4.0\t5.0"))
+    val primaryPhenoIndex = 3
+    val covarIndices = Array(1, 2, 5)
+    val header = "SampleId\tpheno1\tpheno2\tpheno3\tpheno4\tpheno5"
+    val covarHeader = header
+    val p1 = LoadPhenotypesWithCovariates.getAndFilterPhenotypes(false, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
+    println(p1)
+    val res = p1.take(2)
+    println(res.toList)
+    assert(res(1).sampleId === "Sample1")
+    assert(res(1).phenotype === "pheno3,pheno1,pheno2,pheno5")
+    assert(res(1).value === Array(0.0, 1.0, 2.0, 5.0))
+    assert(res(0).value === Array(1.0, 1.0, 2.0, 5.0))
+  }
+
   sparkTest("Test file format") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("BadFormatting.txt").getFile
     intercept[AssertionError] {
