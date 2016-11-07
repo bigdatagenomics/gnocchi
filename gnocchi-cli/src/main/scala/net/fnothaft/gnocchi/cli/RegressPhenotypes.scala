@@ -103,7 +103,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
   val companion = RegressPhenotypes
 
   def run(sc: SparkContext) {
-
+    val a = args.oneTwo
+    //    println(s"\n\n\n\n\n\n oneTwo: $a \n\n\n\n\n\n\n\n")
     // Load in genotype data
     val genotypeStates = loadGenotypes(sc)
 
@@ -291,7 +292,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
       case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
     }
-    associations.take(100).foreach(assoc => println(assoc))
+    //    associations.take(100).foreach(assoc => println(assoc))
     sqlContext.createDataset(associations)
   }
 

@@ -59,7 +59,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     val covarIndices = Array(1, 2, 5)
     val header = "SampleId\tpheno1\tpheno2\tpheno3\tpheno4\tpheno5"
     val covarHeader = header
-    val p1 = LoadPhenotypesWithCovariates.getAndFilterPhenotypes(false, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
+    val p1 = LoadPhenotypesWithCovariates.getAndFilterPhenotypes(true, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
     println(p1)
     val res = p1.take(2)
     println(res.toList)

@@ -33,7 +33,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val phenoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
     val baseDir = new File(".").getAbsolutePath()
     val destination = "File://" + baseDir + "src/test/resources/testData/Association"
-    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -overwriteParquet"
+    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -overwriteParquet -oneTwo"
     val cliArgs = cliCall.split(" ").drop(2)
     intercept[AssertionError] {
       RegressPhenotypes(cliArgs).run(sc)
