@@ -16,7 +16,7 @@
 package net.fnothaft.gnocchi.cli
 
 import htsjdk.samtools.ValidationStringency
-import java.io.{File, FileNotFoundException}
+import java.io.{ File, FileNotFoundException }
 
 import scala.collection.immutable.HashSet
 import net.fnothaft.gnocchi.association._
@@ -33,22 +33,22 @@ import org.bdgenomics.adam.rdd.BroadcastRegionJoin
 import org.bdgenomics.formats.avro._
 import org.bdgenomics.utils.misc.HadoopUtil
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{Argument, Option => Args4jOption}
+import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 
 import scala.math.exp
 import org.apache.parquet.avro.AvroReadSupport
 import org.apache.parquet.hadoop.ParquetInputFormat
 import org.apache.parquet.hadoop.util.ContextUtil
 import org.bdgenomics.adam.cli.Vcf2ADAM
-import java.nio.file.{Files, Paths}
+import java.nio.file.{ Files, Paths }
 
-import net.fnothaft.gnocchi.gnocchiModel.{AdditiveSVMWithSGD$Generation, DominantSVMWithSGD$Generation}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import net.fnothaft.gnocchi.gnocchiModel.{ AdditiveSVMWithSGD$Generation, DominantSVMWithSGD$Generation }
+import org.apache.hadoop.fs.{ FileSystem, Path }
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Dataset}
-import net.fnothaft.gnocchi.models.{Association, AuxEncoders, Phenotype}
+import org.apache.spark.sql.{ DataFrame, Dataset }
+import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -285,14 +285,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     import AuxEncoders._
     import org.apache.spark.SparkContext._
     val associations = args.associationType match {
-      case "ADDITIVE_LINEAR" => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
+      case "ADDITIVE_LINEAR"  => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
       // case "ADDITIVE_LOGISTIC" => assert(false, "Logistic regression is not implemented yet")
-      case "DOMINANT_LINEAR" => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
+      case "DOMINANT_LINEAR"  => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
       // case "DOMINANT_LOGISTIC" => assert(false, "Logistic regression is not implemented yet")
-//      case "ADDITIVE_LINEAR_SGD" => AdditiveSgdLinear(genotypeStates.rdd, phenotypes)
-//      case "DOMINANT_LINEAR_SGD" => DominantSgdLinear(genotypeStates.rdd, phenotypes)
-//      case "ADDITIVE_LOGISTIC_SGD" => AdditiveSgdLogistic(genotypeStates.rdd, phenotypes)
-//      case "DOMINANT_LOGISTIC_SGD" => DominantSgdLogistic(genotypeStates.rdd, phenotypes)
+      //      case "ADDITIVE_LINEAR_SGD" => AdditiveSgdLinear(genotypeStates.rdd, phenotypes)
+      //      case "DOMINANT_LINEAR_SGD" => DominantSgdLinear(genotypeStates.rdd, phenotypes)
+      //      case "ADDITIVE_LOGISTIC_SGD" => AdditiveSgdLogistic(genotypeStates.rdd, phenotypes)
+      //      case "DOMINANT_LOGISTIC_SGD" => DominantSgdLogistic(genotypeStates.rdd, phenotypes)
       case "ADDITIVE_SVM_SGD" => AdditiveSVMWithSGD$Generation(genotypeStates.rdd, phenotypes)
       case "DOMINANT_SVM_SGD" => DominantSVMWithSGD$Generation(genotypeStates.rdd, phenotypes)
     }

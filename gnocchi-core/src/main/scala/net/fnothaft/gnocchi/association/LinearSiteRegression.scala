@@ -25,24 +25,22 @@ import org.bdgenomics.formats.avro.{ Variant, Contig }
 
 trait LinearSiteRegression extends SiteRegression {
 
-//  def generateOrUpdateModel(modelOption: Option[GnocchiModel]): = {
-//    // if the model exists, load it and update it. Otherwise generate a new model.
-//  }
-//
-//  def generateModel(x: Array[Array[Double]], y: Array[Double]): GnocchiModel = {
-//    // use breeze.linalg to compute the QR factorization
-//    // generate the weights using the QR factorization
-//    // generate the standard error using the QR factorization
-//    // use weights and standard errors to generate p-value for the SNP
-//  }
-//
-//  def updateModel(oldModel: GnocchiModel): GnocchiModel = {
-//    // load the old model
-//    // get y, Q, and R from the old model
-//    //
-//  }
-
-
+  //  def generateOrUpdateModel(modelOption: Option[GnocchiModel]): = {
+  //    // if the model exists, load it and update it. Otherwise generate a new model.
+  //  }
+  //
+  //  def generateModel(x: Array[Array[Double]], y: Array[Double]): GnocchiModel = {
+  //    // use breeze.linalg to compute the QR factorization
+  //    // generate the weights using the QR factorization
+  //    // generate the standard error using the QR factorization
+  //    // use weights and standard errors to generate p-value for the SNP
+  //  }
+  //
+  //  def updateModel(oldModel: GnocchiModel): GnocchiModel = {
+  //    // load the old model
+  //    // get y, Q, and R from the old model
+  //    //
+  //  }
 
   /**
    * This method will perform linear regression on a single site.
