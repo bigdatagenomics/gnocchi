@@ -105,6 +105,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
   def run(sc: SparkContext) {
     val a = args.oneTwo
     //    println(s"\n\n\n\n\n\n oneTwo: $a \n\n\n\n\n\n\n\n")
+
     // Load in genotype data
     val genotypeStates = loadGenotypes(sc)
 
@@ -307,7 +308,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     if (args.saveAsText) {
       associations.rdd.keyBy(_.logPValue).sortBy(_._1).map(r => "%s, %s, %s"
         .format(r._2.variant.getContig.getContigName,
-          r._2.variant.getStart, exp(r._2.logPValue).toString))
+          r._2.variant.getStart, Math.pow(10, r._2.logPValue).toString))
         .saveAsTextFile(args.associations)
     } else {
       associations.toDF.write.parquet(args.associations)
