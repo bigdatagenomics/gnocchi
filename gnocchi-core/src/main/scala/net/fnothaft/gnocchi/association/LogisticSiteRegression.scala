@@ -72,8 +72,8 @@ trait LogisticSiteRegression extends SiteRegression {
     // initialize parameters
     val dampener = DenseMatrix.eye[Double](observationLength + 1)
     var iter = 0
-    val maxIter = 100
-    val tolerance = 1e-3
+    val maxIter = 1000
+    val tolerance = 1e-6
     var singular = false
     var convergence = false
     var update: DenseVector[Double] = DenseVector[Double]()

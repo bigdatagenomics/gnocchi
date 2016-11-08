@@ -53,7 +53,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     }
     //Assert that the Wald chi squared value is in the right threshold. Answer should be 0.0385
     val pval: Array[Double] = regressionResult.statistics("'P Values' aka Wald Tests").asInstanceOf[DenseVector[Double]].toArray
-    assert(pval(1) <= 0.0385 + 0.015, "'P Values' aka Wald Tests = " + pval)
-    assert(pval(1) >= 0.0385 - 0.015, "'P Values' aka Wald Tests = " + pval)
+    assert(pval(1) <= 0.0385 + 0.01, "'P Values' aka Wald Tests = " + pval)
+    assert(pval(1) >= 0.0385 - 0.01, "'P Values' aka Wald Tests = " + pval)
   }
 }
