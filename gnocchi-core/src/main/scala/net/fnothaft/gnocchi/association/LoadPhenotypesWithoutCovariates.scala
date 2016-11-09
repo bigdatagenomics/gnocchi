@@ -128,6 +128,10 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
   }
 
   private[gnocchi] def isMissing(value: String): Boolean = {
-    value.toDouble == -9.0
+    try {
+      value.toDouble == -9.0
+    } catch {
+      case e: java.lang.NumberFormatException => true
+    }
   }
 }
