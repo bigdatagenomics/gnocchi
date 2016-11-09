@@ -36,6 +36,8 @@ trait BuildGnocchiModel {
 
     // save the LogisticGnocchiModel
     model.save
+
+    model
   }
 
   def fit[T](rdd: RDD[GenotypeState],
@@ -75,10 +77,48 @@ trait BuildDominantLogistic extends BuildGnocchiModel {
   }
 }
 
+trait BuildAdditiveLinear extends BuildGnocchiModel {
+
+  def fit[T](rdd: RDD[GenotypeState],
+             phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
+    AdditiveLinearAssociation(rdd, phenotypes)
+  }
+
+  def extractModel(assocs: RDD[Association]): GnocchiModel = {
+
+    //code for packaging up the association object elements into a GnocchiModel
+
+  }
+}
+
+trait BuildDominantLinear extends BuildGnocchiModel {
+
+
+
+  def fit[T](rdd: RDD[GenotypeState],
+             phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
+    DominantLinearAssociation(rdd, phenotypes)
+  }
+
+  def extractModel(assocs: RDD[Association]): GnocchiModel = {
+
+    //code for packaging up the association object elements into a GnocchiModel
+
+  }
+}
+
 object BuildDominantLogisticGnocchiModel extends BuildDominantLogistic {
   val regressionName = "Dominant Logistic Regression with SGD"
 }
 
 object BuildAdditiveLogisticGnocchiModel extends BuildAdditiveLogistic {
   val regressionName = "Additive Logistic Regression with SGD"
+}
+
+object BuildDominantLinearGnocchiModel extends BuildDominantLogistic {
+  val regressionName = "Dominant Linear Regression with SGD"
+}
+
+object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLogistic {
+  val regressionName = "Additive Linear Regression with SGD"
 }
