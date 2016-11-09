@@ -43,66 +43,15 @@ object EvaluateModel extends BDGCommandCompanion {
   }
 }
 
-class EvaluateModelArgs extends Args4jBase {
-  @Argument(required = true, metaVar = "GENOTYPES", usage = "The genotypes to process.", index = 0)
-  var genotypes: String = null
-
-  @Argument(required = true, metaVar = "PHENOTYPES", usage = "The phenotypes to process.", index = 1)
-  var phenotypes: String = null
-
-  @Argument(required = true, metaVar = "ASSOCIATION_TYPE", usage = "The type of association to run. Options are CHI_SQUARED, ADDITIVE_LINEAR, ADDITIVE_LOGISTIC, DOMINANT_LINEAR, DOMINANT_LOGISTIC", index = 2)
-  var associationType: String = null
-
-  @Argument(required = true, metaVar = "ASSOCIATIONS", usage = "The location to save associations to.", index = 3)
-  var associations: String = null
-
-  @Args4jOption(required = false, name = "-snps", usage = "Comma-separated list of SNPs to do evaluation on.")
-  var snps: String = null
-
-  @Args4jOption(required = false, name = "-phenoName", usage = "The phenotype to regress.") // need to have check for this flag somewhere if the associaiton type is on of the multiple regressions.
-  var phenoName: String = null
-
-  @Args4jOption(required = false, name = "-covar", usage = "Whether to include covariates.") // this will be used to construct the original phenotypes array in LoadPhenotypes.
-  var includeCovariates = false
-
-  @Args4jOption(required = false, name = "-covarFile", usage = "The covariates file path")
-  var covarFile: String = null
-
-  @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
-  var covarNames: String = null
-
-  @Args4jOption(required = false, name = "-regions", usage = "The regions to filter genotypes by.")
-  var regions: String = null
-
-  @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
-  var saveAsText = false
-
-  @Args4jOption(required = false, name = "-validationStringency", usage = "The level of validation to use on inputs. By default, strict. Choices are STRICT, LENIENT, SILENT.")
-  var validationStringency: String = "STRICT"
-
-  @Args4jOption(required = false, name = "-ploidy", usage = "Ploidy to assume. Default value is 2 (diploid).")
-  var ploidy = 2
-
-  @Args4jOption(required = false, name = "-overwriteParquet", usage = "Overwrite parquet file that was created in the vcf conversion.")
-  var overwrite = false
-
-  @Args4jOption(required = false, name = "-maf", usage = "Missingness per individual threshold. Default value is 0.01.")
-  var maf = 0.01
-
-  @Args4jOption(required = false, name = "-mind", usage = "Missingness per marker threshold. Default value is 0.1.")
-  var mind = 0.1
-
-  @Args4jOption(required = false, name = "-geno", usage = "Allele frequency threshold. Default value is 0.")
-  var geno = 0
-
-  @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
-  var oneTwo = false
+class EvaluateModelArgs extends RegressPhenotypesArgs {
+  @Argument(required = true, metaVar = "SNPS", usage = "The IDs of the SNPs to evaluate the model on.", index = 4)
+  var snps: String = _
 }
 
-class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
-  val companion = EvaluateModel
+class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPhenotypes(evalArgs) {
+  override val companion = EvaluateModel
 
-  def run(sc: SparkContext) {
+  override def run(sc: SparkContext) {
 
     // Load in genotype data
     val genotypeStates = loadGenotypes(sc)
@@ -118,7 +67,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     logResults(associations, sc)
   }
 
-  def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
+  override def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
     // set up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
@@ -152,42 +101,13 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
     val filteredGenotypeStates = genotypeStates.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
-    if (args.snps != null) {
+    if (evalArgs.snps != null) {
       // Filter out only specified snps
       // TODO: Clean this
-      val snps = args.snps.split(',')
+      val snps = evalArgs.snps.split(',')
       filteredGenotypeStates.filter($"contig".isin(snps)).as[GenotypeState]
     }
     filteredGenotypeStates.as[GenotypeState]
-  }
-
-  def loadPhenotypes(sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
-    // """
-    // SNPs and Samples are filtered out by PLINK when creating the VCF file.
-    // """
-    if (args.associationType == "CHI_SQUARED") {
-      assert(false, "CHI_SQUARED analysis has been phased out.")
-    }
-    // assert that a phenoName is given
-    assert(Option[String](args.phenoName).isDefined, "The model assumes a phenotype file with multiple phenotypes as columns and a phenoName must be given.")
-
-    // assert covariates are given if -covar given
-    if (args.includeCovariates) {
-      assert(Option[String](args.covarNames).isDefined, "If the -covar flag is given, covariate names must be given using the -covarNames flag")
-      // assert that the primary phenotype isn't included in the covariates.
-      for (covar <- args.covarNames.split(",")) {
-        assert(covar != args.phenoName, "Primary phenotype cannot be a covariate.")
-      }
-    }
-
-    // Load phenotypes
-    var phenotypes: RDD[Phenotype[Array[Double]]] = null
-    if (args.includeCovariates) {
-      phenotypes = LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc)
-    } else {
-      phenotypes = LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc)
-    }
-    phenotypes
   }
 
   def performEvaluation(genotypeStates: Dataset[GenotypeState],

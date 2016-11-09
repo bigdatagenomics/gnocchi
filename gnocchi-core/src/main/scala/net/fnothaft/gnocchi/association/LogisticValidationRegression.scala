@@ -34,8 +34,9 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
   /**
    * This method will predict the phenotype given a certain site, given the association results
    *
-   * @param sampleObservations An array containing tuples in which the first element is the sampleid. The second is the coded genotype.
-   *                          The third is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
+   * @param sampleObservations An array containing tuples in which the first element is the coded genotype.
+   *                           The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates.
+    *                          The third is the sampleid.
    * @param association  An Association object that specifies the model trained for this locus
    * @return An array of results with the model applied to the observations
    */
@@ -65,9 +66,7 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
     }
 
     val statistics = association.statistics
-    val weights = statistics("weights").asInstanceOf[Array[Double]]
-    val intercept = statistics("intercept").asInstanceOf[Double]
-    val b: Array[Double] = intercept +: weights
+    val b = statistics("weights").asInstanceOf[Array[Double]]
 
     // receive 0/1 results from datapoints and model
     val results = predict(lp, b)
