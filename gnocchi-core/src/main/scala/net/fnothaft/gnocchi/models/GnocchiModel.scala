@@ -30,16 +30,12 @@ trait GnocchiModel[T] {
   val variables: String // name of the phenotype and covariates used in the model
   val dates: String // dates of creation and update of each model
   val sampleIds: Array[String] // list of sampleIDs from all samples the model has seen.
-  val variantModels: RDD[VariantModel[T]]
+  val variantModels: RDD[String, VariantModel[T]] //RDD[VariantModel.variantId, VariantModel[T]]
   val qrVariantModels: RDD[(VariantModel[T], Array[(Double, Array[Double])]] // the variant model and the observations that the model must be trained on
-
-
 
 
   // filters out all variants that don't pass a certian predicate and returns a GnocchiModel containing only those variants.
   def filter: GnocchiModel[T]
-
-
 
 
   // given a batch of data, update the GnocchiModel with the data (by updating all the VariantModels).
@@ -47,34 +43,63 @@ trait GnocchiModel[T] {
   def update(rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): Unit = {
 
+    // convert genotypes and phenotypes into observations
+    val newData = rdd.keyBy(_.sampleId)
+      // join together the samples with both genotype and phenotype entry
+      .join(phenotypes.keyBy(_.sampleId))
+      .map(kvv => {
+        // unpack the entry of the joined rdd into id and actual info
+        val (_, p) = kvv
+        // unpack the information into genotype state and pheno
+        val (gs, pheno) = p
+        // extract referenceAllele and phenotype and pack up with p, then group by key
+        (gs.variantID, p)
+      }).groupByKey() // RDD[(variantID,(GenotypeState, Phenotype Object)]
+
     // combine the new sample observations with the old ones.
-//    val qrKeyedByID = qrVariantModels.map(qr => {
-//      (qr._1.variantID, qr._2)
-//    })
-//    rdd.keyBy(_.sampleId)
-//      // join together the samples with both genotype and phenotype entry
-//      .join(phenotypes.keyBy(_.sampleId))
-//      .map(kvv => {
-//        // unpack the entry of the joined rdd into id and actual info
-//        val (_, p) = kvv
-//        // unpack the information into genotype state and pheno
-//        val (gs, pheno) = p
-//        // extract referenceAllele and phenotype and pack up with p, then group by key
-//        (gs.variantID, p)
-//      }).groupByKey().join(qrKeyedByID)
-//      .map(site => {
-//        val (((pos, allele), phenotype), observations) = site
+    val joinedqrData = qrVariantModels.map(kv => {
+      (varModel, obs) = kv
+      (varModel.variantID, (varModel, obs))
+    }).join(newData)
+      .map(kvv => {
+        val (varId, (oldData, newData)) = kvv
+        val (varModel, obs) = oldData
+        (varModel, (obs.toList + newData.toList).toArray)
+      })
 
+    // compute the VariantModels from QR factorization for the qrVariants
+    val qrAssocRDD = joinedqrData.map(kv => {
+      val (varModel, obs) = kv
+      (buildVariantModel(varModel, obs))
+    })
 
-    // recompute using QR factorization on specific variants in each haplotype block
-
-    // convert the genotypes and phenotypes into the format VariantModel can take
+    // group new data with correct VariantModel
+    val vmAndDataRDD = variantModels.join(newData)
 
     // map an update call to all variants
+    val updatedVMRdd = vmAndDataRDD.map(kvv = {
+      val (variantId, (model, data)) = kvv
+      model.update(data)
+      model
+    })
 
-    // compare the updated weights to the QR Factorization weights and flag Variants for recompute
+    // pair up the QR factorization and incrementalUpdate versions of the selected variantModels
+    val incrementalVsQrRDD = updatedVMrdd.keyBy(_.variantId).join(qrAssocRDD.keyBy(_.variantID)).groupByKey
 
+    // compare results and flag variants for recompute
+    val variantsToFlag = incrementalVsQrRDD.filter(kvv => {
+      val (id, (increModel, qrModel)) = kvv
+      val increValue = increModel.incrementalUpdateValue
+      val qrValue = qrModel.QRFactorizatinoValue
+      Math.abs(increValue - qrValue)/qrValue > HBDThreshold
+    }).map(_._1).collect()
+
+    variantModels = updatedVMRdd
   }
+
+  // calls the appropriate version of BuildVariantModel
+  def buildVariantModel(varModel: VariantModel,
+                        obs: Array[(Double, Array[Double]))]): VariantModel
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample.
   def predict(rdd: RDD[GenotypeState],
@@ -84,6 +109,7 @@ trait GnocchiModel[T] {
   def test(rdd: RDD[GenotypeState],
            phenotypes: RDD[Phenotype[T]]): GMTestResult
 
+  def buildVariantModel()
   // save the model
   def save
 

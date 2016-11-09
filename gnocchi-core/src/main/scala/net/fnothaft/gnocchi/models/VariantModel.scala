@@ -25,15 +25,13 @@ trait VariantModel[T] {
   val hyperParamValues: Map[String, Double]
   val weights: Array[Double]
   val haplotypeBlock: String
+  val incrementalUpdateValue: Double
   val QRFactorizationValue: Double
 
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  def update(observations: Array[(Double, Array[Double])],
-             locus: ReferenceRegion,
-             altAllele: String,
-             phenotype: String)
+  def update(observations: Array[(Double, Array[Double])])
 
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
