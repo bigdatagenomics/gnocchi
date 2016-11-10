@@ -1,4 +1,4 @@
-/**
+ /**
  * Copyright 2016 Taner Dagdelen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,33 +15,27 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
+import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype, Association }
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.linalg.DenseVector
+import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
+import org.apache.spark.mllib.regression.LabeledPoint
+import net.fnothaft.gnocchi.transformations.GP2LabeledPoint
 
-trait BuildGnocchiModel {
-
-  def apply[T](rdd: RDD[GenotypeState],
-               phenotypes: RDD[Phenotype[T]]): GnocchiModel = {
-
-    // call RegressPhenotypes on the data
-    val assocs = fit(rdd, phenotypes)
-
-    // extract the model parameters (including p-value) for each variant and build LogisticGnocchiModel
-    val model = extractModel(assocs)
-
-    // save the LogisticGnocchiModel
-    model.save
-
-    model
-  }
+trait BuildAdditiveLinear extends BuildGnocchiModel {
 
   def fit[T](rdd: RDD[GenotypeState],
-             phenotypes: RDD[Phenotype[T]]): RDD[Association]
+             phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
+    AdditiveLinearAssociation(rdd, phenotypes)
+  }
 
-  def extractModel(assocs: RDD[Association]): GnocchiModel
+  def extractModel(assocs: RDD[Association]): GnocchiModel = {
 
+    //code for packaging up the association object elements into a GnocchiModel
+
+  }
 }
-
 
 object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLogistic {
   val regressionName = "Additive Linear Regression with SGD"

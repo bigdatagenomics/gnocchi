@@ -17,7 +17,7 @@ package net.fnothaft.gnocchi.models
 
 import org.bdgenomics.adam.models.ReferenceRegion
 
-trait VariantModel[T] {
+trait VariantModel {
 	val variantID: String
   val numSamples: Int
   val variance: Double
