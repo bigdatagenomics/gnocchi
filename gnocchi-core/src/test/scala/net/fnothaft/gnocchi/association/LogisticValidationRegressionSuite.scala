@@ -1,18 +1,18 @@
 /**
-  * Copyright 2016 Frank Austin Nothaft, Taner Dagdelen
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  *     http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
+ * Copyright 2016 Frank Austin Nothaft, Taner Dagdelen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package net.fnothaft.gnocchi.association
 
 import breeze.linalg.DenseVector
@@ -41,8 +41,9 @@ class LogisticValidationRegressionSuite extends GnocchiFunSuite {
 
     // generate array of expected results for each sample, based on given phenotype
     val expectedResults = data.map(row => {
-      val pheno: Double = row(3)
-      ("", pheno)
+      val predicted: Double = row(3)
+      val actual: Double = row(4)
+      ("", (predicted, actual))
     }).collect()
 
     val fakeVariant = new Variant()
@@ -56,6 +57,15 @@ class LogisticValidationRegressionSuite extends GnocchiFunSuite {
     val predictionResult = AdditiveLogisticEvaluation.predictSite(sampleObservations, assoc)
 
     // Assert that the predictions result in the same as the actual phenotype (on dummy set)
+    for (i <- predictionResult.indices) {
+      if (predictionResult(i) != expectedResults(i)) {
+        print("Error --> ")
+      }
+      println("Ours: " + predictionResult(i) + " | Theirs: " + expectedResults(i))
+    }
+    println(predictionResult.indices.map(i => {
+      predictionResult(i) == expectedResults(i)
+    }).count(b => { b }))
     assert(predictionResult.sameElements(expectedResults))
   }
 }

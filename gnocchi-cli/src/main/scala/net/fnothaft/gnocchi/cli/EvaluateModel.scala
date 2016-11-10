@@ -15,7 +15,7 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.{ File, FileNotFoundException }
+import java.io.{File, FileNotFoundException}
 
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
@@ -23,16 +23,16 @@ import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
-
+import org.kohsuke.args4j.{Argument, Option => Args4jOption}
 import org.bdgenomics.adam.cli.Vcf2ADAM
-import java.nio.file.{ Files, Paths }
+import java.nio.file.{Files, Paths}
 
-import org.apache.hadoop.fs.{ FileSystem, Path }
+import breeze.numerics.exp
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ DataFrame, Dataset }
-import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
+import org.apache.spark.sql.{DataFrame, Dataset}
+import net.fnothaft.gnocchi.models.{Association, AuxEncoders, Phenotype}
 
 object EvaluateModel extends BDGCommandCompanion {
   val commandName = "evaluateModel"
@@ -46,6 +46,9 @@ object EvaluateModel extends BDGCommandCompanion {
 class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Argument(required = true, metaVar = "SNPS", usage = "The IDs of the SNPs to evaluate the model on.", index = 4)
   var snps: String = _
+
+  @Argument(required = true, metaVar = "RESULTS", usage = "The location to save results to.", index = 5)
+  var results: String = _
 }
 
 class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPhenotypes(evalArgs) {
@@ -60,11 +63,10 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
     val phenotypes = loadPhenotypes(sc)
 
     // Perform analysis
-    println("the  problem is in performAnalysis")
-    val associations = performEvaluation(genotypeStates, phenotypes, sc)
-    println("the problem is in logresults")
+    val results = performEvaluation(genotypeStates, phenotypes, sc)
+
     // Log the results
-    logResults(associations, sc)
+    logResults(results, sc)
   }
 
   override def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
@@ -112,34 +114,48 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
 
   def performEvaluation(genotypeStates: Dataset[GenotypeState],
                         phenotypes: RDD[Phenotype[Array[Double]]],
-                        sc: SparkContext): Dataset[Array[(String, Double)]] = {
+                        sc: SparkContext): RDD[(Array[(String, (Double, Double))], Association)] = {
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
-    import AuxEncoders._
-    val associations = args.associationType match {
+    val evaluations = args.associationType match {
       case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, contextOption)
     }
-    sqlContext.createDataset(associations)
+    evaluations
   }
 
   // FIXME: Make this right
-  def logResults(results: Dataset[Array[(String, Double)]],
+  def logResults(results: RDD[(Array[(String, (Double, Double))], Association)],
                  sc: SparkContext) = {
-    // // save dataset
-    // val sqlContext = SQLContext.getOrCreate(sc)
-    // val resultsFile = new File(args.associations)
-    // if (resultsFile.exists) {
-    //   FileUtils.deleteDirectory(resultsFile)
-    // }
-    // if (args.saveAsText) {
-    //   results.rdd.map(r => "%s, %s, %s"
-    //     .format(r.variant.getContig.getContigName,
-    //       r.variant.getContig.getContigMD5, exp(r.logPValue).toString))
-    //     .saveAsTextFile(args.associations)
-    // } else {
-    //   results.toDF.write.parquet(args.associations)
-    // }
-    // TODO: Do something!
+    // save dataset
+    val sqlContext = SQLContext.getOrCreate(sc)
+    val assocsFile = new File(args.associations)
+    if (assocsFile.exists) {
+      FileUtils.deleteDirectory(assocsFile)
+    }
+    // Our results, a dataset of (sampleId, accuracy)
+    val valResults = results
+      .map(_._1).flatMap(_.toTraversable).map(sampleSite => {
+        val sampleId = sampleSite._1
+        val res = sampleSite._2
+        (sampleId, (if (res._1 == res._2) 1 else 0, 1))
+      }).reduceByKey((p1, p2) => (p1._1 + p2._1, p1._2 + p2._2)).map(s => {
+        val sampleId = s._1
+        val nums = s._2
+        (sampleId, nums._1.toDouble / nums._2.toDouble)
+      })
+    val assocs = results.map(site => site._2)
+    if (args.saveAsText) {
+      assocs.map(r => "%s, %s, %s"
+        .format(r.variant.getContig.getContigName,
+          r.variant.getContig.getContigMD5, exp(r.logPValue).toString))
+        .saveAsTextFile(args.associations)
+      valResults.map(r => "%s, %f"
+        .format(r._1, r._2))
+        .saveAsTextFile(evalArgs.results)
+    } else {
+      sqlContext.createDataFrame(assocs).write.parquet(args.associations)
+      sqlContext.createDataFrame(valResults).write.parquet(evalArgs.results)
+    }
   }
 }
 

@@ -29,7 +29,7 @@ trait ValidationRegression extends SiteRegression {
   */
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]],
-                     scOption: Option[SparkContext] = None): RDD[Array[(String, Double)]] = {
+                     scOption: Option[SparkContext] = None): RDD[(Array[(String, (Double, Double))], Association)] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(0.9, 0.1))
 
@@ -69,12 +69,12 @@ trait ValidationRegression extends SiteRegression {
         val (sampleObservations, association) = value
         val ((pos, allele), phenotype) = key
 
-        predictSite(sampleObservations.map(p => {
+        (predictSite(sampleObservations.map(p => {
           // unpack p
           val (sampleid, (genotypeState, phenotype)) = p
           // return genotype and phenotype in the correct form
           (clipOrKeepState(genotypeState), phenotype.toDouble, sampleid)
-        }).toArray, association)
+        }).toArray, association), association)
       })
 
   }
@@ -86,6 +86,6 @@ trait ValidationRegression extends SiteRegression {
    * To be implemented by any class that implements this trait.
    */
   protected def predictSite(sampleObservations: Array[(Double, Array[Double], String)],
-                            association: Association): Array[(String, Double)]
+                            association: Association): Array[(String, (Double, Double))]
 }
 

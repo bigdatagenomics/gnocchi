@@ -36,13 +36,13 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
    *
    * @param sampleObservations An array containing tuples in which the first element is the coded genotype.
    *                           The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates.
-    *                          The third is the sampleid.
+   *                          The third is the sampleid.
    * @param association  An Association object that specifies the model trained for this locus
    * @return An array of results with the model applied to the observations
    */
 
   def predictSite(sampleObservations: Array[(Double, Array[Double], String)],
-                  association: Association): Array[(String, Double)] = {
+                  association: Association): Array[(String, (Double, Double))] = {
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = sampleObservations(0)._2.length
     val numObservations = sampleObservations.length
@@ -73,6 +73,16 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
     samples zip results
   }
 
+  def predict(lpArray: Array[LabeledPoint], b: Array[Double]): Array[(Double, Double)] = {
+    val expitResults = expit(lpArray, b)
+    // (Predicted, Actual)
+    val predictions = new Array[(Double, Double)](expitResults.length)
+    for (j <- predictions.indices) {
+      predictions(j) = (lpArray(j).label, Math.round(expitResults(j)))
+    }
+    predictions
+  }
+
   def expit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val expitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
@@ -81,15 +91,6 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
       expitResults(j) = 1 / (1 + Math.exp(-DenseVector(1.0 +: lp.features.toArray) dot bDense))
     }
     expitResults
-  }
-
-  def predict(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
-    val expitResults = expit(lpArray, b)
-    val predictions = new Array[Double](expitResults.length)
-    for (j <- predictions.indices) {
-      predictions(j) = Math.round(expitResults(j))
-    }
-    predictions
   }
 }
 
