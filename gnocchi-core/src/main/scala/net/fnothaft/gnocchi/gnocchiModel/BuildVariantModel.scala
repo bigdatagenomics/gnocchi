@@ -15,20 +15,21 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype, Association }
+import net.fnothaft.gnocchi.models.{Association, GenotypeState, Phenotype, VariantModel}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.DenseVector
-import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
+import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.regression.LabeledPoint
 import net.fnothaft.gnocchi.transformations.GP2LabeledPoint
+import org.bdgenomics.adam.models.ReferenceRegion
 
 trait BuildVariantModel {
 
   def apply[T](observations: Array[(Double, Array[Double])],
                locus: ReferenceRegion,
                altAllele: String,
-               phenotype: String): VariantModel[T] = {
+               phenotype: String): VariantModel = {
 
     // call RegressPhenotypes on the data
     val assoc = compute(observations, locus, altAllele, phenotype)
@@ -57,7 +58,7 @@ trait AdditiveVariant {
 
 trait DominantVariant {
   protected def clipOrKeepState(observations: Array[(Double, Array[Double])): Double = {
-    observations.pam(obs => {
+    observations.map(obs => {
       if (obs._1 == 0) (0.0, obs._2) else (1.0, obs._2)
     }
   }

@@ -16,17 +16,20 @@
 
 package net.fnothaft.gnocchi.gnocchiModel
 
+import net.fnothaft.gnocchi.models.{Association, VariantModel}
+import org.bdgenomics.adam.models.ReferenceRegion
+
 trait BuildDominantLogistic extends BuildVariantModel with LogisticSiteRegression {
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
               phenotype: String): Association = {
 
-    val clippedObs = cliipOrKeepState(observations)
+    val clippedObs = clipOrKeepState(observations)
     regressSite(observations, locus, altPallele, phenotype)
   }
 
-  def extractVariantModel(assoc: Association): VariantModel[T] = {
+  def extractVariantModel(assoc: Association): VariantModel = {
 
     // code for extracting the VariantModel from the Association
 

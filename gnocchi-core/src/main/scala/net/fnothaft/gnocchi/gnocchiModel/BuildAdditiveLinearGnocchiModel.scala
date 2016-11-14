@@ -15,21 +15,21 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype, Association }
-import org.apache.spark.SparkContext
+import net.fnothaft.gnocchi.association.AdditiveLinearAssociation
+import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.linalg.DenseVector
-import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
-import org.apache.spark.mllib.regression.LabeledPoint
-import net.fnothaft.gnocchi.transformations.GP2LabeledPoint
+import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 
+/* trait for building a GnocchiModel that has an additive, linear VariantModel at each site (via QR factorization). */
 trait BuildAdditiveLinear extends BuildGnocchiModel {
 
+  /* uses QR factorization to compute an additive linear association at each variant*/
   def fit[T](rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
     AdditiveLinearAssociation(rdd, phenotypes)
   }
 
+  /* Constructs the GnocchiModel using the weights from the associations produced by fit()*/
   def extractModel(assocs: RDD[Association]): GnocchiModel = {
 
     //code for packaging up the association object elements into a GnocchiModel

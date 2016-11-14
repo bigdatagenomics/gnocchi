@@ -15,13 +15,10 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype, Association }
-import org.apache.spark.SparkContext
+import net.fnothaft.gnocchi.association.DominantLinearAssociation
+import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.linalg.DenseVector
-import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
-import org.apache.spark.mllib.regression.LabeledPoint
-import net.fnothaft.gnocchi.transformations.GP2LabeledPoint
+import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 
 trait BuildDominantLinear extends BuildGnocchiModel {
 
