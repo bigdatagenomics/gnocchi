@@ -1,4 +1,4 @@
- /**
+/**
  * Copyright 2016 Taner Dagdelen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,13 +16,11 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.association.DominantLinearAssociation
-import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
+import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
 
 trait BuildDominantLinear extends BuildGnocchiModel {
-
-
 
   def fit[T](rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): RDD[Association] = {

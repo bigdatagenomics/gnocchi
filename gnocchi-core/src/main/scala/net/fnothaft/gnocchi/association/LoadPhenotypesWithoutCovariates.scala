@@ -65,7 +65,6 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
     // construct the phenotypes dataset, filtering out all samples that don't have the phenotype or one of the covariates
     val data = getAndFilterPhenotypes(oneTwo, phenotypes, header, primaryPhenoIndex, sc)
 
-
     // """Should be able to store the data in a more readable format as well."""
     return data
   }

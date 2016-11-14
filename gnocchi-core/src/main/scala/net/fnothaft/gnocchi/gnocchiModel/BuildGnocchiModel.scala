@@ -15,7 +15,7 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
 import org.apache.spark.rdd.RDD
 
 trait BuildGnocchiModel {
@@ -40,9 +40,4 @@ trait BuildGnocchiModel {
 
   def extractModel(assocs: RDD[Association]): GnocchiModel
 
-}
-
-
-object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLogistic {
-  val regressionName = "Additive Linear Regression with SGD"
 }

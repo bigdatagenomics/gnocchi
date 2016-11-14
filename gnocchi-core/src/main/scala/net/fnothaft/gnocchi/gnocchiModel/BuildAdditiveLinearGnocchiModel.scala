@@ -1,4 +1,4 @@
- /**
+/**
  * Copyright 2016 Taner Dagdelen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,9 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.association.AdditiveLinearAssociation
-import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
+import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
 
 /* trait for building a GnocchiModel that has an additive, linear VariantModel at each site (via QR factorization). */
 trait BuildAdditiveLinear extends BuildGnocchiModel {
@@ -37,6 +37,6 @@ trait BuildAdditiveLinear extends BuildGnocchiModel {
   }
 }
 
-object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLogistic {
+object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLinear {
   val regressionName = "Additive Linear Regression with SGD"
 }

@@ -18,7 +18,7 @@ package net.fnothaft.gnocchi.models
 import org.bdgenomics.adam.models.ReferenceRegion
 
 trait VariantModel {
-	val variantID: String
+  val variantID: String
   val numSamples: Int
   val variance: Double
   val modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
@@ -28,11 +28,9 @@ trait VariantModel {
   val incrementalUpdateValue: Double
   val QRFactorizationValue: Double
 
-
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
   def update(observations: Array[(Double, Array[Double])])
-
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
@@ -40,7 +38,6 @@ trait VariantModel {
               locus: ReferenceRegion,
               altAllele: String,
               phenotype: String): Map[String, Double]
-
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.

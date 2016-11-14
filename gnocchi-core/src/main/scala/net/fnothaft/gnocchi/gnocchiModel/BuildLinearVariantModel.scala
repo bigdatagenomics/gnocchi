@@ -16,16 +16,17 @@
 
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{Association, VariantModel}
+import net.fnothaft.gnocchi.association.LinearSiteRegression
+import net.fnothaft.gnocchi.models.{ Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
 
-trait BuildDominantLogistic extends BuildVariantModel with LogisticSiteRegression {
+trait BuildLinearVariantModel extends BuildVariantModel with LinearSiteRegression {
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
               phenotype: String): Association = {
 
-    val clippedObs = clipOrKeepState(observations)
+    val clippedObs = arrayClipOrKeepState(observations)
     regressSite(observations, locus, altPallele, phenotype)
   }
 

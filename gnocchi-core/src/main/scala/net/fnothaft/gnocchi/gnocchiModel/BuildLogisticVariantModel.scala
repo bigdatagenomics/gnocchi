@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
- package net.fnothaft.gnocchi.gnocchiModel
+package net.fnothaft.gnocchi.gnocchiModel
 
- import net.fnothaft.gnocchi.models.{Association, VariantModel}
- import org.bdgenomics.adam.models.ReferenceRegion
+import net.fnothaft.gnocchi.association.LogisticSiteRegression
+import net.fnothaft.gnocchi.models.{ Association, VariantModel }
+import org.bdgenomics.adam.models.ReferenceRegion
 
-
- trait BuildLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression {
+trait BuildLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression {
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
               phenotype: String): Association = {
 
-    val clippedObs = clipOrKeepState(observations)
+    val clippedObs = arrayClipOrKeepState(observations)
     regressSite(clippedObs, locus, altPallele, phenotype)
   }
 

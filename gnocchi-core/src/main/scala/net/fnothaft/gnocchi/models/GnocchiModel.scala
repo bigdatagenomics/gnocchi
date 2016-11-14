@@ -31,12 +31,10 @@ trait GnocchiModel {
   val dates: String // dates of creation and update of each model
   val sampleIds: Array[String] // list of sampleIDs from all samples the model has seen.
   val variantModels: RDD[(String, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
-  val qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])]] // the variant model and the observations that the model must be trained on
-
+  val qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])] // the variant model and the observations that the model must be trained on
 
   // filters out all variants that don't pass a certian predicate and returns a GnocchiModel containing only those variants.
   def filter: GnocchiModel
-
 
   // given a batch of data, update the GnocchiModel with the data (by updating all the VariantModels).
   // Suggest recompute when haplotypeBlockDelta is bigger than some threshold.
@@ -91,7 +89,7 @@ trait GnocchiModel {
       val (id, (increModel, qrModel)) = kvv
       val increValue = increModel.incrementalUpdateValue
       val qrValue = qrModel.QRFactorizatinoValue
-      Math.abs(increValue - qrValue)/qrValue > HBDThreshold
+      Math.abs(increValue - qrValue) / qrValue > HBDThreshold
     }).map(_._1).collect()
 
     variantModels = updatedVMRdd
@@ -99,7 +97,7 @@ trait GnocchiModel {
 
   // calls the appropriate version of BuildVariantModel
   def buildVariantModel(varModel: VariantModel,
-                        obs: Array[(Double, Array[Double]))]): VariantModel
+                        obs: Array[(Double, Array[Double])]): VariantModel
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample.
   def predict(rdd: RDD[GenotypeState],

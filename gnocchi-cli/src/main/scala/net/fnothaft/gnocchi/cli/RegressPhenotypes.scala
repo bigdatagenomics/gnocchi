@@ -34,7 +34,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset }
 import net.fnothaft.gnocchi.models.{ Phenotype, Association, AuxEncoders }
 
-
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
   val commandDescription = "Pilot code for computing genotype/phenotype associations using ADAM"

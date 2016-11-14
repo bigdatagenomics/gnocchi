@@ -15,13 +15,11 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
+import net.fnothaft.gnocchi.association.DominantLogisticAssociation
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 
 trait BuildDominantLogistic extends BuildGnocchiModel {
-
-
 
   def fit[T](rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
@@ -31,7 +29,7 @@ trait BuildDominantLogistic extends BuildGnocchiModel {
   def extractModel(assocs: RDD[Association]): GnocchiModel = {
 
     //code for packaging up the association object elements into a GnocchiModel
-
+    new GnocchiModel()
   }
 }
 
