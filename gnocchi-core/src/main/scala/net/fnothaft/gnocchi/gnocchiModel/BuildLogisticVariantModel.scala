@@ -20,28 +20,40 @@ import net.fnothaft.gnocchi.association.LogisticSiteRegression
 import net.fnothaft.gnocchi.models.{ Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
 
-trait BuildLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression {
+trait BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with AdditiveVariant {
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
               phenotype: String): Association = {
 
     val clippedObs = arrayClipOrKeepState(observations)
-    regressSite(clippedObs, locus, altPallele, phenotype)
+    regressSite(clippedObs, locus, altAllele, phenotype)
   }
 
-  def extractVariantModel(assoc: Association): VariantModel = {
+  //  def extractVariantModel(assoc: Association): VariantModel = {
+  //
+  //    // code for extracting the VariantModel from the Association
+  //
+  //  }
 
-    // code for extracting the VariantModel from the Association
+  val regressionName = "Additive Logistic Regression"
+}
 
+trait BuildLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with DominantVariant {
+  def compute(observations: Array[(Double, Array[Double])],
+              locus: ReferenceRegion,
+              altAllele: String,
+              phenotype: String): Association = {
+
+    val clippedObs = arrayClipOrKeepState(observations)
+    regressSite(clippedObs, locus, altAllele, phenotype)
   }
-}
 
-object BuildAdditiveLogisticVariantModel extends BuildAdditiveLogistic with AdditiveVariant {
-  val regressionType = "Additive Logistic Regression"
-}
-
-object BuildDominantLogisticVariantModel extends BuildDominantLogistic with DominantVariant {
-  val regressionType = "Dominant Logistic Regression"
+  //  def extractVariantModel(assoc: Association): VariantModel = {
+  //
+  //    // code for extracting the VariantModel from the Association
+  //
+  //  }
+  val regressionName = "Dominant Logistic Regression"
 }
 

@@ -30,11 +30,11 @@ trait BuildAdditiveLinear extends BuildGnocchiModel {
   }
 
   /* Constructs the GnocchiModel using the weights from the associations produced by fit()*/
-  def extractModel(assocs: RDD[Association]): GnocchiModel = {
-
-    //code for packaging up the association object elements into a GnocchiModel
-
-  }
+  //  def extractModel(assocs: RDD[Association]): GnocchiModel = {
+  //
+  //    //code for packaging up the association object elements into a GnocchiModel
+  //
+  //  }
 }
 
 object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLinear {

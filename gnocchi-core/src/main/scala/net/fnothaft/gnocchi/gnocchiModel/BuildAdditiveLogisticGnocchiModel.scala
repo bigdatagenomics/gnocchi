@@ -15,9 +15,9 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
+import net.fnothaft.gnocchi.association.AdditiveLogisticAssociation
 import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
 
 /* trait for building a GnocchiModel that has an additive, logistic VariantModel at each site (via QR factorization). */
 trait BuildAdditiveLogistic extends BuildGnocchiModel {
@@ -27,11 +27,11 @@ trait BuildAdditiveLogistic extends BuildGnocchiModel {
     AdditiveLogisticAssociation(rdd, phenotypes)
   }
 
-  def extractModel(assocs: RDD[Association]): GnocchiModel = {
-
-    //code for packaging up the association object elements into a GnocchiModel
-
-  }
+  //  def extractModel(assocs: RDD[Association]): GnocchiModel = {
+  //
+  //    //code for packaging up the association object elements into a GnocchiModel
+  //
+  //  }
 }
 
 object BuildAdditiveLogisticGnocchiModel extends BuildAdditiveLogistic {

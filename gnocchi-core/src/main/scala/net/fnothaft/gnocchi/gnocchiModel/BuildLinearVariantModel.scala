@@ -20,27 +20,41 @@ import net.fnothaft.gnocchi.association.LinearSiteRegression
 import net.fnothaft.gnocchi.models.{ Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
 
-trait BuildLinearVariantModel extends BuildVariantModel with LinearSiteRegression {
+object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSiteRegression with AdditiveVariant {
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
               phenotype: String): Association = {
 
     val clippedObs = arrayClipOrKeepState(observations)
-    regressSite(observations, locus, altPallele, phenotype)
+    regressSite(observations, locus, altAllele, phenotype)
   }
 
-  def extractVariantModel(assoc: Association): VariantModel = {
+  //  def extractVariantModel(assoc: Association): VariantModel = {
+  //
+  //    // code for extracting the VariantModel from the Association
+  //
+  //  }
 
-    // code for extracting the VariantModel from the Association
+  val regressionName = "Additive Linear Regression"
+}
 
+object BuildDominantLinearVariantModel extends BuildVariantModel with LinearSiteRegression with DominantVariant {
+  def compute(observations: Array[(Double, Array[Double])],
+              locus: ReferenceRegion,
+              altAllele: String,
+              phenotype: String): Association = {
+
+    val clippedObs = arrayClipOrKeepState(observations)
+    regressSite(observations, locus, altAllele, phenotype)
   }
+
+  //  def extractVariantModel(assoc: Association): VariantModel = {
+  //
+  //    // code for extracting the VariantModel from the Association
+  //
+  //  }
+
+  val regressionName = "Dominant Linear Regression"
 }
 
-object BuildAdditiveLinearVariantModel extends BuildAdditiveLinear with AdditiveVariant {
-  val regressionType = "Additive Linear Regression"
-}
-
-object BuildDominantLinearVariantModel extends BuildDominantLinear with DominantVariant {
-  val regressionType = "Dominant Linear Regression"
-}

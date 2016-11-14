@@ -26,11 +26,11 @@ trait BuildDominantLogistic extends BuildGnocchiModel {
     DominantLogisticAssociation(rdd, phenotypes)
   }
 
-  def extractModel(assocs: RDD[Association]): GnocchiModel = {
-
-    //code for packaging up the association object elements into a GnocchiModel
-    new GnocchiModel()
-  }
+  //  def extractModel(assocs: RDD[Association]): GnocchiModel = {
+  //
+  //    //code for packaging up the association object elements into a GnocchiModel
+  //    new GnocchiModel()
+  //  }
 }
 
 object BuildDominantLogisticGnocchiModel extends BuildDominantLogistic {
