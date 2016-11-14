@@ -34,6 +34,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset }
 import net.fnothaft.gnocchi.models.{ Phenotype, Association, AuxEncoders }
 
+
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
   val commandDescription = "Pilot code for computing genotype/phenotype associations using ADAM"
@@ -97,6 +98,7 @@ class RegressPhenotypesArgs extends Args4jBase {
   //
   //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
   //  var mapFile: String = null
+
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
