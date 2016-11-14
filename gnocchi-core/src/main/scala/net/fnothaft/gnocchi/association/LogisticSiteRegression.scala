@@ -95,7 +95,7 @@ trait LogisticSiteRegression extends SiteRegression {
         for (i <- observations.indices) {
           //          println(hessian)
           //          println("\n")
-          println("inside: " + logitArray(i))
+          //          println("inside: " + logitArray(i))
           //          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
           hessian += -xixiT(i) * pi * (1.0 - pi)
@@ -103,10 +103,10 @@ trait LogisticSiteRegression extends SiteRegression {
         }
 
         // compute the update and check convergence
-        println(hessian)
+        //        println(hessian)
         update = -inv(hessian) * score
-        println(update)
-        println("\n")
+        //        println(update)
+        //        println("\n")
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
@@ -116,7 +116,7 @@ trait LogisticSiteRegression extends SiteRegression {
           beta(j) += update(j)
         }
 
-        println("LOG_REG - b: " + beta.toList)
+        //        println("LOG_REG - b: " + beta.toList)
         if (beta.exists(_.isNaN)) {
           println("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
@@ -124,7 +124,7 @@ trait LogisticSiteRegression extends SiteRegression {
       } catch {
         case error: breeze.linalg.MatrixSingularException => {
           singular = true
-          println("inside while loop: " + hessian)
+          //          println("inside while loop: " + hessian)
         }
       }
       iter += 1
