@@ -15,7 +15,7 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.{File, FileNotFoundException}
+import java.io.{ File, FileNotFoundException }
 
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
@@ -23,16 +23,16 @@ import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{Argument, Option => Args4jOption}
+import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import org.bdgenomics.adam.cli.Vcf2ADAM
-import java.nio.file.{Files, Paths}
+import java.nio.file.{ Files, Paths }
 
 import breeze.numerics.exp
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.{ FileSystem, Path }
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Dataset}
-import net.fnothaft.gnocchi.models.{Association, AuxEncoders, Phenotype}
+import org.apache.spark.sql.{ DataFrame, Dataset }
+import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
 
 object EvaluateModel extends BDGCommandCompanion {
   val commandName = "evaluateModel"
@@ -49,6 +49,9 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
 
   @Argument(required = true, metaVar = "RESULTS", usage = "The location to save results to.", index = 5)
   var results: String = _
+
+  @Argument(required = false, metaVar = "ENSEMBLE_METHOD", usage = "The method used to combine results of SNPs. Options are MAX or AVG.")
+  var ensembleMethod: String = "AVG"
 }
 
 class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPhenotypes(evalArgs) {
@@ -133,29 +136,112 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
       FileUtils.deleteDirectory(assocsFile)
     }
     // Our results, a dataset of (sampleId, accuracy)
-    val valResults = results
-      .map(_._1).flatMap(_.toTraversable).map(sampleSite => {
-        val sampleId = sampleSite._1
-        val res = sampleSite._2
-        (sampleId, (if (res._1 == res._2) 1 else 0, 1))
-      }).reduceByKey((p1, p2) => (p1._1 + p2._1, p1._2 + p2._2)).map(s => {
-        val sampleId = s._1
-        val nums = s._2
-        (sampleId, nums._1.toDouble / nums._2.toDouble)
+    val resultsBySample = results.flatMap(ipaa => {
+      var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
+      for (i <- 1 until ipaa._1.length) {
+        toRet = toRet :+ (ipaa._1(i)._1, (ipaa._1(i)._2._1, ipaa._1(i)._2._2, ipaa._2))
+      }
+      toRet.toList
+    }).groupByKey
+
+      // ensemble the SNP models for each sample
+      .map(sample => {
+        val (sampleId, snpArray) = sample
+        (sampleId, ensemble(snpArray.toArray))
       })
+
+    // compute final results
+    val resArray = resultsBySample.collect
+    val numSamples = resArray.length
+    var numZeroActual = 0.0
+    var numZeroPred = 0.0
+    var numZeroPredOneActual = 0.0
+    var numOnePredZeroActual = 0.0
+    for (i <- resArray.indices) {
+      val pred = resArray(i)._2._1
+      val actual = resArray(i)._2._2
+      if (actual == 0.0) {
+        numZeroActual += 1.0
+        if (pred == 1.0) {
+          numOnePredZeroActual += 1.0
+        } else {
+          numZeroPred += 1.0
+        }
+      } else {
+        if (pred == 0.0) {
+          numZeroPredOneActual += 1.0
+        }
+      }
+    }
+    val percentZeroActual = numZeroActual / numSamples
+    val percentOneActual = 1 - percentZeroActual
+    val percentPredZeroActualOne = numZeroPredOneActual / (numSamples - numZeroActual)
+    val percentPredOneActualZero = numOnePredZeroActual / numZeroActual
+    val percentPredZero = numZeroPred / numSamples
+    val percentPredOne = 1 - percentPredZero
+
+    println(s"Percent of samples with actual 0 phenotype: $percentZeroActual")
+    println(s"Percent of samples with actual 1 phenotype: $percentOneActual")
+    println(s"Percent of samples predicted to be 0 but actually were 1: $percentPredZeroActualOne")
+    println(s"Percent of samples predicted to be 1 but actually were 0: $percentPredOneActualZero")
+    println(s"Percent of samples predicted to be 0: $percentPredZero")
+    println(s"Percent of samples predicted to be 1: $percentPredOne")
+
+    //      .map(ipaa => {
+    //        val ((sampleId, (pred, actual)), assoc): ((String, (Double, Double)), Association) = ipaa
+    //        (sampleId, (assoc, pred, actual))
+    //      }).groupByKey
+    //
+    //
+    //      .map(_._1).flatMap(_.toTraversable).map(sampleSite => {
+    //      val sampleId = sampleSite._1
+    //      val res = sampleSite._2
+    //      (sampleId, (if (res._1 == res._2) 1 else 0, 1))
+    //    }).reduceByKey((p1, p2) => (p1._1 + p2._1, p1._2 + p2._2)).map(s => {
+    //      val sampleId = s._1
+    //      val nums = s._2
+    //      (sampleId, nums._1.toDouble / nums._2.toDouble)
+    //    })
     val assocs = results.map(site => site._2)
     if (args.saveAsText) {
       assocs.map(r => "%s, %s, %s"
         .format(r.variant.getContig.getContigName,
           r.variant.getContig.getContigMD5, exp(r.logPValue).toString))
         .saveAsTextFile(args.associations)
-      valResults.map(r => "%s, %f"
-        .format(r._1, r._2))
-        .saveAsTextFile(evalArgs.results)
+      //      valResults.map(r => "%s, %f"
+      //        .format(r._1, r._2))
+      //        .saveAsTextFile(evalArgs.results)
+      println(s"Percent of samples with actual 0 phenotype: $percentZeroActual")
+      println(s"Percent of samples with actual 1 phenotype: $percentOneActual")
+      println(s"Percent of samples predicted to be 0 but actually were 1: $percentPredZeroActualOne")
+      println(s"Percent of samples predicted to be 1 but actually were 0: $percentPredOneActualZero")
+      println(s"Percent of samples predicted to be 0: $percentPredZero")
+      println(s"Percent of samples predicted to be 1: $percentPredOne")
     } else {
       sqlContext.createDataFrame(assocs).write.parquet(args.associations)
-      sqlContext.createDataFrame(valResults).write.parquet(evalArgs.results)
+      sqlContext.createDataFrame(resultsBySample).write.parquet(evalArgs.results)
+      println(s"Percent of samples with actual 0 phenotype: $percentZeroActual")
+      println(s"Percent of samples with actual 1 phenotype: $percentOneActual")
+      println(s"Percent of samples predicted to be 0 but actually were 1: $percentPredZeroActualOne")
+      println(s"Percent of samples predicted to be 1 but actually were 0: $percentPredOneActualZero")
+      println(s"Percent of samples predicted to be 0: $percentPredZero")
+      println(s"Percent of samples predicted to be 1: $percentPredOne")
     }
+  }
+
+  def ensemble(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
+    evalArgs.ensembleMethod match {
+      case "AVG" => average(snpArray)
+      case _     => average(snpArray) //still call avg until other methods implemented
+    }
+  }
+
+  def average(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
+    var sm = 0.0
+    for (i <- snpArray.indices) {
+      sm += snpArray(i)._1
+    }
+    (sm / snpArray.length, snpArray(0)._2)
   }
 }
 
