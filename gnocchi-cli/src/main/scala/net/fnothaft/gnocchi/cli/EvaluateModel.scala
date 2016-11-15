@@ -50,7 +50,7 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Argument(required = true, metaVar = "RESULTS", usage = "The location to save results to.", index = 5)
   var results: String = _
 
-  @Argument(required = false, metaVar = "ENSEMBLE_METHOD", usage = "The method used to combine results of SNPs. Options are MAX or AVG.")
+  @Argument(required = false, metaVar = "ENSEMBLE_METHOD", usage = "The method used to combine results of SNPs. Options are MAX or AVG.", index = 6)
   var ensembleMethod: String = "AVG"
 }
 
