@@ -54,7 +54,7 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   var ensembleMethod: String = "AVG"
 }
 
-class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPhenotypes(evalArgs) {
+class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPhenotypes(evalArgs) with Serializable {
   override val companion = EvaluateModel
 
   override def run(sc: SparkContext) {
