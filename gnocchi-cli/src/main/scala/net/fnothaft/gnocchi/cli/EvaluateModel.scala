@@ -35,7 +35,7 @@ import org.apache.spark.sql.{ DataFrame, Dataset }
 import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
 
 object EvaluateModel extends BDGCommandCompanion {
-  val commandName = "evaluateModel"
+  val commandName = "EvaluateModel"
   val commandDescription = "Fill this out later!!"
 
   def apply(cmdLine: Array[String]) = {
@@ -135,7 +135,7 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
     if (assocsFile.exists) {
       FileUtils.deleteDirectory(assocsFile)
     }
-    // Our results, a dataset of (sampleId, accuracy)
+
     val resultsBySample = results.flatMap(ipaa => {
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
       for (i <- 1 until ipaa._1.length) {
