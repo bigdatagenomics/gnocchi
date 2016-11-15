@@ -110,7 +110,7 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
       // Filter out only specified snps
       // TODO: Clean this
       val snps = evalArgs.snps.split(',')
-      filteredGenotypeStates.filter(filteredGenotypeStates("contig").isin(snps))
+      filteredGenotypeStates.filter(filteredGenotypeStates("contig").isin(snps: _*))
     }
     filteredGenotypeStates.as[GenotypeState]
   }
