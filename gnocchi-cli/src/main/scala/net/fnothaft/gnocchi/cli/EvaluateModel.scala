@@ -180,13 +180,6 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
     val percentPredZero = numZeroPred / numSamples
     val percentPredOne = 1 - percentPredZero
 
-    println(s"Percent of samples with actual 0 phenotype: $percentZeroActual")
-    println(s"Percent of samples with actual 1 phenotype: $percentOneActual")
-    println(s"Percent of samples predicted to be 0 but actually were 1: $percentPredZeroActualOne")
-    println(s"Percent of samples predicted to be 1 but actually were 0: $percentPredOneActualZero")
-    println(s"Percent of samples predicted to be 0: $percentPredZero")
-    println(s"Percent of samples predicted to be 1: $percentPredOne")
-
     //      .map(ipaa => {
     //        val ((sampleId, (pred, actual)), assoc): ((String, (Double, Double)), Association) = ipaa
     //        (sampleId, (assoc, pred, actual))
