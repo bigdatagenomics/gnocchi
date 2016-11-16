@@ -221,9 +221,17 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
     //    val genotypes = sc.loadGenotypes(parquetInputDestination).toDF()
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
-
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
+    val genoStatesWithNames = genotypeStates.select(genotypeStates("contig") + "_" + genotypeStates("end") + "_" + genotypeStates("alt"),
+      genotypeStates("start"),
+      genotypeStates("end"),
+      genotypeStates("ref"),
+      genotypeStates("alt"),
+      genotypeStates("sampleId"),
+      genotypeStates("genotypeState"),
+      genotypeStates("missingGenotypes"))
+    println(genoStatesWithNames.take(10).toList)
 
     /*
     For now, just going to use PLINK's Filtering functionality to create already-filtered vcfs from the BED.

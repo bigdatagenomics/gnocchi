@@ -97,15 +97,22 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
 
     val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
-
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-
+    val genoStatesWithNames = genotypeStates.select(genotypeStates("contig") + "_" + genotypeStates("end") + "_" + genotypeStates("alt"),
+      genotypeStates("start"),
+      genotypeStates("end"),
+      genotypeStates("ref"),
+      genotypeStates("al"),
+      genotypeStates("sampleId"),
+      genotypeStates("genotypeState"),
+      genotypeStates("missingGenotypes"))
+    println(genoStatesWithNames.take(10).toList)
     // mind filter
-    genotypeStates.registerTempTable("genotypeStates")
+    genoStatesWithNames.registerTempTable("genotypeStates")
 
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
-    val filteredGenotypeStates = genotypeStates.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
+    val filteredGenotypeStates = genoStatesWithNames.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
     if (evalArgs.snps != null) {
       // Filter out only specified snps
       // TODO: Clean this
