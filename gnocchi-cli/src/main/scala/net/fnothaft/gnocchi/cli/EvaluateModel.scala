@@ -33,6 +33,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ DataFrame, Dataset }
 import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
+import org.apache.spark.sql.functions._
 
 object EvaluateModel extends BDGCommandCompanion {
   val commandName = "EvaluateModel"
@@ -99,15 +100,16 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-    val genoStatesWithNames = genotypeStates.select(genotypeStates("contig") + "_" + genotypeStates("end") + "_" + genotypeStates("alt"),
+    val genoStatesWithNames = genotypeStates.select(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
       genotypeStates("start"),
       genotypeStates("end"),
       genotypeStates("ref"),
-      genotypeStates("al"),
+      genotypeStates("alt"),
       genotypeStates("sampleId"),
       genotypeStates("genotypeState"),
       genotypeStates("missingGenotypes"))
     println(genoStatesWithNames.take(10).toList)
+
     // mind filter
     genoStatesWithNames.registerTempTable("genotypeStates")
 
