@@ -20,6 +20,7 @@ import net.fnothaft.gnocchi.models.{ Association, GenotypeState, Phenotype }
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait ValidationRegression extends SiteRegression {
 
@@ -39,19 +40,27 @@ trait ValidationRegression extends SiteRegression {
         val (_, p) = kvv
         // unpack the information into genotype state and pheno
         val (gs, pheno) = p
-        // extract referenceAllele and phenotype and pack up with p, then group by key
-        ((gs.referenceAllele, pheno.phenotype), p)
+        // create contig and Variant objects and group by Variant
+        // pack up the information into an Association object
+        val variant = new Variant()
+        val contig = new Contig()
+        contig.setContigName(gs.contig)
+        variant.setContig(contig)
+        variant.setStart(gs.start)
+        variant.setEnd(gs.end)
+        variant.setAlternateAllele(gs.alt)
+        ((variant, pheno.phenotype), p)
       }).groupByKey()
       .map(site => {
-        val (key, observations) = site
-        val ((pos, allele), phenotype) = key
+        val ((variant, pheno), observations) = site
+
         // build array to regress on, and then regress
-        (key, regressSite(observations.map(p => {
+        ((variant, pheno), regressSite(observations.map(p => {
           // unpack p
           val (genotypeState, phenotype) = p
           // return genotype and phenotype in the correct form
           (clipOrKeepState(genotypeState), phenotype.toDouble)
-        }).toArray, pos, allele, phenotype))
+        }).toArray, variant, pheno))
       })
 
     testRdd
@@ -60,14 +69,23 @@ trait ValidationRegression extends SiteRegression {
         val (sampleid, p) = kvv
         // unpack the information into genotype state and pheno
         val (gs, pheno) = p
-        // extract referenceAllele and phenotype and pack up with p, then group by key
-        ((gs.referenceAllele, pheno.phenotype), (sampleid, p))
+
+        // create contig and Variant objects and group by Variant
+        // pack up the information into an Association object
+        val variant = new Variant()
+        val contig = new Contig()
+        contig.setContigName(gs.contig)
+        variant.setContig(contig)
+        variant.setStart(gs.start)
+        variant.setEnd(gs.end)
+        variant.setAlternateAllele(gs.alt)
+        ((variant, pheno.phenotype), (sampleid, p))
       }).groupByKey()
       .join(modelRdd)
       .map(site => {
         val (key, value) = site
         val (sampleObservations, association) = value
-        val ((pos, allele), phenotype) = key
+        val (variant, phenotype) = key
 
         (predictSite(sampleObservations.map(p => {
           // unpack p

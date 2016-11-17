@@ -19,6 +19,7 @@ import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.models.{ Association, GenotypeState }
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.bdgenomics.formats.avro.Variant
 
 class LinearSiteRegressionSuite extends GnocchiFunSuite {
 
@@ -38,9 +39,10 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val locus = ReferenceRegion("Name", 1, 2)
     val altAllele = "C"
     val phenotype = "MyPhenotype"
+    val variant = new Variant
 
     //use additiveLinearRegression to regress on Ascombe1
-    var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
+    var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared") == 1.0, "rSquared = " + regressionResult.statistics("rSquared"))
@@ -86,9 +88,10 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val locus = ReferenceRegion("Name", 1, 2)
     val altAllele = "C"
     val phenotype = "MyPhenotype"
+    val variant = new Variant
 
     //use additiveLinearRegression to regress on Ascombe1
-    var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
+    var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -113,9 +116,10 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val locus = ReferenceRegion("Name", 1, 2)
     val altAllele = "C"
     val phenotype = "MyPhenotype"
+    val variant = new Variant
 
     //use additiveLinearRegression to regress on Ascombe1
-    var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
+    var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -140,9 +144,10 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val locus = ReferenceRegion("Name", 1, 2)
     val altAllele = "C"
     val phenotype = "MyPhenotype"
+    val variant = new Variant
 
     //use additiveLinearRegression to regress on Ascombe1
-    var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
+    var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -167,9 +172,10 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val locus = ReferenceRegion("Name", 1, 2)
     val altAllele = "C"
     val phenotype = "MyPhenotype"
+    val variant = new Variant
 
     //use additiveLinearRegression to regress on Ascombe1
-    var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
+    var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -264,9 +270,10 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val locus = ReferenceRegion("Name", 1, 2)
     val altAllele = "C"
     val phenotype = "MyPhenotype"
+    val variant = new Variant
 
     // use additiveLinearAssociation to regress on PIQ data
-    var regressionResult = AdditiveLinearAssociation.regressSite(observations, locus, altAllele, phenotype)
+    var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     // check that the rsquared value is correct (correct is 0.2949)
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.2954)

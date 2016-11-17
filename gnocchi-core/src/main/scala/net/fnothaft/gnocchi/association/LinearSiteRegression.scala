@@ -28,14 +28,12 @@ trait LinearSiteRegression extends SiteRegression {
   /**
    * This method will perform linear regression on a single site.
    * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
-   * @param locus A ReferenceRegion object representing the location in the genome of the site.
-   * @param altAllele A String specifying the value of the alternate allele that makes up the variant or SNP
+   * @param variant The variant that is being regressed.
    * @param phenotype The name of the phenotype being regressed.
    * @return The Association object that results from the linear regression
    */
   def regressSite(observations: Array[(Double, Array[Double])],
-                  locus: ReferenceRegion,
-                  altAllele: String,
+                  variant: Variant,
                   phenotype: String): Association = {
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
@@ -88,13 +86,13 @@ trait LinearSiteRegression extends SiteRegression {
     val logPValue = log10(pvalue)
 
     // pack up the information into an Association object
-    val variant = new Variant()
-    val contig = new Contig()
-    contig.setContigName(locus.referenceName)
-    variant.setContig(contig)
-    variant.setStart(locus.start)
-    variant.setEnd(locus.end)
-    variant.setAlternateAllele(altAllele)
+    //    val variant = new Variant()
+    //    val contig = new Contig()
+    //    contig.setContigName(locus.referenceName)
+    //    variant.setContig(contig)
+    //    variant.setStart(locus.start)
+    //    variant.setEnd(locus.end)
+    //    variant.setAlternateAllele(altAllele)
     val statistics = Map("rSquared" -> rSquared)
     val associationObject = new Association(variant, phenotype, logPValue, statistics)
 

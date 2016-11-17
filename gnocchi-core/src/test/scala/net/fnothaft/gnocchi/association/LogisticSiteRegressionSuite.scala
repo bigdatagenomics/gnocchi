@@ -18,6 +18,7 @@ package net.fnothaft.gnocchi.association
 import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.bdgenomics.formats.avro.Variant
 
 class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
@@ -40,9 +41,10 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val phenotype = "acceptance"
     val locus = ReferenceRegion("Name", 1, 2)
     val scOption = Option(sc)
+    val variant = new Variant
 
     // feed it into logisitic regression and compare the Wald Chi Squared tests
-    val regressionResult = AdditiveLogisticAssociation.regressSite(observations, locus, altAllele, phenotype)
+    val regressionResult = AdditiveLogisticAssociation.regressSite(observations, variant, phenotype)
 
     // Assert that the weights are correct within a threshold.
     val estWeights: Array[Double] = regressionResult.statistics("weights").asInstanceOf[Array[Double]] :+ regressionResult.statistics("intercept").asInstanceOf[Double]
