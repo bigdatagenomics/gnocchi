@@ -63,7 +63,7 @@ trait ValidationRegression extends SiteRegression {
         }).toArray, variant, pheno))
       })
 
-    testRdd
+    val temp = testRdd
       .map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
         val (sampleid, p) = kvv
@@ -81,19 +81,22 @@ trait ValidationRegression extends SiteRegression {
         variant.setAlternateAllele(gs.alt)
         ((variant, pheno.phenotype), (sampleid, p))
       }).groupByKey()
-      .join(modelRdd)
-      .map(site => {
-        val (key, value) = site
-        val (sampleObservations, association) = value
-        val (variant, phenotype) = key
+    println("pre-join samples at a site: \n" + temp.take(5).toList)
+    val temp2 = temp.join(modelRdd)
+    println("Post-join samples and models at a site: \n" + temp2.take(0).toList(0))
+    println(temp2.take(0).toList(1).asInstanceOf[Array[(String, Phenotype[Array[Double]])]].toList)
+    temp2.map(site => {
+      val (key, value) = site
+      val (sampleObservations, association) = value
+      val (variant, phenotype) = key
 
-        (predictSite(sampleObservations.map(p => {
-          // unpack p
-          val (sampleid, (genotypeState, phenotype)) = p
-          // return genotype and phenotype in the correct form
-          (clipOrKeepState(genotypeState), phenotype.toDouble, sampleid)
-        }).toArray, association), association)
-      })
+      (predictSite(sampleObservations.map(p => {
+        // unpack p
+        val (sampleid, (genotypeState, phenotype)) = p
+        // return genotype and phenotype in the correct form
+        (clipOrKeepState(genotypeState), phenotype.toDouble, sampleid)
+      }).toArray, association), association)
+    })
 
   }
 
