@@ -55,13 +55,17 @@ trait ValidationRegression extends SiteRegression {
         val ((variant, pheno), observations) = site
 
         // build array to regress on, and then regress
-        ((variant, pheno), regressSite(observations.map(p => {
+        val assoc = regressSite(observations.map(p => {
           // unpack p
           val (genotypeState, phenotype) = p
           // return genotype and phenotype in the correct form
           (clipOrKeepState(genotypeState), phenotype.toDouble)
-        }).toArray, variant, pheno))
-      })
+        }).toArray,variant, pheno)
+        ((variant, pheno), assoc)
+      }).filter(varModel => {
+      val ((variant, phenotype), assoc) = varModel
+      assoc.statistics.nonEmpty
+    })
 //    println("\n\n" + modelRdd.take(1).toList)
 
     val temp = testRdd
