@@ -15,24 +15,21 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.{ File, FileNotFoundException }
-
+import java.io.File
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
+import org.kohsuke.args4j.Argument
 import org.bdgenomics.adam.cli.Vcf2ADAM
-import java.nio.file.{ Files, Paths }
 
 import breeze.numerics.exp
-import org.apache.hadoop.fs.{ FileSystem, Path }
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ DataFrame, Dataset }
-import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
+import org.apache.spark.sql.Dataset
+import net.fnothaft.gnocchi.models.{ Association, Phenotype }
 import org.apache.spark.sql.functions._
 
 object EvaluateModel extends BDGCommandCompanion {

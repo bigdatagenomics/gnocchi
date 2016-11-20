@@ -60,13 +60,13 @@ trait ValidationRegression extends SiteRegression {
           val (genotypeState, phenotype) = p
           // return genotype and phenotype in the correct form
           (clipOrKeepState(genotypeState), phenotype.toDouble)
-        }).toArray,variant, pheno)
+        }).toArray, variant, pheno)
         ((variant, pheno), assoc)
       }).filter(varModel => {
-      val ((variant, phenotype), assoc) = varModel
-      assoc.statistics.nonEmpty
-    })
-//    println("\n\n" + modelRdd.take(1).toList)
+        val ((variant, phenotype), assoc) = varModel
+        assoc.statistics.nonEmpty
+      })
+    //    println("\n\n" + modelRdd.take(1).toList)
 
     val temp = testRdd
       .map(kvv => {
@@ -86,7 +86,7 @@ trait ValidationRegression extends SiteRegression {
         variant.setAlternateAllele(gs.alt)
         ((variant, pheno.phenotype), (sampleid, p))
       }).groupByKey()
-//    println("\n\n" + temp.take(1).toList)
+    //    println("\n\n" + temp.take(1).toList)
     println("pre-join samples at a site: \n" + temp.take(5).toList)
     val temp2 = temp.join(modelRdd)
     println("Post-join samples and models at a site: \n" + temp2.take(0).toList)
