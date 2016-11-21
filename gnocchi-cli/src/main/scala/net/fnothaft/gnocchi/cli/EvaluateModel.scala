@@ -115,12 +115,12 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     genoStatesWithNames.registerTempTable("genotypeStates")
 
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
-    val filteredGenotypeStates = genoStatesWithNames.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
+    var filteredGenotypeStates = genoStatesWithNames.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
     if (args.snps != null) {
       // Filter out only specified snps
       // TODO: Clean this
       val snps = args.snps.split(',')
-      filteredGenotypeStates.filter(filteredGenotypeStates("contig").isin(snps: _*))
+      filteredGenotypeStates = filteredGenotypeStates.filter(filteredGenotypeStates("contig").isin(snps: _*))
     }
     filteredGenotypeStates.as[GenotypeState]
   }

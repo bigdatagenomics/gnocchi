@@ -68,6 +68,7 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
     val statistics = association.statistics
     val b = statistics("weights").asInstanceOf[Array[Double]]
 
+    // TODO: Check that this actually matches the samples with the right results.
     // receive 0/1 results from datapoints and model
     val results = predict(lp, b)
     samples zip results
