@@ -145,7 +145,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       FileUtils.deleteDirectory(assocsFile)
     }
 
-    val ensembleMethod = sc.broadcast(args.ensembleMethod)
+    val ensembleMethod = args.ensembleMethod
 
     val resultsBySample = results.flatMap(ipaa => {
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
@@ -157,9 +157,9 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
       // ensemble the SNP models for each sample
       .map(sample => {
-        val (sampleId, snpArray) = sample
-        (sampleId, ensemble(ensembleMethod.value, snpArray.toArray))
-      })
+      val (sampleId, snpArray) = sample
+      (sampleId, Ensembler(ensembleMethod, snpArray.toArray))
+    })
 
     // compute final results
     val resArray = resultsBySample.collect
@@ -233,19 +233,22 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     }
   }
 
-  def ensemble(ensembleMethod: String, snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
-    ensembleMethod match {
-      case "AVG" => average(snpArray)
-      case _     => average(snpArray) //still call avg until other methods implemented
+  object Ensembler {
+    def apply(ensembleMethod: String, snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
+      ensembleMethod match {
+        case "AVG" => average(snpArray)
+        case _ => average(snpArray) //still call avg until other methods implemented
+      }
+    }
+
+    def average(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
+      var sm = 0.0
+      for (i <- snpArray.indices) {
+        sm += snpArray(i)._1
+      }
+      (sm / snpArray.length, snpArray(0)._2)
     }
   }
 
-  def average(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
-    var sm = 0.0
-    for (i <- snpArray.indices) {
-      sm += snpArray(i)._1
-    }
-    (sm / snpArray.length, snpArray(0)._2)
-  }
 }
 
