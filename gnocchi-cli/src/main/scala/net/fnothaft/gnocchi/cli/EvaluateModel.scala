@@ -144,7 +144,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     if (assocsFile.exists) {
       FileUtils.deleteDirectory(assocsFile)
     }
-
+    val ensembleMethod = args.ensembleMethod
     val resultsBySample = results.flatMap(ipaa => {
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
       for (i <- 1 until ipaa._1.length) {
@@ -156,7 +156,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       // ensemble the SNP models for each sample
       .map(sample => {
         val (sampleId, snpArray) = sample
-        (sampleId, ensemble(snpArray.toArray))
+        (sampleId, ensemble(ensembleMethod, snpArray.toArray))
       })
 
     // compute final results
@@ -231,8 +231,8 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     }
   }
 
-  def ensemble(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
-    args.ensembleMethod match {
+  def ensemble(ensembleMethod: String, snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
+    ensembleMethod match {
       case "AVG" => average(snpArray)
       case _     => average(snpArray) //still call avg until other methods implemented
     }
