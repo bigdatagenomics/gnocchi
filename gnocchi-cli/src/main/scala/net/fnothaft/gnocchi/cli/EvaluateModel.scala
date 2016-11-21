@@ -52,7 +52,7 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   var ensembleMethod: String = "AVG"
 }
 
-class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPhenotypes(evalArgs) with Serializable {
+class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkCommand[EvaluateModelArgs] {
   override val companion = EvaluateModel
 
   override def run(sc: SparkContext) {
@@ -60,8 +60,11 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
     // Load in genotype data
     val genotypeStates = loadGenotypes(sc)
 
+    // instantiate regressPhenotypes obj
+    val regPheno = new RegressPhenotypes(args)
+
     // Load in phenotype data
-    val phenotypes = loadPhenotypes(sc)
+    val phenotypes = regPheno.loadPhenotypes(sc)
 
     // Perform analysis
     val results = performEvaluation(genotypeStates, phenotypes, sc)
@@ -70,7 +73,7 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
     logResults(results, sc)
   }
 
-  override def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
+  def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
     // set up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
@@ -112,10 +115,10 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
 
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
     val filteredGenotypeStates = genoStatesWithNames.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
-    if (evalArgs.snps != null) {
+    if (args.snps != null) {
       // Filter out only specified snps
       // TODO: Clean this
-      val snps = evalArgs.snps.split(',')
+      val snps = args.snps.split(',')
       filteredGenotypeStates.filter(filteredGenotypeStates("contig").isin(snps: _*))
     }
     filteredGenotypeStates.as[GenotypeState]
@@ -218,7 +221,7 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
       println(s"Percent of samples predicted to be 1: $percentPredOne")
     } else {
       sqlContext.createDataFrame(assocs).write.parquet(args.associations)
-      sqlContext.createDataFrame(resultsBySample).write.parquet(evalArgs.results)
+      sqlContext.createDataFrame(resultsBySample).write.parquet(args.results)
       println(s"Percent of samples with actual 0 phenotype: $percentZeroActual")
       println(s"Percent of samples with actual 1 phenotype: $percentOneActual")
       println(s"Percent of samples predicted to be 0 but actually were 1: $percentPredZeroActualOne")
@@ -229,7 +232,7 @@ class EvaluateModel(protected val evalArgs: EvaluateModelArgs) extends RegressPh
   }
 
   def ensemble(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
-    evalArgs.ensembleMethod match {
+    args.ensembleMethod match {
       case "AVG" => average(snpArray)
       case _     => average(snpArray) //still call avg until other methods implemented
     }
