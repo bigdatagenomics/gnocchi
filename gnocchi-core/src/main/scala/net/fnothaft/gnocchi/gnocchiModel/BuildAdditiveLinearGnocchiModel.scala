@@ -16,9 +16,9 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.association.AdditiveLinearAssociation
-import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
+import net.fnothaft.gnocchi.models._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
+import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 
 /* trait for building a GnocchiModel that has an additive, linear VariantModel at each site (via QR factorization). */
 trait BuildAdditiveLinear extends BuildGnocchiModel {
@@ -30,11 +30,23 @@ trait BuildAdditiveLinear extends BuildGnocchiModel {
   }
 
   /* Constructs the GnocchiModel using the weights from the associations produced by fit()*/
-  //  def extractModel(assocs: RDD[Association]): GnocchiModel = {
-  //
-  //    //code for packaging up the association object elements into a GnocchiModel
-  //
-  //  }
+  def extractModel(assocs: RDD[Association]): GnocchiModel = {
+    val numSamples: RDD[(String, Int)] = assocs.count  //(VariantID, NumSamples)
+    val numVariants: Int
+    val variances: RDD[(String, Double)] // (VariantID, variance)
+    val haplotypeBlockDeltas: Map[String, Double]
+    val HBDThreshold: Double // threshold for the haplotype block deltas
+    val modelType: String // Additive Logistic, Dominant Linear, etc.
+    val hyperparameterVal: Map[String, Double]
+    val Description: String
+    //  val latestTestResult: GMTestResult
+    val variables: String // name of the phenotype and covariates used in the model
+    val dates: String // dates of creation and update of each model
+    val sampleIds: Array[String] // list of sampleIDs from all samples the model has seen.
+    val variantModels: RDD[(String, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
+    val qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])] // the variant model and the observations that the model must be trained on
+
+  }
 }
 
 object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLinear {
