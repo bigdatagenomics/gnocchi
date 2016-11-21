@@ -31,6 +31,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import net.fnothaft.gnocchi.models.{ Association, Phenotype }
 import org.apache.spark.sql.functions._
+import net.fnothaft.gnocchi.association.Ensembler
 
 object EvaluateModel extends BDGCommandCompanion {
   val commandName = "EvaluateModel"
@@ -232,23 +233,5 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       println(s"Percent of samples predicted to be 1: $percentPredOne")
     }
   }
-
-  object Ensembler {
-    def apply(ensembleMethod: String, snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
-      ensembleMethod match {
-        case "AVG" => average(snpArray)
-        case _ => average(snpArray) //still call avg until other methods implemented
-      }
-    }
-
-    def average(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
-      var sm = 0.0
-      for (i <- snpArray.indices) {
-        sm += snpArray(i)._1
-      }
-      (sm / snpArray.length, snpArray(0)._2)
-    }
-  }
-
 }
 

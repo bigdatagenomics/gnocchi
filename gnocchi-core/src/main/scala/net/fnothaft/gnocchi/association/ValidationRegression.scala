@@ -106,8 +106,6 @@ trait ValidationRegression extends SiteRegression {
 
   }
 
-
-
   /**
    * Method to predict phenotype on a site.
    *
