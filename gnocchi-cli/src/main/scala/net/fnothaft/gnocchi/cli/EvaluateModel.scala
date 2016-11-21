@@ -158,9 +158,9 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
       // ensemble the SNP models for each sample
       .map(sample => {
-      val (sampleId, snpArray) = sample
-      (sampleId, Ensembler(ensembleMethod, snpArray.toArray))
-    })
+        val (sampleId, snpArray) = sample
+        (sampleId, Ensembler(ensembleMethod, snpArray.toArray))
+      })
 
     // compute final results
     val resArray = resultsBySample.collect
