@@ -122,7 +122,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       val snps = args.snps.split(',')
       filteredGenotypeStates = filteredGenotypeStates.filter(filteredGenotypeStates("contig").isin(snps: _*))
     }
-    println("Genotypes: " + filteredGenotypeStates.take(5))
+    println("Genotypes: " + filteredGenotypeStates.take(5).toList)
     filteredGenotypeStates.as[GenotypeState]
   }
 
