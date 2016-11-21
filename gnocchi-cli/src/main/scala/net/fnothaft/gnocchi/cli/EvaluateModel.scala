@@ -144,7 +144,9 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     if (assocsFile.exists) {
       FileUtils.deleteDirectory(assocsFile)
     }
-    val ensembleMethod = args.ensembleMethod
+
+    val ensembleMethod = sc.broadcast(args.ensembleMethod)
+
     val resultsBySample = results.flatMap(ipaa => {
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
       for (i <- 1 until ipaa._1.length) {
@@ -156,7 +158,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       // ensemble the SNP models for each sample
       .map(sample => {
         val (sampleId, snpArray) = sample
-        (sampleId, ensemble(ensembleMethod, snpArray.toArray))
+        (sampleId, ensemble(ensembleMethod.value, snpArray.toArray))
       })
 
     // compute final results
