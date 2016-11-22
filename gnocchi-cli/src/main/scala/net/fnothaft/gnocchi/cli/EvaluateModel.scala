@@ -218,21 +218,21 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       //      valResults.map(r => "%s, %f"
       //        .format(r._1, r._2))
       //        .saveAsTextFile(evalArgs.results)
-      println(s"Percent of samples with actual 0 phenotype: $percentZeroActual")
-      println(s"Percent of samples with actual 1 phenotype: $percentOneActual")
-      println(s"Percent of samples predicted to be 0 but actually were 1: $percentPredZeroActualOne")
-      println(s"Percent of samples predicted to be 1 but actually were 0: $percentPredOneActualZero")
-      println(s"Percent of samples predicted to be 0: $percentPredZero")
-      println(s"Percent of samples predicted to be 1: $percentPredOne")
+      println(s"Percent of samples with actual unaffected phenotype: $percentZeroActual")
+      println(s"Percent of samples with actual affected phenotype: $percentOneActual")
+      println(s"Percent of samples predicted to be unaffected but actually were affected: $percentPredZeroActualOne")
+      println(s"Percent of samples predicted to be affected but actually were unaffected: $percentPredOneActualZero")
+      println(s"Percent of samples predicted to be unaffected: $percentPredZero")
+      println(s"Percent of samples predicted to be affected: $percentPredOne")
     } else {
       sqlContext.createDataFrame(assocs).write.parquet(args.associations)
       sqlContext.createDataFrame(resultsBySample).write.parquet(args.results)
-      println(s"Percent of samples with actual 0 phenotype: $percentZeroActual")
-      println(s"Percent of samples with actual 1 phenotype: $percentOneActual")
-      println(s"Percent of samples predicted to be 0 but actually were 1: $percentPredZeroActualOne")
-      println(s"Percent of samples predicted to be 1 but actually were 0: $percentPredOneActualZero")
-      println(s"Percent of samples predicted to be 0: $percentPredZero")
-      println(s"Percent of samples predicted to be 1: $percentPredOne")
+      println(s"Percent of samples with actual unaffected phenotype: $percentZeroActual")
+      println(s"Percent of samples with actual affected phenotype: $percentOneActual")
+      println(s"Percent of samples predicted to be unaffected but actually were affected: $percentPredZeroActualOne")
+      println(s"Percent of samples predicted to be affected but actually were unaffected: $percentPredOneActualZero")
+      println(s"Percent of samples predicted to be unaffected: $percentPredZero")
+      println(s"Percent of samples predicted to be affected: $percentPredOne")
     }
   }
 }
