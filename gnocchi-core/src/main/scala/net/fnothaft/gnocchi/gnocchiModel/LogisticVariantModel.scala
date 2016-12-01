@@ -18,14 +18,15 @@ package net.fnothaft.gnocchi.models
 import net.fnothaft.gnocchi.transformations.Obs2LabeledPoints
 import org.apache.spark.mllib.optimization.LogisticGradient
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.apache.spark.mllib.linalg.DenseVector
 
 trait LogisticVariantModel {
   val variantID: String
-  val numSamples: Int
-  val variance: Double
+  var numSamples: Int
+  var variance: Double
   val modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
   val hyperParamValues: Map[String, Double]
-  val weights: Array[Double]
+  var weights: Array[Double]
   val haplotypeBlock: String
   val incrementalUpdateValue: Double
   val QRFactorizationValue: Double
@@ -35,11 +36,15 @@ trait LogisticVariantModel {
   def update(observations: Array[(Double, Array[Double])]): Unit = {
     val logGrad = new LogisticGradient(2)
     val points = Obs2LabeledPoints(observations)
+    val weightsVector = new DenseVector(weights)
+    val breezeVector = new breeze.linalg.DenseVector(weights)
     for (lp <- points) {
       val features = lp.features
       val label = lp.label
-      val (grad, loss) = logGrad.compute(features, label, weights)
+      weights = (breezeVector - breeze.linalg.DenseVector(logGrad.compute(features, label, weightsVector)._1.toArray)).toArray
+      numSamples += 1
     }
+    // TODO: need to update the variance as well.
  }
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
