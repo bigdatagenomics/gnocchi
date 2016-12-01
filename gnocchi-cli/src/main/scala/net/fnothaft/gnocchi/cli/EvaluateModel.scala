@@ -16,6 +16,7 @@
 package net.fnothaft.gnocchi.cli
 
 import java.io.File
+
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
 import net.fnothaft.gnocchi.sql.GnocchiContext._
@@ -24,12 +25,11 @@ import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.Argument
 import org.bdgenomics.adam.cli.Vcf2ADAM
-
 import breeze.numerics.exp
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
-import net.fnothaft.gnocchi.models.{ Association, Phenotype }
+import net.fnothaft.gnocchi.models.{Association, Phenotype}
 import org.apache.spark.sql.functions._
 import net.fnothaft.gnocchi.association.Ensembler
 
@@ -54,8 +54,12 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Argument(required = false, metaVar = "ENSEMBLE_METHOD", usage = "The method used to combine results of SNPs. Options are MAX or AVG.", index = 6)
   var ensembleMethod: String = "AVG"
 
-  @Argument(required = false, metaVar = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.", index = 7)
+  @Argument(required = false, metaVar = "ENSEMBLE_WEIGHTS", usage = "The weights to be used in the ensembler's weighted average call.", index = 7)
+  var ensembleWeights: String = "[]"
+
+  @Argument(required = false, metaVar = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.", index = 8)
   var kfold = 10
+
 }
 
 class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkCommand[EvaluateModelArgs] {
@@ -173,6 +177,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     }
 
     val ensembleMethod = args.ensembleMethod
+    val ensembleWeights = args.ensembleWeights.split(",").map(x => x.toDouble)
 
     val resultsBySample = results.flatMap(ipaa => {
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
@@ -185,7 +190,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       // ensemble the SNP models for each sample
       .map(sample => {
         val (sampleId, snpArray) = sample
-        (sampleId, Ensembler(ensembleMethod, snpArray.toArray))
+        (sampleId, Ensembler(ensembleMethod, snpArray.toArray, ensembleWeights))
       })
 
     // compute final results
