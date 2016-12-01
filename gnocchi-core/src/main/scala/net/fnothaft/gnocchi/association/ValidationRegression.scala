@@ -30,9 +30,10 @@ trait ValidationRegression extends SiteRegression {
   */
   final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]],
-                     scOption: Option[SparkContext] = None): RDD[(Array[(String, (Double, Double))], Association)] = {
+                     scOption: Option[SparkContext] = None,
+                     k: Double = 10): RDD[(Array[(String, (Double, Double))], Association)] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
-    val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(0.9, 0.1))
+    val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(1.0 - (1.0 / k), 1.0 / k))
 
     val modelRdd = trainRdd
       .map(kvv => {
