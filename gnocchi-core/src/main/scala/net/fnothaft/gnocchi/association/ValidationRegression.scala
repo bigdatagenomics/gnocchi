@@ -36,80 +36,9 @@ trait ValidationRegression extends SiteRegression {
     // n needs to be passed in as a parameter
     val n = 2
     if (n == 2) {
-
       val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(0.9, 0.1))
-      val modelRdd = trainRdd
-        .map(kvv => {
-          // unpack the entry of the joined rdd into id and actual info
-          val (_, p) = kvv
-          // unpack the information into genotype state and pheno
-          val (gs, pheno) = p
-          // create contig and Variant objects and group by Variant
-          // pack up the information into an Association object
-          val variant = new Variant()
-          val contig = new Contig()
-          contig.setContigName(gs.contig)
-          variant.setContig(contig)
-          variant.setStart(gs.start)
-          variant.setEnd(gs.end)
-          variant.setAlternateAllele(gs.alt)
-          ((variant, pheno.phenotype), p)
-        }).groupByKey()
-        .map(site => {
-          val ((variant, pheno), observations) = site
-
-          // build array to regress on, and then regress
-          val assoc = regressSite(observations.map(p => {
-            // unpack p
-            val (genotypeState, phenotype) = p
-            // return genotype and phenotype in the correct form
-            (clipOrKeepState(genotypeState), phenotype.toDouble)
-          }).toArray, variant, pheno)
-          ((variant, pheno), assoc)
-        }).filter(varModel => {
-        val ((variant, phenotype), assoc) = varModel
-        assoc.statistics.nonEmpty
-      })
-      //    println("\n\n" + modelRdd.take(1).toList)
-
-      val temp = testRdd
-        .map(kvv => {
-          // unpack the entry of the joined rdd into id and actual info
-          val (sampleid, p) = kvv
-          // unpack the information into genotype state and pheno
-          val (gs, pheno) = p
-
-          // create contig and Variant objects and group by Variant
-          // pack up the information into an Association object
-          val variant = new Variant()
-          val contig = new Contig()
-          contig.setContigName(gs.contig)
-          variant.setContig(contig)
-          variant.setStart(gs.start)
-          variant.setEnd(gs.end)
-          variant.setAlternateAllele(gs.alt)
-          ((variant, pheno.phenotype), (sampleid, p))
-        }).groupByKey()
-      //    println("\n\n" + temp.take(1).toList)
-      println("pre-join samples at a site: \n" + temp.take(5).toList)
-      val temp2 = temp.join(modelRdd)
-      println("Post-join samples and models at a site: \n" + temp2.take(0).toList)
-      println(temp2.take(1).toList)
-      temp2.map(site => {
-        val (key, value) = site
-        val (sampleObservations, association) = value
-        val (variant, phenotype) = key
-
-        (predictSite(sampleObservations.map(p => {
-          // unpack p
-          val (sampleid, (genotypeState, phenotype)) = p
-          // return genotype and phenotype in the correct form
-          (clipOrKeepState(genotypeState), phenotype.toDouble, sampleid)
-        }).toArray, association), association)
-      })
-
+      applyRegression(trainRdd, testRdd, phenotypes)
     } else {
-
       // Split array genotype array into equal pieces of size 1/n
       var splitArray = Array() :+ genoPhenoRdd.randomSplit(Array.fill(n)(1/n))
       var a = 0
@@ -117,82 +46,86 @@ trait ValidationRegression extends SiteRegression {
       for(a <- 1 to n-1){
         splitArray(0) = splitArray(0) ++ splitArray(1)
         splitArray.drop(1)
-        val trainRdd = splitArray(0)
-        val testRdd = splitArray(1)
-
-        // Copy of earlier code (REFACTOR!)
-        val modelRdd = trainRdd
-          .map(kvv => {
-            // unpack the entry of the joined rdd into id and actual info
-            val (_, p) = kvv
-            // unpack the information into genotype state and pheno
-            val (gs, pheno) = p
-            // create contig and Variant objects and group by Variant
-            // pack up the information into an Association object
-            val variant = new Variant()
-            val contig = new Contig()
-            contig.setContigName(gs.contig)
-            variant.setContig(contig)
-            variant.setStart(gs.start)
-            variant.setEnd(gs.end)
-            variant.setAlternateAllele(gs.alt)
-            ((variant, pheno.phenotype), p)
-          }).groupByKey()
-          .map(site => {
-            val ((variant, pheno), observations) = site
-
-            // build array to regress on, and then regress
-            val assoc = regressSite(observations.map(p => {
-              // unpack p
-              val (genotypeState, phenotype) = p
-              // return genotype and phenotype in the correct form
-              (clipOrKeepState(genotypeState), phenotype.toDouble)
-            }).toArray, variant, pheno)
-            ((variant, pheno), assoc)
-          }).filter(varModel => {
-          val ((variant, phenotype), assoc) = varModel
-          assoc.statistics.nonEmpty
-        })
-        //    println("\n\n" + modelRdd.take(1).toList)
-
-        val temp = testRdd
-          .map(kvv => {
-            // unpack the entry of the joined rdd into id and actual info
-            val (sampleid, p) = kvv
-            // unpack the information into genotype state and pheno
-            val (gs, pheno) = p
-
-            // create contig and Variant objects and group by Variant
-            // pack up the information into an Association object
-            val variant = new Variant()
-            val contig = new Contig()
-            contig.setContigName(gs.contig)
-            variant.setContig(contig)
-            variant.setStart(gs.start)
-            variant.setEnd(gs.end)
-            variant.setAlternateAllele(gs.alt)
-            ((variant, pheno.phenotype), (sampleid, p))
-          }).groupByKey()
-        //    println("\n\n" + temp.take(1).toList)
-        println("pre-join samples at a site: \n" + temp.take(5).toList)
-        val temp2 = temp.join(modelRdd)
-        println("Post-join samples and models at a site: \n" + temp2.take(0).toList)
-        println(temp2.take(1).toList)
-        temp2.map(site => {
-          val (key, value) = site
-          val (sampleObservations, association) = value
-          val (variant, phenotype) = key
-
-          (predictSite(sampleObservations.map(p => {
-            // unpack p
-            val (sampleid, (genotypeState, phenotype)) = p
-            // return genotype and phenotype in the correct form
-            (clipOrKeepState(genotypeState), phenotype.toDouble, sampleid)
-          }).toArray, association), association)
-        })
+        val trainRdd = splitArray(0)(0)
+        val testRdd = splitArray(1)(0)
+        applyRegression(trainRdd, testRdd, phenotypes)
       }
 
     }
+  }
+
+  def applyRegression[T](trainRdd:RDD[(String, (GenotypeState, Phenotype[T]))],
+                      testRdd:RDD[(String, (GenotypeState, Phenotype[T]))],
+                      phenotypes:RDD[Phenotype[T]]): RDD[(Array[(String, (Double, Double))], Association)] = {
+    val modelRdd = trainRdd
+      .map(kvv => {
+        // unpack the entry of the joined rdd into id and actual info
+        val (_, p) = kvv
+        // unpack the information into genotype state and pheno
+        val (gs, pheno) = p
+        // create contig and Variant objects and group by Variant
+        // pack up the information into an Association object
+        val variant = new Variant()
+        val contig = new Contig()
+        contig.setContigName(gs.contig)
+        variant.setContig(contig)
+        variant.setStart(gs.start)
+        variant.setEnd(gs.end)
+        variant.setAlternateAllele(gs.alt)
+        ((variant, pheno.phenotype), p)
+      }).groupByKey()
+      .map(site => {
+        val ((variant, pheno), observations) = site
+
+        // build array to regress on, and then regress
+        val assoc = regressSite(observations.map(p => {
+          // unpack p
+          val (genotypeState, phenotype) = p
+          // return genotype and phenotype in the correct form
+          (clipOrKeepState(genotypeState), phenotype.toDouble)
+        }).toArray, variant, pheno)
+        ((variant, pheno), assoc)
+      }).filter(varModel => {
+      val ((variant, phenotype), assoc) = varModel
+      assoc.statistics.nonEmpty
+    })
+    //    println("\n\n" + modelRdd.take(1).toList)
+
+    val temp = testRdd
+      .map(kvv => {
+        // unpack the entry of the joined rdd into id and actual info
+        val (sampleid, p) = kvv
+        // unpack the information into genotype state and pheno
+        val (gs, pheno) = p
+
+        // create contig and Variant objects and group by Variant
+        // pack up the information into an Association object
+        val variant = new Variant()
+        val contig = new Contig()
+        contig.setContigName(gs.contig)
+        variant.setContig(contig)
+        variant.setStart(gs.start)
+        variant.setEnd(gs.end)
+        variant.setAlternateAllele(gs.alt)
+        ((variant, pheno.phenotype), (sampleid, p))
+      }).groupByKey()
+    //    println("\n\n" + temp.take(1).toList)
+    println("pre-join samples at a site: \n" + temp.take(5).toList)
+    val temp2 = temp.join(modelRdd)
+    println("Post-join samples and models at a site: \n" + temp2.take(0).toList)
+    println(temp2.take(1).toList)
+    temp2.map(site => {
+      val (key, value) = site
+      val (sampleObservations, association) = value
+      val (variant, phenotype) = key
+
+      (predictSite(sampleObservations.map(p => {
+        // unpack p
+        val (sampleid, (genotypeState, phenotype)) = p
+        // return genotype and phenotype in the correct form
+        (clipOrKeepState(genotypeState), phenotype.toDouble, sampleid)
+      }).toArray, association), association)
+    })
   }
 
   /**
