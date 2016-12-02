@@ -16,34 +16,69 @@
 package net.fnothaft.gnocchi.models
 
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.bdgenomics.formats.avro.Variant
 
 trait VariantModel {
-  val variantID: String
-  val numSamples: Int
-  val variance: Double
-  val modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
-  val hyperParamValues: Map[String, Double]
-  val weights: Array[Double]
-  val haplotypeBlock: String
-  val incrementalUpdateValue: Double
-  val QRFactorizationValue: Double
+  var variantID: String
+  var variant: Variant
+  var numSamples: Int
+  var variance: Double
+  var modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
+  var hyperParamValues: Map[String, Double]
+  var weights: Array[Double]
+  var haplotypeBlock: String
+  var incrementalUpdateValue: Double
+  var QRFactorizationValue: Double
 
+  def setVariantID(id: String): this.type = {
+    variantID = id
+    this}
+
+  def setNumSamples(num: Int): this.type = {
+    numSamples = num
+    this
+  }
+
+  def setVariance(vari: Double): this.type = {
+    variance = vari
+    this
+  }
+
+  def setHyperParamValues(hyp: Map[String,Double]): this.type = {
+    hyperParamValues = hyp
+    this
+  }
+
+  def setWeights(w: Array[Double]): this.type = {
+    weights = w
+    this
+  }
+
+  def setHaplotypeBlock(block: String): this.type = {
+    haplotypeBlock = block
+    this
+  }
+
+  def setIncrementalUpdateValue(value: Double): this.type = {
+    incrementalUpdateValue = value
+    this
+  }
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
   def update(observations: Array[(Double, Array[Double])])
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  def predict(observations: Array[(Double, Array[Double])],
-              locus: ReferenceRegion,
-              altAllele: String,
-              phenotype: String): Map[String, Double]
+//  def predict(observations: Array[(Double, Array[Double])],
+//              locus: ReferenceRegion,
+//              altAllele: String,
+//              phenotype: String): Map[String, Double]
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  def test(observations: Array[(Double, Array[Double])],
-           locus: ReferenceRegion,
-           altAllele: String,
-           phenotype: String): Double
+//  def test(observations: Array[(Double, Array[Double])],
+//           locus: ReferenceRegion,
+//           altAllele: String,
+//           phenotype: String): Double
 
 }

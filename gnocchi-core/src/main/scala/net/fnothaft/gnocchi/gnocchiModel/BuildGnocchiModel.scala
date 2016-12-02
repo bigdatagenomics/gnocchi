@@ -20,24 +20,24 @@ import org.apache.spark.rdd.RDD
 
 trait BuildGnocchiModel {
 
-  //  def apply[T](rdd: RDD[GenotypeState],
-  //               phenotypes: RDD[Phenotype[T]]): GnocchiModel = {
-  //
-  //    // call RegressPhenotypes on the data
-  //    val assocs = fit(rdd, phenotypes)
-  //
-  //    // extract the model parameters (including p-value) for each variant and build LogisticGnocchiModel
-  //    val model = extractModel(assocs)
-  //
-  //    // save the LogisticGnocchiModel
-  //    model.save
-  //
-  //    model
-  //  }
+    def apply[T](rdd: RDD[GenotypeState],
+                 phenotypes: RDD[Phenotype[T]]): GnocchiModel = {
+
+      // call RegressPhenotypes on the data
+      val assocs = fit(rdd, phenotypes)
+
+      // extract the model parameters (including p-value) for each variant and build LogisticGnocchiModel
+      val model = extractModel(assocs)
+
+      // save the LogisticGnocchiModel
+      model.save
+
+      model
+    }
 
   def fit[T](rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): RDD[Association]
 
-  //  def extractModel(assocs: RDD[Association]): GnocchiModel
+  def extractModel(assocs: RDD[Association]): GnocchiModel
 
 }

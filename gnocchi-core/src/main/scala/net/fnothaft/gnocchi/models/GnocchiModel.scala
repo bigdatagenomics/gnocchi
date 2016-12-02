@@ -16,6 +16,7 @@
 package net.fnothaft.gnocchi.models
 
 import org.apache.spark.rdd.RDD
+import org.bdgenomics.formats.avro.{Contig, Variant}
 
 trait GnocchiModel {
   val numSamples: RDD[(String, Int)] //(VariantID, NumSamples)
@@ -30,7 +31,7 @@ trait GnocchiModel {
   val variables: String // name of the phenotype and covariates used in the model
   val dates: String // dates of creation and update of each model
   val sampleIds: Array[String] // list of sampleIDs from all samples the model has seen.
-  val variantModels: RDD[(String, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
+  var variantModels: RDD[(Variant, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
   val qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])] // the variant model and the observations that the model must be trained on
 
   // filters out all variants that don't pass a certian predicate and returns a GnocchiModel containing only those variants.
@@ -51,24 +52,36 @@ trait GnocchiModel {
             // unpack the information into genotype state and pheno
             val (gs, pheno) = p
             // extract referenceAllele and phenotype and pack up with p, then group by key
-            (gs.variantID, p)
-          }).groupByKey() // RDD[(variantID,(GenotypeState, Phenotype Object)]
 
-        // combine the new sample observations with the old ones.
+            // create contig and Variant objects and group by Variant
+            // pack up the information into an Association object
+            val variant = new Variant()
+            val contig = new Contig()
+            contig.setContigName(gs.contig)
+            variant.setContig(contig)
+            variant.setStart(gs.start)
+            variant.setEnd(gs.end)
+            variant.setAlternateAllele(gs.alt)
+            val ob = (gs.genotypeState, Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
+            (variant, ob)
+          }).groupByKey()
+
+        // combine the new sample observations with the old ones for the qr variants.
         val joinedqrData = qrVariantModels.map(kv => {
           val (varModel, obs) = kv
-          (varModel.variantID, (varModel, obs))
+          (varModel.variant, (varModel, obs))
         }).join(newData)
           .map(kvv => {
-            val (varId, (oldData, newData)) = kvv
+            val (variant, (oldData, newData)) = kvv
             val (varModel, obs) = oldData
-            (varModel, (obs.toList ++ newData.toList).toArray)
+            val observs = (obs.toList ::: newData.toList).asInstanceOf[Array[(Double, Array[Double])]]
+            (varModel, observs): (VariantModel,Array[(Double, Array[Double])])
           })
 
         // compute the VariantModels from QR factorization for the qrVariants
         val qrAssocRDD = joinedqrData.map(kv => {
           val (varModel, obs) = kv
-          (buildVariantModel(varModel, obs))
+          buildVariantModel(varModel, obs)
         })
 
         // group new data with correct VariantModel
@@ -76,21 +89,21 @@ trait GnocchiModel {
 
         // map an update call to all variants
         val updatedVMRdd = vmAndDataRDD.map(kvv => {
-          val (variantId, (model, data)) = kvv
-          model.update(data)
-          model
+          val (variant, (model, data)) = kvv
+          model.update(data.toArray)
+          (variant, model)
         })
 
         // pair up the QR factorization and incrementalUpdate versions of the selected variantModels
-        val incrementalVsQrRDD = updatedVMrdd.keyBy(_.variantId).join(qrAssocRDD.keyBy(_.variantID)).groupByKey
+        val incrementalVsQrRDD = updatedVMRdd.join(qrAssocRDD.keyBy(_.variant))
 
         // compare results and flag variants for recompute
         val variantsToFlag = incrementalVsQrRDD.filter(kvv => {
-          val (id, (increModel, qrModel)) = kvv
+          val (variant, (increModel, qrModel)): (Variant, (VariantModel, VariantModel)) = kvv
           val increValue = increModel.incrementalUpdateValue
-          val qrValue = qrModel.QRFactorizatinoValue
+          val qrValue = qrModel.QRFactorizationValue
           Math.abs(increValue - qrValue) / qrValue > HBDThreshold
-        }).map(_._1).collect()
+        }).map(_._1).collect
 
         variantModels = updatedVMRdd
   }

@@ -20,16 +20,8 @@ import org.apache.spark.mllib.optimization.LogisticGradient
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.apache.spark.mllib.linalg.DenseVector
 
-trait LogisticVariantModel {
-  val variantID: String
-  var numSamples: Int
-  var variance: Double
-  val modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
-  val hyperParamValues: Map[String, Double]
-  var weights: Array[Double]
-  val haplotypeBlock: String
-  val incrementalUpdateValue: Double
-  val QRFactorizationValue: Double
+trait LogisticVariantModel extends VariantModel{
+
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
@@ -49,16 +41,16 @@ trait LogisticVariantModel {
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  def predict(observations: Array[(Double, Array[Double])],
-              locus: ReferenceRegion,
-              altAllele: String,
-              phenotype: String): Map[String, Double]
+//  def predict(observations: Array[(Double, Array[Double])],
+//              locus: ReferenceRegion,
+//              altAllele: String,
+//              phenotype: String): Map[String, Double]
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  def test(observations: Array[(Double, Array[Double])],
-           locus: ReferenceRegion,
-           altAllele: String,
-           phenotype: String): Double
+//  def test(observations: Array[(Double, Array[Double])],
+//           locus: ReferenceRegion,
+//           altAllele: String,
+//           phenotype: String): Double
 
 }

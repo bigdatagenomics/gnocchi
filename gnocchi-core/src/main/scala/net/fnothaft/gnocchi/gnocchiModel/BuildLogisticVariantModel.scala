@@ -17,7 +17,7 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.association.LogisticSiteRegression
-import net.fnothaft.gnocchi.models.{ Association, VariantModel }
+import net.fnothaft.gnocchi.models.{AdditiveLogisticVariantModel, Association, VariantModel}
 import org.bdgenomics.adam.models.ReferenceRegion
 
 trait BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with AdditiveVariant {
@@ -30,16 +30,23 @@ trait BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticS
     regressSite(clippedObs, locus, altAllele, phenotype)
   }
 
-  //  def extractVariantModel(assoc: Association): VariantModel = {
-  //
-  //    // code for extracting the VariantModel from the Association
-  //
-  //  }
+  def extractVariantModel(assoc: Association): VariantModel = {
+
+      val logRegModel = new AdditiveLogisticVariantModel
+      logRegModel.setHaplotypeBlock()
+      .setHyperParamValues()
+      .setIncrementalUpdateValue()
+      .setNumSamples()
+      .setVariance()
+      .setVariantID()
+      .setWeights()
+      logRegModel
+    }
 
   val regressionName = "Additive Logistic Regression"
 }
 
-trait BuildLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with DominantVariant {
+trait BuildDominantLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with DominantVariant {
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
