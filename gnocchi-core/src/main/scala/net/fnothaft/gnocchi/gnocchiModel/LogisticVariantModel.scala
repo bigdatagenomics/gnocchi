@@ -15,17 +15,30 @@
  */
 package net.fnothaft.gnocchi.models
 
+import net.fnothaft.gnocchi.association.AdditiveLogisticAssociation
 import net.fnothaft.gnocchi.transformations.Obs2LabeledPoints
 import org.apache.spark.mllib.optimization.LogisticGradient
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.apache.spark.mllib.linalg.DenseVector
+import org.bdgenomics.formats.avro.Variant
 
 trait LogisticVariantModel extends VariantModel{
 
+  var variance = 0.0
+  var variantID = "No ID for this Variant"
+  var variant = new Variant
+  var hyperParamValues = Map[String, Double]()
+  var weights = Array[Double]()
+  var QRFactorizationWeights = Array[Double]()
+  var haplotypeBlock = "Nonexistent HaplotypeBlock"
+  var incrementalUpdateValue = 0.0
+  var QRFactorizationValue = 0.0
+  var numSamples = 0
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
   def update(observations: Array[(Double, Array[Double])]): Unit = {
+    // Update the weights
     val logGrad = new LogisticGradient(2)
     val points = Obs2LabeledPoints(observations)
     val weightsVector = new DenseVector(weights)
@@ -36,7 +49,12 @@ trait LogisticVariantModel extends VariantModel{
       weights = (breezeVector - breeze.linalg.DenseVector(logGrad.compute(features, label, weightsVector)._1.toArray)).toArray
       numSamples += 1
     }
+
+    // update numSamples other parameters
+    numSamples += observations.length
+
     // TODO: need to update the variance as well.
+    // var variance = 0.0
  }
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has

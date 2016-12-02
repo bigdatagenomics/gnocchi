@@ -20,7 +20,8 @@ import net.fnothaft.gnocchi.association.LogisticSiteRegression
 import net.fnothaft.gnocchi.models.{AdditiveLogisticVariantModel, Association, VariantModel}
 import org.bdgenomics.adam.models.ReferenceRegion
 
-trait BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with AdditiveVariant {
+object BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with AdditiveVariant {
+
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
@@ -33,34 +34,36 @@ trait BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticS
   def extractVariantModel(assoc: Association): VariantModel = {
 
       val logRegModel = new AdditiveLogisticVariantModel
-      logRegModel.setHaplotypeBlock()
-      .setHyperParamValues()
-      .setIncrementalUpdateValue()
-      .setNumSamples()
-      .setVariance()
-      .setVariantID()
-      .setWeights()
+      logRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
+      .setHyperParamValues(Map[String, Double]())
+      .setIncrementalUpdateValue(0.0)
+      .setNumSamples(0) // assoc.numSamples
+      .setVariance(0.0) // assoc.variance
+      .setVariantID("assoc.variantID")
+      .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+      .setIntercept(assoc.statistics("intercept"))
       logRegModel
     }
 
   val regressionName = "Additive Logistic Regression"
 }
 
-trait BuildDominantLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with DominantVariant {
-  def compute(observations: Array[(Double, Array[Double])],
-              locus: ReferenceRegion,
-              altAllele: String,
-              phenotype: String): Association = {
-
-    val clippedObs = arrayClipOrKeepState(observations)
-    regressSite(clippedObs, locus, altAllele, phenotype)
-  }
-
-  //  def extractVariantModel(assoc: Association): VariantModel = {
-  //
-  //    // code for extracting the VariantModel from the Association
-  //
-  //  }
-  val regressionName = "Dominant Logistic Regression"
-}
+//object BuildDominantLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with DominantVariant {
+//
+//  def compute(observations: Array[(Double, Array[Double])],
+//              locus: ReferenceRegion,
+//              altAllele: String,
+//              phenotype: String): Association = {
+//
+//    val clippedObs = arrayClipOrKeepState(observations)
+//    regressSite(clippedObs, locus, altAllele, phenotype)
+//  }
+//
+//  //  def extractVariantModel(assoc: Association): VariantModel = {
+//  //
+//  //    // code for extracting the VariantModel from the Association
+//  //
+//  //  }
+//  val regressionName = "Dominant Logistic Regression"
+//}
 

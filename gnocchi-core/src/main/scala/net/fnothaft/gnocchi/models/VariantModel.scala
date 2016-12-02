@@ -26,9 +26,11 @@ trait VariantModel {
   var modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
   var hyperParamValues: Map[String, Double]
   var weights: Array[Double]
+  var intercept: Double
   var haplotypeBlock: String
   var incrementalUpdateValue: Double
   var QRFactorizationValue: Double
+  var QRFactorizationWeights: Array[Double]
 
   def setVariantID(id: String): this.type = {
     variantID = id
@@ -51,6 +53,11 @@ trait VariantModel {
 
   def setWeights(w: Array[Double]): this.type = {
     weights = w
+    this
+  }
+
+  def setIntercept(inter: Double): this.type = {
+    intercept = inter
     this
   }
 

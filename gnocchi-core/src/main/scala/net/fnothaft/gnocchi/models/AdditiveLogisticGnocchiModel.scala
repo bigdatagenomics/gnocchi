@@ -18,7 +18,7 @@ package net.fnothaft.gnocchi.models
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.{Contig, Variant}
 
-trait GnocchiModel {
+class AdditiveLogisticGnocchiModel extends GnocchiModel with Additive {
   val numSamples: RDD[(String, Int)] //(VariantID, NumSamples)
   val numVariants: Int
   val variances: RDD[(String, Double)] // (VariantID, variance)
@@ -62,7 +62,7 @@ trait GnocchiModel {
             variant.setStart(gs.start)
             variant.setEnd(gs.end)
             variant.setAlternateAllele(gs.alt)
-            val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
+            val ob = (gs.genotypeState, Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
             (variant, ob)
           }).groupByKey()
 
@@ -108,15 +108,15 @@ trait GnocchiModel {
         variantModels = updatedVMRdd
   }
 
-  def clipOrKeepState(gs: GenotypeState): Double
-
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample.
 //  def predict(rdd: RDD[GenotypeState],
 //              phenotypes: RDD[Phenotype[Array[Double]]])
 
   // calls the appropriate version of BuildVariantModel
   def buildVariantModel(varModel: VariantModel,
-                        obs: Array[(Double, Array[Double])]): VariantModel
+                        obs: Array[(Double, Array[Double])]): VariantModel = {
+    BuildAdditiveLogisticVariantModel()
+  }
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample and comparing to actual value
   //  def test(rdd: RDD[GenotypeState],
@@ -125,18 +125,4 @@ trait GnocchiModel {
   // save the model
   def save
 
-}
-
-trait Additive extends GnocchiModel {
-
-  protected def clipOrKeepState(gs: GenotypeState): Double = {
-    gs.genotypeState.toDouble
-  }
-}
-
-trait Dominant extends GnocchiModel {
-
-  protected def clipOrKeepState(gs: GenotypeState): Double = {
-    if (gs.genotypeState == 0) 0.0 else 1.0
-  }
 }

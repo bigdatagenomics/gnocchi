@@ -18,23 +18,9 @@ package net.fnothaft.gnocchi.models
 import net.fnothaft.gnocchi.association.{Additive, LogisticSiteRegression}
 import org.bdgenomics.formats.avro.Variant
 
-class AdditiveLogisticVariantModel extends LogisticVariantModel with Additive with LogisticSiteRegression {
+class AdditiveLogisticVariantModel extends LogisticVariantModel {
 
-//  variantID: String,
-//  numSamples: Int,
-//  variance: Double,
-//  hyperParamValues: Map[String, Double],
-//  weights: Array[Double],
-//  haplotypeBlock: String,
-//  incrementalUpdateValue: Double, QRFactorizationValue: Double)
-
-  modelType = "Additive Logistic Variant Model"
-  variance = 0.0
-  variantID = "No ID for this Variant"
-  variant = new Variant
-  hyperParamValues = Map[String, Double]()
-  weights = Array[Double]()
-  haplotypeBlock = "Nonexistent HaplotypeBlock"
-  incrementalUpdateValue = 0.0
+  val modelType = "Additive Logistic Variant Model"
+  val regressionName = "Additive Logistic Regression"
 
 }
