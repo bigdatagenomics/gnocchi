@@ -34,7 +34,8 @@ trait VariantModel {
 
   def setVariantID(id: String): this.type = {
     variantID = id
-    this}
+    this
+  }
 
   def setNumSamples(num: Int): this.type = {
     numSamples = num
@@ -46,7 +47,7 @@ trait VariantModel {
     this
   }
 
-  def setHyperParamValues(hyp: Map[String,Double]): this.type = {
+  def setHyperParamValues(hyp: Map[String, Double]): this.type = {
     hyperParamValues = hyp
     this
   }
@@ -76,16 +77,16 @@ trait VariantModel {
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-//  def predict(observations: Array[(Double, Array[Double])],
-//              locus: ReferenceRegion,
-//              altAllele: String,
-//              phenotype: String): Map[String, Double]
+  //  def predict(observations: Array[(Double, Array[Double])],
+  //              locus: ReferenceRegion,
+  //              altAllele: String,
+  //              phenotype: String): Map[String, Double]
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-//  def test(observations: Array[(Double, Array[Double])],
-//           locus: ReferenceRegion,
-//           altAllele: String,
-//           phenotype: String): Double
+  //  def test(observations: Array[(Double, Array[Double])],
+  //           locus: ReferenceRegion,
+  //           altAllele: String,
+  //           phenotype: String): Double
 
 }

@@ -17,7 +17,7 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.association.LogisticSiteRegression
-import net.fnothaft.gnocchi.models.{AdditiveLogisticVariantModel, Association, VariantModel}
+import net.fnothaft.gnocchi.models.{ AdditiveLogisticVariantModel, Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
 
 object BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with AdditiveVariant {
@@ -33,8 +33,8 @@ object BuildAdditiveLogisticVariantModel extends BuildVariantModel with Logistic
 
   def extractVariantModel(assoc: Association): VariantModel = {
 
-      val logRegModel = new AdditiveLogisticVariantModel
-      logRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
+    val logRegModel = new AdditiveLogisticVariantModel
+    logRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
       .setHyperParamValues(Map[String, Double]())
       .setIncrementalUpdateValue(0.0)
       .setNumSamples(0) // assoc.numSamples
@@ -42,8 +42,8 @@ object BuildAdditiveLogisticVariantModel extends BuildVariantModel with Logistic
       .setVariantID("assoc.variantID")
       .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
       .setIntercept(assoc.statistics("intercept").asInstanceOf[Double])
-      logRegModel
-    }
+    logRegModel
+  }
 
   val regressionName = "Additive Logistic Regression"
 }

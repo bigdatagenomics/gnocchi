@@ -20,25 +20,25 @@ import org.bdgenomics.adam.models.ReferenceRegion
 
 trait BuildVariantModel {
 
-    def apply[T](observations: Array[(Double, Array[Double])],
-                 locus: ReferenceRegion,
-                 altAllele: String,
-                 phenotype: String): VariantModel = {
+  def apply[T](observations: Array[(Double, Array[Double])],
+               locus: ReferenceRegion,
+               altAllele: String,
+               phenotype: String): VariantModel = {
 
-      // call RegressPhenotypes on the data
-      val assoc = compute(observations, locus, altAllele, phenotype)
+    // call RegressPhenotypes on the data
+    val assoc = compute(observations, locus, altAllele, phenotype)
 
-      // extract the model parameters (including p-value) for the variant and build VariantModel
-      extractVariantModel(assoc)
+    // extract the model parameters (including p-value) for the variant and build VariantModel
+    extractVariantModel(assoc)
 
-    }
+  }
 
   def compute(observations: Array[(Double, Array[Double])],
               locus: ReferenceRegion,
               altAllele: String,
               phenotype: String): Association
 
-    def extractVariantModel(assoc: Association): VariantModel
+  def extractVariantModel(assoc: Association): VariantModel
 
 }
 

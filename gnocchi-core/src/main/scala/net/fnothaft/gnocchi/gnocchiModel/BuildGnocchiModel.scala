@@ -16,28 +16,30 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 trait BuildGnocchiModel {
 
-    def apply[T](rdd: RDD[GenotypeState],
-                 phenotypes: RDD[Phenotype[T]]): GnocchiModel = {
+  def apply[T](rdd: RDD[GenotypeState],
+               phenotypes: RDD[Phenotype[T]],
+               sc: SparkContext): GnocchiModel = {
 
-      // call RegressPhenotypes on the data
-      val assocs = fit(rdd, phenotypes)
+    // call RegressPhenotypes on the data
+    val assocs = fit(rdd, phenotypes)
 
-      // extract the model parameters (including p-value) for each variant and build LogisticGnocchiModel
-      val model = extractModel(assocs)
+    // extract the model parameters (including p-value) for each variant and build LogisticGnocchiModel
+    val model = extractModel(assocs, sc)
 
-      // save the LogisticGnocchiModel
-      model.save
+    // save the LogisticGnocchiModel
+    model.save
 
-      model
-    }
+    model
+  }
 
   def fit[T](rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): RDD[Association]
 
-  def extractModel(assocs: RDD[Association]): GnocchiModel
+  def extractModel(assocs: RDD[Association], sc: SparkContext): GnocchiModel
 
 }

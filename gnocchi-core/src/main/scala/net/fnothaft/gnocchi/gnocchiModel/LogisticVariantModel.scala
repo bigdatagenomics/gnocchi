@@ -22,7 +22,7 @@ import org.bdgenomics.adam.models.ReferenceRegion
 import org.apache.spark.mllib.linalg.DenseVector
 import org.bdgenomics.formats.avro.Variant
 
-trait LogisticVariantModel extends VariantModel{
+trait LogisticVariantModel extends VariantModel {
 
   var variance = 0.0
   var variantID = "No ID for this Variant"
@@ -55,20 +55,20 @@ trait LogisticVariantModel extends VariantModel{
 
     // TODO: need to update the variance as well.
     // var variance = 0.0
- }
+  }
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-//  def predict(observations: Array[(Double, Array[Double])],
-//              locus: ReferenceRegion,
-//              altAllele: String,
-//              phenotype: String): Map[String, Double]
+  //  def predict(observations: Array[(Double, Array[Double])],
+  //              locus: ReferenceRegion,
+  //              altAllele: String,
+  //              phenotype: String): Map[String, Double]
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-//  def test(observations: Array[(Double, Array[Double])],
-//           locus: ReferenceRegion,
-//           altAllele: String,
-//           phenotype: String): Double
+  //  def test(observations: Array[(Double, Array[Double])],
+  //           locus: ReferenceRegion,
+  //           altAllele: String,
+  //           phenotype: String): Double
 
 }

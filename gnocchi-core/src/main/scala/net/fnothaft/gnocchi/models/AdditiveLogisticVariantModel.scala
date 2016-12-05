@@ -15,7 +15,7 @@
  */
 package net.fnothaft.gnocchi.models
 
-import net.fnothaft.gnocchi.association.{Additive, LogisticSiteRegression}
+import net.fnothaft.gnocchi.association.{ Additive, LogisticSiteRegression }
 import org.bdgenomics.formats.avro.Variant
 
 class AdditiveLogisticVariantModel extends LogisticVariantModel {
