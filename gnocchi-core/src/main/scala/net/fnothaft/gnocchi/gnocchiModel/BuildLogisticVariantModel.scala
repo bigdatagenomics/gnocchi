@@ -41,7 +41,7 @@ object BuildAdditiveLogisticVariantModel extends BuildVariantModel with Logistic
       .setVariance(0.0) // assoc.variance
       .setVariantID("assoc.variantID")
       .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
-      .setIntercept(assoc.statistics("intercept"))
+      .setIntercept(assoc.statistics("intercept").asInstanceOf[Double])
       logRegModel
     }
 
