@@ -60,20 +60,17 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Args4jOption(required = false, name = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.")
   var kfold = 10
 
-  @Args4jOption(required = false, name = "-numSplits", usage = "The number of splits for progressive validation.")
-  var numSplits = 2
+  @Args4jOption(required = false, name = "-numProgressiveSplits", usage = "The number of splits for progressive validation.")
+  var numProgressiveSplits = 2
 
 }
 
 class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkCommand[EvaluateModelArgs] {
   override val companion = EvaluateModel
   var kcount = 0
-  val totalPZA = new ListBuffer[Double]
-  val totalPOA = new ListBuffer[Double]
-  val totalPPZAO = new ListBuffer[Double]
-  val totalPPOAZ = new ListBuffer[Double]
-  val totalPPZ = new ListBuffer[Double]
-  val totalPPO = new ListBuffer[Double]
+
+  val totalsArray = new Array[EvalResult](args.kfold)
+
   override def run(sc: SparkContext) {
 
     // Load in genotype data
@@ -88,20 +85,25 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       // Perform analysis
       val results = performEvaluation(genotypeStates, phenotypes, sc)
       // Log the results
-      logResults(results, sc)
+      for (i <- results.indices) {
+        val result = results(i)
+        logResults(result, sc, totalsArray(i))
+      }
       kcount += 1
     }
     logKFold()
   }
 
   def logKFold(): Unit = {
-    println("-" * 30)
-    println("Percent of samples with actual 0 phenotype: " + (totalPZA.sum / totalPZA.length).toString)
-    println("Percent of samples with actual 1 phenotype: " + (totalPOA.sum / totalPOA.length).toString)
-    println("Percent of samples predicted to be 0 but actually were 1:" + (totalPPZAO.sum / totalPPZAO.length).toString)
-    println(s"Percent of samples predicted to be 1 but actually were 0: " + (totalPPOAZ.sum / totalPPOAZ.length).toString)
-    println(s"Percent of samples predicted to be 0: " + (totalPPZ.sum / totalPPZ.length).toString)
-    println(s"Percent of samples predicted to be 1: " + (totalPPO.sum / totalPPO.length).toString)
+    for (p <- totalsArray.indices) {
+      println(s"---------Progressive split $p " + "-" * 30)
+      println("Percent of samples with actual 0 phenotype: " + (totalsArray(p).totalPZA.sum / totalsArray(p).totalPZA.length).toString)
+      println("Percent of samples with actual 1 phenotype: " + (totalsArray(p).totalPOA.sum / totalsArray(p).totalPOA.length).toString)
+      println("Percent of samples predicted to be 0 but actually were 1:" + (totalsArray(p).totalPPZAO.sum / totalsArray(p).totalPPZAO.length).toString)
+      println(s"Percent of samples predicted to be 1 but actually were 0: " + (totalsArray(p).totalPPOAZ.sum / totalsArray(p).totalPPOAZ.length).toString)
+      println(s"Percent of samples predicted to be 0: " + (totalsArray(p).totalPPZ.sum / totalsArray(p).totalPPZ.length).toString)
+      println(s"Percent of samples predicted to be 1: " + (totalsArray(p).totalPPO.sum / totalsArray(p).totalPPO.length).toString)
+    }
   }
 
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
@@ -159,11 +161,11 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
   def performEvaluation(genotypeStates: Dataset[GenotypeState],
                         phenotypes: RDD[Phenotype[Array[Double]]],
-                        sc: SparkContext): RDD[(Array[(String, (Double, Double))], Association)] = {
+                        sc: SparkContext): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
     val evaluations = args.associationType match {
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numSplits)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits)
     }
     evaluations
   }
@@ -177,7 +179,8 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
    * @param sc the spark context to be used.
    */
   def logResults(results: RDD[(Array[(String, (Double, Double))], Association)],
-                 sc: SparkContext) = {
+                 sc: SparkContext,
+                 evalResult: EvalResult) = {
     // save dataset
     val outputFile = args.associations + "-" + kcount.toString
     val sqlContext = SQLContext.getOrCreate(sc)
@@ -236,12 +239,13 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val percentPredZero = numZeroPred / numSamples
     val percentPredOne = 1 - percentPredZero
 
-    totalPZA += percentZeroActual
-    totalPOA += percentOneActual
-    totalPPZAO += percentPredZeroActualOne
-    totalPPOAZ += percentPredOneActualZero
-    totalPPZ += percentPredZero
-    totalPPO += percentPredOne
+    // TODO: fix this so that you can do 10-fold cross validation on progressive validation
+    evalResult.totalPZA += percentZeroActual
+    evalResult.totalPOA += percentOneActual
+    evalResult.totalPPZAO += percentPredZeroActualOne
+    evalResult.totalPPOAZ += percentPredOneActualZero
+    evalResult.totalPPZ += percentPredZero
+    evalResult.totalPPO += percentPredOne
 
     //      .map(ipaa => {
     //        val ((sampleId, (pred, actual)), assoc): ((String, (Double, Double)), Association) = ipaa
@@ -284,5 +288,14 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       println(s"Percent of samples predicted to be affected: $percentPredOne")
     }
   }
+}
+
+class EvalResult {
+  val totalPZA = new ListBuffer[Double]
+  val totalPOA = new ListBuffer[Double]
+  val totalPPZAO = new ListBuffer[Double]
+  val totalPPOAZ = new ListBuffer[Double]
+  val totalPPZ = new ListBuffer[Double]
+  val totalPPO = new ListBuffer[Double]
 }
 

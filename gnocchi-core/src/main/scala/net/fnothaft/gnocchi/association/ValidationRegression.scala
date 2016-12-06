@@ -29,30 +29,32 @@ trait ValidationRegression extends SiteRegression {
   regressSite
   */
   override final def apply[T](rdd: RDD[GenotypeState],
-                     phenotypes: RDD[Phenotype[T]],
-                     scOption: Option[SparkContext] = None,
-                     k: Int = 10,
-                     n: Int = 2): RDD[(Array[(String, (Double, Double))], Association)] = {
+                              phenotypes: RDD[Phenotype[T]],
+                              scOption: Option[SparkContext] = None,
+                              k: Int = 10,
+                              n: Int = 1): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
-
+    val progressiveResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
     // n needs to be passed in as a parameter
-    val n = 2
-    if (n == 2) {
-      val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(0.9, 0.1))
+    if (n == 1) {
+      val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(1.0 - (1.0 / k), 1.0 / k))
       applyRegression(trainRdd, testRdd, phenotypes)
     } else {
       // Split array genotype array into equal pieces of size 1/n
-      var splitArray = Array() :+ genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
-      var a = 0
+      var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
       // Incrementally build up training set by merging first two elements (training set) and testing on second element
+      val trainRdd = splitArray(0)
+      val testRdd = splitArray(1)
+      progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
       for (a <- 1 until n) {
-        splitArray(0) = splitArray(0) ++ splitArray(1)
+        splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
         splitArray.drop(1)
-        val trainRdd = splitArray(0)(0)
-        val testRdd = splitArray(1)(0)
-        applyRegression(trainRdd, testRdd, phenotypes)
+        val trainRdd = splitArray(0)
+        val testRdd = splitArray(1)
+        progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
       }
     }
+    progressiveResults
   }
 
   def applyRegression[T](trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
