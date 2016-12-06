@@ -20,41 +20,41 @@ import net.fnothaft.gnocchi.association.LinearSiteRegression
 import net.fnothaft.gnocchi.models.{ Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
 
-object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSiteRegression with AdditiveVariant {
-  def compute(observations: Array[(Double, Array[Double])],
-              locus: ReferenceRegion,
-              altAllele: String,
-              phenotype: String): Association = {
+//object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSiteRegression with AdditiveVariant {
+//  def compute(observations: Array[(Double, Array[Double])],
+//              locus: ReferenceRegion,
+//              altAllele: String,
+//              phenotype: String): Association = {
+//
+//    val clippedObs = arrayClipOrKeepState(observations)
+//    regressSite(observations, locus, altAllele, phenotype)
+//  }
+//
+//  //  def extractVariantModel(assoc: Association): VariantModel = {
+//  //
+//  //    // code for extracting the VariantModel from the Association
+//  //
+//  //  }
+//
+//  val regressionName = "Additive Linear Regression"
+//}
 
-    val clippedObs = arrayClipOrKeepState(observations)
-    regressSite(observations, locus, altAllele, phenotype)
-  }
-
-  //  def extractVariantModel(assoc: Association): VariantModel = {
-  //
-  //    // code for extracting the VariantModel from the Association
-  //
-  //  }
-
-  val regressionName = "Additive Linear Regression"
-}
-
-object BuildDominantLinearVariantModel extends BuildVariantModel with LinearSiteRegression with DominantVariant {
-  def compute(observations: Array[(Double, Array[Double])],
-              locus: ReferenceRegion,
-              altAllele: String,
-              phenotype: String): Association = {
-
-    val clippedObs = arrayClipOrKeepState(observations)
-    regressSite(observations, locus, altAllele, phenotype)
-  }
-
-  //  def extractVariantModel(assoc: Association): VariantModel = {
-  //
-  //    // code for extracting the VariantModel from the Association
-  //
-  //  }
-
-  val regressionName = "Dominant Linear Regression"
-}
+//object BuildDominantLinearVariantModel extends BuildVariantModel with LinearSiteRegression with DominantVariant {
+//  def compute(observations: Array[(Double, Array[Double])],
+//              locus: ReferenceRegion,
+//              altAllele: String,
+//              phenotype: String): Association = {
+//
+//    val clippedObs = arrayClipOrKeepState(observations)
+//    regressSite(observations, locus, altAllele, phenotype)
+//  }
+//
+//  //  def extractVariantModel(assoc: Association): VariantModel = {
+//  //
+//  //    // code for extracting the VariantModel from the Association
+//  //
+//  //  }
+//
+//  val regressionName = "Dominant Linear Regression"
+//}
 

@@ -21,7 +21,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
 
 /* trait for building a GnocchiModel that has an additive, linear VariantModel at each site (via QR factorization). */
-trait BuildAdditiveLinear extends BuildGnocchiModel {
+trait BuildAdditiveLinearGnocchiModel extends BuildGnocchiModel {
 
   /* uses QR factorization to compute an additive linear association at each variant*/
   def fit[T](rdd: RDD[GenotypeState],
@@ -49,6 +49,6 @@ trait BuildAdditiveLinear extends BuildGnocchiModel {
   }
 }
 
-object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLinear {
-  val regressionName = "Additive Linear Regression with SGD"
-}
+//object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLinear {
+//  val regressionName = "Additive Linear Regression with SGD"
+//}

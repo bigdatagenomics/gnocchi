@@ -15,10 +15,8 @@
  */
 package net.fnothaft.gnocchi.models
 
-import net.fnothaft.gnocchi.association.AdditiveLogisticAssociation
 import net.fnothaft.gnocchi.transformations.Obs2LabeledPoints
 import org.apache.spark.mllib.optimization.LogisticGradient
-import org.bdgenomics.adam.models.ReferenceRegion
 import org.apache.spark.mllib.linalg.DenseVector
 import org.bdgenomics.formats.avro.Variant
 
@@ -29,11 +27,13 @@ trait LogisticVariantModel extends VariantModel {
   var variant = new Variant
   var hyperParamValues = Map[String, Double]()
   var weights = Array[Double]()
+  var intercept = 0.0
   var QRFactorizationWeights = Array[Double]()
   var haplotypeBlock = "Nonexistent HaplotypeBlock"
   var incrementalUpdateValue = 0.0
   var QRFactorizationValue = 0.0
   var numSamples = 0
+  var phenotype = "Empty Phenotype"
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
@@ -46,6 +46,9 @@ trait LogisticVariantModel extends VariantModel {
     for (lp <- points) {
       val features = lp.features
       val label = lp.label
+      println("features : " + features.toArray.toList)
+      println("weights : " + weights.toList)
+      // TODO: Add in a learning rate here.
       weights = (breezeVector - breeze.linalg.DenseVector(logGrad.compute(features, label, weightsVector)._1.toArray)).toArray
       numSamples += 1
     }

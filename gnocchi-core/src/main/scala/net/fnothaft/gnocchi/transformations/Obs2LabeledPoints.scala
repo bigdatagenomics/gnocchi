@@ -22,10 +22,10 @@ object Obs2LabeledPoints {
 
   def apply(observations: Array[(Double, Array[Double])]): Array[LabeledPoint] = {
     val points = new Array[LabeledPoint](observations.length)
-    for (i <- 0 to observations.length) {
+    for (i <- observations.indices) {
       val elem = observations(i)
       val label = elem._2(0)
-      val featuresArray = (List(elem._1) :: elem._2.slice(1, elem._2.length).toList).toArray.asInstanceOf[Array[Double]]
+      val featuresArray = Array(1.0, elem._1) ++ elem._2.slice(1, elem._2.length)
       val features = new DenseVector(featuresArray)
       val lp = new LabeledPoint(label, features)
       points(i) = lp

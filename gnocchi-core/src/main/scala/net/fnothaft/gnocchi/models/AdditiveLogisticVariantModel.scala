@@ -20,7 +20,7 @@ import org.bdgenomics.formats.avro.Variant
 
 class AdditiveLogisticVariantModel extends LogisticVariantModel {
 
-  val modelType = "Additive Logistic Variant Model"
+  var modelType = "Additive Logistic Variant Model"
   val regressionName = "Additive Logistic Regression"
 
 }

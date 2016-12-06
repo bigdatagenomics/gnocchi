@@ -15,13 +15,14 @@
  */
 package net.fnothaft.gnocchi.models
 
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait GnocchiModel {
-  var numSamples: RDD[(String, Int)] //(VariantID, NumSamples)
+  var numSamples: List[(String, Int)] //(VariantID, NumSamples)
   var numVariants: Int
-  var variances: RDD[(String, Double)] // (VariantID, variance)
+  var variances: List[(String, Double)] // (VariantID, variance)
   var haplotypeBlockDeltas: Map[String, Double]
   var HBDThreshold: Double // threshold for the haplotype block deltas
   var modelType: String // Additive Logistic, Dominant Linear, etc.
@@ -30,9 +31,9 @@ trait GnocchiModel {
   //  val latestTestResult: GMTestResult
   var variables: String // name of the phenotype and covariates used in the model
   var dates: String // dates of creation and update of each model
-  var sampleIds: Array[String] // list of sampleIDs from all samples the model has seen.
-  var variantModels: RDD[(Variant, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
-  var qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])] // the variant model and the observations that the model must be trained on
+  var sampleIds: List[String] // list of sampleIDs from all samples the model has seen.
+  var variantModels: List[(Variant, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
+  var qrVariantModels: List[(VariantModel, Array[(Double, Array[Double])])] // the variant model and the observations that the model must be trained on
 
   // filters out all variants that don't pass a certian predicate and returns a GnocchiModel containing only those variants.
   //  def filter: GnocchiModel
@@ -40,7 +41,8 @@ trait GnocchiModel {
   // given a batch of data, update the GnocchiModel with the data (by updating all the VariantModels).
   // Suggest recompute when haplotypeBlockDelta is bigger than some threshold.
   def update(rdd: RDD[GenotypeState],
-             phenotypes: RDD[Phenotype[Array[Double]]]): Unit = {
+             phenotypes: RDD[Phenotype[Array[Double]]],
+             sc: SparkContext): Unit = {
 
     // convert genotypes and phenotypes into observations
     val newData = rdd.keyBy(_.sampleId)
@@ -67,7 +69,7 @@ trait GnocchiModel {
       }).groupByKey()
 
     // combine the new sample observations with the old ones for the qr variants.
-    val joinedqrData = qrVariantModels.map(kv => {
+    val joinedqrData = sc.parallelize(qrVariantModels).map(kv => {
       val (varModel, obs) = kv
       (varModel.variant, (varModel, obs))
     }).join(newData)
@@ -79,13 +81,13 @@ trait GnocchiModel {
       })
 
     // compute the VariantModels from QR factorization for the qrVariants
-    val qrAssocRDD = joinedqrData.map(kv => {
+    val qrRDD = joinedqrData.map(kv => {
       val (varModel, obs) = kv
-      buildVariantModel(varModel, obs)
+      (buildVariantModel(varModel, obs), obs)
     })
 
     // group new data with correct VariantModel
-    val vmAndDataRDD = variantModels.join(newData)
+    val vmAndDataRDD = sc.parallelize(variantModels).join(newData)
 
     // map an update call to all variants
     val updatedVMRdd = vmAndDataRDD.map(kvv => {
@@ -95,6 +97,10 @@ trait GnocchiModel {
     })
 
     // pair up the QR factorization and incrementalUpdate versions of the selected variantModels
+    val qrAssocRDD = qrRDD.map(elem => {
+      val (varModel, obs) = elem
+      varModel
+    })
     val incrementalVsQrRDD = updatedVMRdd.join(qrAssocRDD.keyBy(_.variant))
 
     // compare results and flag variants for recompute
@@ -105,7 +111,8 @@ trait GnocchiModel {
       Math.abs(increValue - qrValue) / qrValue > HBDThreshold
     }).map(_._1).collect
 
-    variantModels = updatedVMRdd
+    variantModels = updatedVMRdd.collect.toList
+    qrVariantModels = qrRDD.collect.toList
   }
 
   def clipOrKeepState(gs: GenotypeState): Double
@@ -123,20 +130,21 @@ trait GnocchiModel {
   //           phenotypes: RDD[Phenotype[Array[Double]]]): GMTestResult
 
   // save the model
-  def save
+  //TODO: write save functionality
+  //  def save
 
 }
 
 trait Additive extends GnocchiModel {
 
-  protected def clipOrKeepState(gs: GenotypeState): Double = {
+  def clipOrKeepState(gs: GenotypeState): Double = {
     gs.genotypeState.toDouble
   }
 }
 
 trait Dominant extends GnocchiModel {
 
-  protected def clipOrKeepState(gs: GenotypeState): Double = {
+  def clipOrKeepState(gs: GenotypeState): Double = {
     if (gs.genotypeState == 0) 0.0 else 1.0
   }
 }

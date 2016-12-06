@@ -34,6 +34,6 @@ trait BuildDominantLinear extends BuildGnocchiModel {
   //  }
 }
 
-object BuildDominantLinearGnocchiModel extends BuildDominantLogistic {
-  val regressionName = "Dominant Linear Regression with SGD"
-}
+//object BuildDominantLinearGnocchiModel extends BuildDominantLogistic {
+//  val regressionName = "Dominant Linear Regression with SGD"
+//}

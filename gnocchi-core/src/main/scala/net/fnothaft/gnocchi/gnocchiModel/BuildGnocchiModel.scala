@@ -32,7 +32,7 @@ trait BuildGnocchiModel {
     val model = extractModel(assocs, sc)
 
     // save the LogisticGnocchiModel
-    model.save
+    //    model.save
 
     model
   }

@@ -21,6 +21,7 @@ import org.bdgenomics.formats.avro.Variant
 trait VariantModel {
   var variantID: String
   var variant: Variant
+  var phenotype: String
   var numSamples: Int
   var variance: Double
   var modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
@@ -34,6 +35,11 @@ trait VariantModel {
 
   def setVariantID(id: String): this.type = {
     variantID = id
+    this
+  }
+
+  def setPhenotype(pheno: String): this.type = {
+    phenotype = pheno
     this
   }
 
