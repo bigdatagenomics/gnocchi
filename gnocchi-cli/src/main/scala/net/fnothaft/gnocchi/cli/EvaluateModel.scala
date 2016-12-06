@@ -60,6 +60,9 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Args4jOption(required = false, name = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.")
   var kfold = 10
 
+  @Args4jOption(required = false, name = "-numSplits", usage = "The number of splits for progressive validation.")
+  var numSplits = 2
+
 }
 
 class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkCommand[EvaluateModelArgs] {
@@ -160,7 +163,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
     val evaluations = args.associationType match {
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, contextOption, k = args.kfold)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, contextOption, k = args.kfold, n = args.numSplits)
     }
     evaluations
   }
