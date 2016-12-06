@@ -189,7 +189,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       ensembleWeights = args.ensembleWeights.split(",").map(x => x.toDouble)
     }
 
-    val resultsBySample = results.flatMap(ipaa => { // why are there multiple results here?
+    val resultsBySample = results.flatMap(ipaa => {
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
       for (i <- 1 until ipaa._1.length) {
         toRet = toRet :+ (ipaa._1(i)._1, (ipaa._1(i)._2._1, ipaa._1(i)._2._2, ipaa._2))
