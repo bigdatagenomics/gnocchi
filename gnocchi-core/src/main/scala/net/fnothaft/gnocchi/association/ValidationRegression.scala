@@ -28,9 +28,11 @@ trait ValidationRegression extends SiteRegression {
   Takes in an RDD of GenotypeStates, constructs the proper observations array for each site, and feeds it into
   regressSite
   */
-  final def apply[T](rdd: RDD[GenotypeState],
+  override final def apply[T](rdd: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]],
-                     scOption: Option[SparkContext] = None): RDD[(Array[(String, (Double, Double))], Association)] = {
+                     scOption: Option[SparkContext] = None,
+                     k: Int = 10,
+                     n: Int = 2): RDD[(Array[(String, (Double, Double))], Association)] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
 
     // n needs to be passed in as a parameter
@@ -40,23 +42,22 @@ trait ValidationRegression extends SiteRegression {
       applyRegression(trainRdd, testRdd, phenotypes)
     } else {
       // Split array genotype array into equal pieces of size 1/n
-      var splitArray = Array() :+ genoPhenoRdd.randomSplit(Array.fill(n)(1/n))
+      var splitArray = Array() :+ genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
       var a = 0
       // Incrementally build up training set by merging first two elements (training set) and testing on second element
-      for(a <- 1 to n-1){
+      for (a <- 1 until n) {
         splitArray(0) = splitArray(0) ++ splitArray(1)
         splitArray.drop(1)
         val trainRdd = splitArray(0)(0)
         val testRdd = splitArray(1)(0)
         applyRegression(trainRdd, testRdd, phenotypes)
       }
-
     }
   }
 
-  def applyRegression[T](trainRdd:RDD[(String, (GenotypeState, Phenotype[T]))],
-                      testRdd:RDD[(String, (GenotypeState, Phenotype[T]))],
-                      phenotypes:RDD[Phenotype[T]]): RDD[(Array[(String, (Double, Double))], Association)] = {
+  def applyRegression[T](trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
+                         testRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
+                         phenotypes: RDD[Phenotype[T]]): RDD[(Array[(String, (Double, Double))], Association)] = {
     val modelRdd = trainRdd
       .map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
@@ -86,9 +87,9 @@ trait ValidationRegression extends SiteRegression {
         }).toArray, variant, pheno)
         ((variant, pheno), assoc)
       }).filter(varModel => {
-      val ((variant, phenotype), assoc) = varModel
-      assoc.statistics.nonEmpty
-    })
+        val ((variant, phenotype), assoc) = varModel
+        assoc.statistics.nonEmpty
+      })
     //    println("\n\n" + modelRdd.take(1).toList)
 
     val temp = testRdd
