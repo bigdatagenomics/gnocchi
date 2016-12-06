@@ -31,12 +31,12 @@ import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait LogisticValidationRegression extends ValidationRegression with LogisticSiteRegression {
 
-  /**
-   * This method will predict the phenotype given a certain site, given the association results
+  /** This method will predict the phenotype given a certain site, given the association results
    *
    * @param sampleObservations An array containing tuples in which the first element is the coded genotype.
-   *                           The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates.
-   *                          The third is the sampleid.
+   *                           The second is an Array[Double] representing the phenotypes, where the first
+   *                           element in the array is the phenotype to regress and the rest are to be treated as
+   *                           covariates. The third is the sampleid.
    * @param association  An Association object that specifies the model trained for this locus
    * @return An array of results with the model applied to the observations
    */

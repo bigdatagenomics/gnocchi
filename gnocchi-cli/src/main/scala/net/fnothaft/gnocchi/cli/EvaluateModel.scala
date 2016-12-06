@@ -165,7 +165,13 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     evaluations
   }
 
-  // FIXME: Make this right
+  /** Logs results of an evaluation.
+   * FIXME: Make this right.
+   *
+   * @param results RDD of (Array[(id, (predicted, actual))], Association).
+   *                The association model contains the weights.
+   * @param sc the spark context to be used.
+   */
   def logResults(results: RDD[(Array[(String, (Double, Double))], Association)],
                  sc: SparkContext) = {
     // save dataset
@@ -179,7 +185,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val ensembleMethod = args.ensembleMethod
     val ensembleWeights = args.ensembleWeights.split(",").map(x => x.toDouble)
 
-    val resultsBySample = results.flatMap(ipaa => {
+    val resultsBySample = results.flatMap(ipaa => { // why are there multiple results here?
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
       for (i <- 1 until ipaa._1.length) {
         toRet = toRet :+ (ipaa._1(i)._1, (ipaa._1(i)._2._1, ipaa._1(i)._2._2, ipaa._2))
