@@ -54,10 +54,10 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Argument(required = false, metaVar = "ENSEMBLE_METHOD", usage = "The method used to combine results of SNPs. Options are MAX or AVG.", index = 6)
   var ensembleMethod: String = "AVG"
 
-  @Args4jOption(required = false, metaVar = "ENSEMBLE_WEIGHTS", usage = "The weights to be used in the ensembler's weighted average call.", index = 7)
+  @Args4jOption(required = false, name = "ENSEMBLE_WEIGHTS", usage = "The weights to be used in the ensembler's weighted average call.")
   var ensembleWeights: String = ""
 
-  @Args4jOption(required = false, metaVar = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.", index = 8)
+  @Args4jOption(required = false, name = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.")
   var kfold = 10
 
 }
