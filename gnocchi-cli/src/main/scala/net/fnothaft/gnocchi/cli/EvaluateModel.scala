@@ -81,15 +81,23 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
     // Load in phenotype data
     val phenotypes = regPheno.loadPhenotypes(sc)
-    while (kcount < args.kfold) {
-      // Perform analysis
-      val results = performEvaluation(genotypeStates, phenotypes, sc)
-      // Log the results
-      for (i <- results.indices) {
+    if (args.monteCarlo) {
+      while (kcount < args.kfold) {
+        // Perform analysis
+        val results = performEvaluation(genotypeStates, phenotypes, sc)
+        // Log the results
+        for (i <- results.indices) {
+          val result = results(i)
+          logResults(result, sc, totalsArray(i))
+        }
+        kcount += 1
+      }
+    } else {
+      val results = performEvaluation(genotypeStates,phenotypes,sc)
+      for(i <- results.indices) {
         val result = results(i)
         logResults(result, sc, totalsArray(i))
       }
-      kcount += 1
     }
     logKFold()
   }
@@ -165,7 +173,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
     val evaluations = args.associationType match {
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, monte = args.monteCarlo)
     }
     evaluations
   }

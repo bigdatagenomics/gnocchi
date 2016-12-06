@@ -28,14 +28,72 @@ trait ValidationRegression extends SiteRegression {
   Takes in an RDD of GenotypeStates, constructs the proper observations array for each site, and feeds it into
   regressSite
   */
-  override final def apply[T](rdd: RDD[GenotypeState],
+  final def apply[T](rdd: RDD[GenotypeState],
                               phenotypes: RDD[Phenotype[T]],
                               scOption: Option[SparkContext] = None,
-                              k: Int = 10,
-                              n: Int = 1): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
+                              k: Int = 1,
+                              n: Int = 1,
+                              monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val progressiveResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
     // n needs to be passed in as a parameter
+    if (k != 1) {
+      if (monte) {
+        if (n!=1) {
+          // random [1/n] split kfolds times.
+          // Split genotype array into equal pieces of size 1/n
+          var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
+          // Incrementally build up training set by merging first two elements (training set) and testing on second element
+          val trainRdd = splitArray(0)
+          val testRdd = splitArray(1)
+          progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
+          for (a <- 1 until n) {
+            splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
+            splitArray.drop(1)
+            val trainRdd = splitArray(0)
+            val testRdd = splitArray(1)
+            progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+          }
+        } else {
+          // a single k-1/1 split kfolds times.
+          val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(1.0 - (1.0 / k), 1.0 / k))
+          applyRegression(trainRdd, testRdd, phenotypes)
+        }
+      } else {
+        if (n!=1) {
+          assert(false, "Normal crossvalidation not possible for progressive validation. Please use --monteCarlo.")
+        } else {
+          // kfold splits with rotating train/test. Note: ValidationRegression should only be called ONCE.
+          var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1 / k))
+          for (a <- 1 until k) {
+            val (train, test) = mergeRDDs(a, splitArray)
+            progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+          }
+
+        }
+      }
+    } else {
+      if (n!=1) {
+        // 1 random [1/n] split
+        // Split array genotype array into equal pieces of size 1/n
+        var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
+        // Incrementally build up training set by merging first two elements (training set) and testing on second element
+        val trainRdd = splitArray(0)
+        val testRdd = splitArray(1)
+        progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
+        for (a <- 1 until n) {
+          splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
+          splitArray.drop(1)
+          val trainRdd = splitArray(0)
+          val testRdd = splitArray(1)
+          progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+        }
+      } else {
+        // 1 random 90/10 split
+        val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(.9, .1))
+        applyRegression(trainRdd, testRdd, phenotypes)
+      }
+    }
     if (n == 1) {
       val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(1.0 - (1.0 / k), 1.0 / k))
       applyRegression(trainRdd, testRdd, phenotypes)
@@ -55,6 +113,22 @@ trait ValidationRegression extends SiteRegression {
       }
     }
     progressiveResults
+  }
+  def mergeRDDs(exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[Double]))]]: (RDD[GenotypeState],RDD[GenotypeState]) = {
+    var first = true
+    var testRdd: RDD[GenotypeState] = RDD[GenotypeState]
+    for (i <- rddArray.indices) {
+      if (1 == exclude) {
+        val trainRDD = rddArray(i)
+      } else {
+        if (first) {
+          testRdd = rddArray(i)
+          first = false
+        } else {
+          testRdd = testRdd.join(rddArray(i))  //TODO: fix this join!!
+        }
+      }
+    }
   }
 
   def applyRegression[T](trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
