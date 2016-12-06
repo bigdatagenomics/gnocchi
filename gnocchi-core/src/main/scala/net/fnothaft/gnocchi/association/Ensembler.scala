@@ -19,7 +19,8 @@ import net.fnothaft.gnocchi.models.Association
 
 object Ensembler extends Serializable {
 
-  /** Ensembles association results.
+  /**
+   * Ensembles association results.
    *
    * @param ensembleMethod method by which to ensemble the results. Choose from ["AVG", "MAX_PROB", "W_AVG"].
    * @param snpArray array of tup3 objects containing (predicted result, actual result, Association object).
@@ -47,7 +48,7 @@ object Ensembler extends Serializable {
   def maxProb(snpArray: Array[(Double, Double, Association)]): (Double, Double) = {
     var max = 0.0
     for (i <- snpArray.indices) {
-      if ( snpArray(i)._1 > max ) {
+      if (snpArray(i)._1 > max) {
         max = snpArray(i)._1
       }
     }
@@ -62,14 +63,13 @@ object Ensembler extends Serializable {
     var norm_weights = weights.clone()
     var sum = 0.0
     var i = 0
-    while (i<weights.length) { sum += weights(i); i += 1 }
+    while (i < weights.length) { sum += weights(i); i += 1 }
     i = 0
-    while (i<norm_weights.length) { norm_weights(i) = (norm_weights(i)/sum)}
-
+    while (i < norm_weights.length) { norm_weights(i) = (norm_weights(i) / sum); i += 1 }
 
     for (i <- snpArray.indices) {
-      sm += norm_weights(i)*snpArray(i)._1
+      sm += norm_weights(i) * snpArray(i)._1
     }
-    (smgi, snpArray(0)._2)
+    (sm, snpArray(0)._2)
   }
 }

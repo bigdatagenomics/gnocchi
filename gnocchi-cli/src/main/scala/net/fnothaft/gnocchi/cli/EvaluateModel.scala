@@ -29,7 +29,7 @@ import breeze.numerics.exp
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
-import net.fnothaft.gnocchi.models.{Association, Phenotype}
+import net.fnothaft.gnocchi.models.{ Association, Phenotype }
 import org.apache.spark.sql.functions._
 import net.fnothaft.gnocchi.association.Ensembler
 
@@ -92,13 +92,13 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
   }
 
   def logKFold(): Unit = {
-    println("-"*30)
-    println("Percent of samples with actual 0 phenotype: " + (totalPZA.sum/totalPZA.length).toString)
-    println("Percent of samples with actual 1 phenotype: " + (totalPOA.sum/totalPOA.length).toString)
-    println("Percent of samples predicted to be 0 but actually were 1:" + (totalPPZAO.sum/totalPPZAO.length).toString)
-    println(s"Percent of samples predicted to be 1 but actually were 0: " + (totalPPOAZ.sum/totalPPOAZ.length).toString)
-    println(s"Percent of samples predicted to be 0: " + (totalPPZ.sum/totalPPZ.length).toString)
-    println(s"Percent of samples predicted to be 1: " + (totalPPO.sum/totalPPO.length).toString)
+    println("-" * 30)
+    println("Percent of samples with actual 0 phenotype: " + (totalPZA.sum / totalPZA.length).toString)
+    println("Percent of samples with actual 1 phenotype: " + (totalPOA.sum / totalPOA.length).toString)
+    println("Percent of samples predicted to be 0 but actually were 1:" + (totalPPZAO.sum / totalPPZAO.length).toString)
+    println(s"Percent of samples predicted to be 1 but actually were 0: " + (totalPPOAZ.sum / totalPPOAZ.length).toString)
+    println(s"Percent of samples predicted to be 0: " + (totalPPZ.sum / totalPPZ.length).toString)
+    println(s"Percent of samples predicted to be 1: " + (totalPPO.sum / totalPPO.length).toString)
   }
 
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
@@ -165,7 +165,8 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     evaluations
   }
 
-  /** Logs results of an evaluation.
+  /**
+   * Logs results of an evaluation.
    * FIXME: Make this right.
    *
    * @param results RDD of (Array[(id, (predicted, actual))], Association).

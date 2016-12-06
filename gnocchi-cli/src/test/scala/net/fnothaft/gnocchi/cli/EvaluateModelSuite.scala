@@ -1,18 +1,18 @@
 /**
-  * Copyright 2016 Taner Dagdelen
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  *     http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
+ * Copyright 2016 Taner Dagdelen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package net.fnothaft.gnocchi.cli
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
@@ -52,7 +52,7 @@ class EvaluateModelSuite extends GnocchiFunSuite {
 
     val snpArray = Array(elem1, elem2, elem3)
 
-    val res = Ensembler("AVG", snpArray)._1
+    val res = Ensembler("MAX_PROB", snpArray)._1
 
     assert(res == 3.0)
   }
@@ -68,11 +68,11 @@ class EvaluateModelSuite extends GnocchiFunSuite {
     val elem2 = (2.0, 1.0, assoc)
     val elem3 = (3.0, 1.0, assoc)
 
-    val avg_weights = Array[Double] (0.1, 0.3, 0.6)
+    val avg_weights = Array[Double](0.1, 0.3, 0.6)
 
     val snpArray = Array(elem1, elem2, elem3)
 
-    val res = Ensembler("AVG", snpArray, avg_weights)._1
+    val res = Ensembler("W_AVG", snpArray, avg_weights)._1
 
     assert(res == 2.5)
   }
