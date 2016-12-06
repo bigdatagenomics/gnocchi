@@ -23,7 +23,7 @@ import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.Argument
+import org.kohsuke.args4j.{Option, Argument}
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import breeze.numerics.exp
 import org.apache.commons.io.FileUtils
@@ -59,6 +59,9 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
 
   @Argument(required = false, metaVar = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.", index = 8)
   var kfold = 10
+
+  @Args4jOption(required = false, name = "-numSplits", usage = "The number of splits for progressive validation.")
+  var numSplits = 2
 
 }
 
@@ -160,7 +163,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
     val evaluations = args.associationType match {
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, contextOption, k = args.kfold)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, contextOption, k = args.kfold, n = args.numSplits)
     }
     evaluations
   }
