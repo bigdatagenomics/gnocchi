@@ -89,7 +89,7 @@ trait ValidationRegression extends SiteRegression {
         }
       } else {
         // 1 random 90/10 split
-        val (trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(.9, .1))
+        val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(.9, .1))
         applyRegression(trainRdd, testRdd, phenotypes)
       }
     }
