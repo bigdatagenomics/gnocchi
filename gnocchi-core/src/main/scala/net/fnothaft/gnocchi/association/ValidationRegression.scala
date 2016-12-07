@@ -36,7 +36,7 @@ trait ValidationRegression extends SiteRegression {
                      monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val progressiveResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
-    // n needs to be passed in as a parameter
+
     if (k != 1) {
       if (monte) {
         if (n != 1) {
@@ -123,7 +123,7 @@ trait ValidationRegression extends SiteRegression {
         val trainRDD = rddArray(i)
       } else {
         if (first) {
-          testRdd = rddArray(i)
+          testRdd = rddArray(i).map{_._2._1}
           first = false
         } else {
           testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1)) //TODO: fix this join!!
