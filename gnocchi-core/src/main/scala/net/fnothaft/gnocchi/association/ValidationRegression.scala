@@ -66,10 +66,9 @@ trait ValidationRegression extends SiteRegression {
           // kfold splits with rotating train/test. Note: ValidationRegression should only be called ONCE.
           var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1 / k))
           for (a <- 1 until k) {
-            val (train, test) = mergeRDDs(a, splitArray)
+            val (trainRdd, testRdd) = mergeRDDs(a, splitArray)
             progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
           }
-
         }
       }
     } else {
@@ -90,7 +89,7 @@ trait ValidationRegression extends SiteRegression {
         }
       } else {
         // 1 random 90/10 split
-        val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(.9, .1))
+        val (trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(.9, .1))
         applyRegression(trainRdd, testRdd, phenotypes)
       }
     }
@@ -114,21 +113,25 @@ trait ValidationRegression extends SiteRegression {
     }
     progressiveResults
   }
-  def mergeRDDs(exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[Double]))]]: (RDD[GenotypeState],RDD[GenotypeState]) = {
+
+
+  def mergeRDDs[T](exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
     var first = true
-    var testRdd: RDD[GenotypeState] = RDD[GenotypeState]
+    var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
+    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
     for (i <- rddArray.indices) {
-      if (1 == exclude) {
+      if (i == exclude) {
         val trainRDD = rddArray(i)
       } else {
         if (first) {
           testRdd = rddArray(i)
           first = false
         } else {
-          testRdd = testRdd.join(rddArray(i))  //TODO: fix this join!!
+          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1))  //TODO: fix this join!!
         }
       }
     }
+    (testRdd, trainRdd)
   }
 
   def applyRegression[T](trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))],

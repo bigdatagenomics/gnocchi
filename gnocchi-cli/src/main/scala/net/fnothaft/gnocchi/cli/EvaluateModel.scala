@@ -93,8 +93,8 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
         kcount += 1
       }
     } else {
-      val results = performEvaluation(genotypeStates,phenotypes,sc)
-      for(i <- results.indices) {
+      val results = performEvaluation(genotypeStates, phenotypes, sc)
+      for (i <- results.indices) {
         val result = results(i)
         logResults(result, sc, totalsArray(i))
       }
