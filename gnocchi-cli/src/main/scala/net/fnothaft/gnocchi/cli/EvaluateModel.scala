@@ -63,6 +63,9 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Args4jOption(required = false, name = "-numProgressiveSplits", usage = "The number of splits for progressive validation.")
   var numProgressiveSplits = 2
 
+  @Args4jOption(required = false, name = "-monteCarlo", usage = "Use MonteCarlo cross validation instead of kfolds cross validation")
+  var monteCarlo = false
+
 }
 
 class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkCommand[EvaluateModelArgs] {

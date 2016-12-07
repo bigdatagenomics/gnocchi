@@ -29,17 +29,17 @@ trait ValidationRegression extends SiteRegression {
   regressSite
   */
   final def apply[T](rdd: RDD[GenotypeState],
-                              phenotypes: RDD[Phenotype[T]],
-                              scOption: Option[SparkContext] = None,
-                              k: Int = 1,
-                              n: Int = 1,
-                              monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
+                     phenotypes: RDD[Phenotype[T]],
+                     scOption: Option[SparkContext] = None,
+                     k: Int = 1,
+                     n: Int = 1,
+                     monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val progressiveResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
     // n needs to be passed in as a parameter
     if (k != 1) {
       if (monte) {
-        if (n!=1) {
+        if (n != 1) {
           // random [1/n] split kfolds times.
           // Split genotype array into equal pieces of size 1/n
           var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
@@ -60,7 +60,7 @@ trait ValidationRegression extends SiteRegression {
           applyRegression(trainRdd, testRdd, phenotypes)
         }
       } else {
-        if (n!=1) {
+        if (n != 1) {
           assert(false, "Normal crossvalidation not possible for progressive validation. Please use --monteCarlo.")
         } else {
           // kfold splits with rotating train/test. Note: ValidationRegression should only be called ONCE.
@@ -72,7 +72,7 @@ trait ValidationRegression extends SiteRegression {
         }
       }
     } else {
-      if (n!=1) {
+      if (n != 1) {
         // 1 random [1/n] split
         // Split array genotype array into equal pieces of size 1/n
         var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
@@ -114,7 +114,6 @@ trait ValidationRegression extends SiteRegression {
     progressiveResults
   }
 
-
   def mergeRDDs[T](exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
     var first = true
     var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
@@ -127,7 +126,7 @@ trait ValidationRegression extends SiteRegression {
           testRdd = rddArray(i)
           first = false
         } else {
-          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1))  //TODO: fix this join!!
+          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1)) //TODO: fix this join!!
         }
       }
     }
