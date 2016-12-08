@@ -28,7 +28,9 @@ object BuildAdditiveLogisticVariantModel extends BuildVariantModel with Logistic
               phenotype: String): Association = {
 
     val clippedObs = arrayClipOrKeepState(observations)
-    regressSite(clippedObs, locus, altAllele, phenotype)
+    val assoc = regressSite(clippedObs, locus, altAllele, phenotype)
+    assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
+    assoc
   }
 
   def extractVariantModel(assoc: Association): VariantModel = {
@@ -37,7 +39,7 @@ object BuildAdditiveLogisticVariantModel extends BuildVariantModel with Logistic
     logRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
       .setHyperParamValues(Map[String, Double]())
       .setIncrementalUpdateValue(0.0)
-      .setNumSamples(0) // assoc.numSamples
+      .setNumSamples(assoc.statistics("numSamples").asInstanceOf[Int]) // assoc.numSamples
       .setVariance(0.0) // assoc.variance
       .setVariantID("assoc.variantID")
       .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])

@@ -20,6 +20,6 @@ import org.bdgenomics.formats.avro.Variant
 case class Association(variant: Variant,
                        phenotype: String,
                        logPValue: Double,
-                       statistics: Map[String, Any]) {
+                       var statistics: Map[String, Any]) {
 }
 

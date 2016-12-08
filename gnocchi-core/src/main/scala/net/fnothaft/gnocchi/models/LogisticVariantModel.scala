@@ -50,11 +50,10 @@ trait LogisticVariantModel extends VariantModel {
       println("weights : " + weights.toList)
       // TODO: Add in a learning rate here.
       weights = (breezeVector - breeze.linalg.DenseVector(logGrad.compute(features, label, weightsVector)._1.toArray)).toArray
+
+      // update numSamples other parameters
       numSamples += 1
     }
-
-    // update numSamples other parameters
-    numSamples += observations.length
 
     // TODO: need to update the variance as well.
     // var variance = 0.0
