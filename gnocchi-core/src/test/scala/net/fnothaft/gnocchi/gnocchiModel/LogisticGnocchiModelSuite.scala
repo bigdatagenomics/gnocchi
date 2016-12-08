@@ -61,4 +61,44 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     }
     assert(variantModel.numSamples == observations.length, s"NumSamplse incorrect: $variantModel.numSamples vs $observations.length")
   }
+
+  sparkTest("[NOT IMPLEMENTED YET] Build logistic gnocchi model, update, and check results.") {
+
+    // break data up into initial and update
+
+    // build a bunch of variant models, some with qr, some without different
+
+    // build a logisitic Gnocchi model with the variant models
+
+    // run update on the Gnocchi Model
+
+    // check that the variant's get updated correctly
+
+    // check that the variant's that should have been recomputed using qr did get recomputed using qr
+
+    // check that variant's got flagged when they were supposed to.
+
+  }
+
+  sparkTest("[NOT IMPLEMENTED YET] Load logistic gnocchi model, update, and check results.") {
+
+    // break data up into initial and update
+
+    // build a bunch of variant models, some with qr, some without different
+
+    // build a logisitic Gnocchi model with the variant models
+
+    // save the model
+
+    // load the model
+
+    // run update on the Gnocchi Model
+
+    // check that the variant's get updated correctly
+
+    // check that the variant's that should have been recomputed using qr did get recomputed using qr
+
+    // check that variant's got flagged when they were supposed to.
+
+  }
 }
