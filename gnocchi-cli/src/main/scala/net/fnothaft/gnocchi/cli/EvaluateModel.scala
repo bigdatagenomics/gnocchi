@@ -72,7 +72,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
   override val companion = EvaluateModel
   var kcount = 0
 
-  val totalsArray = new Array[EvalResult](args.kfold)
+  val totalsArray = Array.fill[EvalResult](args.kfold)(new EvalResult())
 
   override def run(sc: SparkContext) {
 
