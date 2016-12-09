@@ -116,17 +116,19 @@ trait ValidationRegression extends SiteRegression {
 
   def mergeRDDs[T](exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
     var first = true
-    var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
-    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
+    //    var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
+    //    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
+    var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
+    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
     for (i <- rddArray.indices) {
       if (i == exclude) {
         val trainRDD = rddArray(i)
       } else {
         if (first) {
-          testRdd = rddArray(i).map{_._2._1}
+          testRdd = rddArray(i)
           first = false
         } else {
-          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1)) //TODO: fix this join!!
+          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
         }
       }
     }
