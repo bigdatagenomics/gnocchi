@@ -193,7 +193,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
                  sc: SparkContext,
                  evalResult: EvalResult) = {
     // save dataset
-    val outputFile = args.associations + "-" + kcount.toString
+    val outputFile = args.results + "-" + kcount.toString
     val sqlContext = SQLContext.getOrCreate(sc)
     val assocsFile = new File(outputFile)
     if (assocsFile.exists) {

@@ -116,8 +116,6 @@ trait ValidationRegression extends SiteRegression {
 
   def mergeRDDs[T](exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
     var first = true
-    //    var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
-    //    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
     var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
     var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
     for (i <- rddArray.indices) {
