@@ -136,6 +136,7 @@ trait ValidationRegression extends SiteRegression {
   def applyRegression[T](trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
                          testRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
                          phenotypes: RDD[Phenotype[T]]): RDD[(Array[(String, (Double, Double))], Association)] = {
+    println("TrainRDD count: " + trainRdd.count)
     val modelRdd = trainRdd
       .map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
