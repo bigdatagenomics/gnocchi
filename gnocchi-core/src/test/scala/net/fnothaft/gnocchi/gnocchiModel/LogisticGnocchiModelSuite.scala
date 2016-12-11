@@ -46,12 +46,15 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     val scOption = Option(sc)
 
     // break observations into initial group and group to use in update 
-    val initial = observations.slice(0, 10)
-    val forUpdate = observations.slice(10, observations.length)
+    val initial = observations.slice(0, 25)
+    val forUpdate = observations.slice(25, observations.length)
+    val updateGroups = forUpdate.toList.grouped(25).toList
 
     // feed it into logisitic regression and compare the Wald Chi Squared tests
     val incrementalVariantModel = BuildAdditiveLogisticVariantModel(initial, locus, altAllele, phenotype)
-    incrementalVariantModel.update(forUpdate)
+    for (group <- updateGroups) {
+      incrementalVariantModel.update(group.toArray, locus, altAllele, phenotype)
+    }
     val nonincremental = BuildAdditiveLogisticVariantModel(observations, locus, altAllele, phenotype)
 
     val incrementalAssoc = Association(incrementalVariantModel.variant, "pheno", 0.0, Map("weights" -> incrementalVariantModel.weights))
@@ -68,16 +71,18 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     var numTotalIncre = incrementalPredictions.length
     for (result <- incrementalPredictions) {
       val (id, (actual, pred)) = result
+      println("Incremental actual, pred: " + actual + " " + pred)
       if (actual == pred) {
         numCorrectIncre += 1
       }
     }
 
-    val nonIncrementalPredictions = predictSite(obs.collect.asInstanceOf[Array[(Double, Array[Double], String)]], nonincrementalAssoc)
+    val nonIncrementalPredictions = predictSite(obs.collect, nonincrementalAssoc)
     var numCorrectNonIncre = 0
     var numTotalNonIncre = nonIncrementalPredictions.length
     for (result <- nonIncrementalPredictions) {
       val (id, (actual, pred)) = result
+      println("nonIncremental actual, pred: " + actual + " " + pred)
       if (actual == pred) {
         numCorrectNonIncre += 1
       }
@@ -192,6 +197,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     val predictions = new Array[(Double, Double)](expitResults.length)
     for (j <- predictions.indices) {
       predictions(j) = (lpArray(j).label, Math.round(expitResults(j)))
+      //      predictions(j) = (lpArray(j).label, expitResults(j))
     }
     predictions
   }

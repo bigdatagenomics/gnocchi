@@ -17,6 +17,7 @@ package net.fnothaft.gnocchi.models
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait GnocchiModel {
@@ -92,7 +93,7 @@ trait GnocchiModel {
     // map an update call to all variants
     val updatedVMRdd = vmAndDataRDD.map(kvv => {
       val (variant, (model, data)) = kvv
-      model.update(data.toArray)
+      model.update(data.toArray, new ReferenceRegion(variant.getContig.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, model.phenotype)
       (variant, model)
     })
 

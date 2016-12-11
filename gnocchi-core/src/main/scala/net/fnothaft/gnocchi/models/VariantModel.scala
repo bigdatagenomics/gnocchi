@@ -79,7 +79,10 @@ trait VariantModel {
   }
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  def update(observations: Array[(Double, Array[Double])])
+  def update(observations: Array[(Double, Array[Double])],
+             locus: ReferenceRegion,
+             altAllele: String,
+             phenotype: String): Unit
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
