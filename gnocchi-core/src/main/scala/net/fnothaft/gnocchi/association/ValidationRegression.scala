@@ -46,6 +46,8 @@ trait ValidationRegression extends SiteRegression {
           // Incrementally build up training set by merging first two elements (training set) and testing on second element
           val trainRdd = splitArray(0)
           val testRdd = splitArray(1)
+          println("\n\n\n\n\n\n In apply, trainRdd count: " + trainRdd.count)
+          println("SplitArray length: " + splitArray.length)
           progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
           for (a <- 1 until n) {
             splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
@@ -79,6 +81,8 @@ trait ValidationRegression extends SiteRegression {
         // Incrementally build up training set by merging first two elements (training set) and testing on second element
         val trainRdd = splitArray(0)
         val testRdd = splitArray(1)
+        println("\n\n\n\n\n\n In apply, trainRdd count: " + trainRdd.count)
+        println("SplitArray length: " + splitArray.length)
         progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
         for (a <- 1 until n) {
           splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
@@ -89,7 +93,9 @@ trait ValidationRegression extends SiteRegression {
         }
       } else {
         // 1 random 90/10 split
-        val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(.9, .1))
+        val rdds = genoPhenoRdd.randomSplit(Array(.9, .1))
+        val trainRdd = rdds(0)
+        val testRdd = rdds(1)
         applyRegression(trainRdd, testRdd, phenotypes)
       }
     }
