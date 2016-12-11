@@ -36,13 +36,13 @@ trait ValidationRegression extends SiteRegression {
                      monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val progressiveResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
-    // n needs to be passed in as a parameter
+
     if (k != 1) {
       if (monte) {
         if (n != 1) {
           // random [1/n] split kfolds times.
           // Split genotype array into equal pieces of size 1/n
-          var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
+          var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1f / n))
           // Incrementally build up training set by merging first two elements (training set) and testing on second element
           val trainRdd = splitArray(0)
           val testRdd = splitArray(1)
@@ -64,7 +64,7 @@ trait ValidationRegression extends SiteRegression {
           assert(false, "Normal crossvalidation not possible for progressive validation. Please use --monteCarlo.")
         } else {
           // kfold splits with rotating train/test. Note: ValidationRegression should only be called ONCE.
-          var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1 / k))
+          var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1f / k))
           for (a <- 1 until k) {
             val (trainRdd, testRdd) = mergeRDDs(a, splitArray)
             progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
@@ -75,7 +75,7 @@ trait ValidationRegression extends SiteRegression {
       if (n != 1) {
         // 1 random [1/n] split
         // Split array genotype array into equal pieces of size 1/n
-        var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
+        var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1f / n))
         // Incrementally build up training set by merging first two elements (training set) and testing on second element
         val trainRdd = splitArray(0)
         val testRdd = splitArray(1)
@@ -98,7 +98,7 @@ trait ValidationRegression extends SiteRegression {
       applyRegression(trainRdd, testRdd, phenotypes)
     } else {
       // Split array genotype array into equal pieces of size 1/n
-      var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1 / n))
+      var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1f / n))
       // Incrementally build up training set by merging first two elements (training set) and testing on second element
       val trainRdd = splitArray(0)
       val testRdd = splitArray(1)
@@ -116,8 +116,8 @@ trait ValidationRegression extends SiteRegression {
 
   def mergeRDDs[T](exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
     var first = true
-    var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
-    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = RDD[(String, (GenotypeState, Phenotype[T]))]
+    var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
+    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
     for (i <- rddArray.indices) {
       if (i == exclude) {
         val trainRDD = rddArray(i)
@@ -126,7 +126,7 @@ trait ValidationRegression extends SiteRegression {
           testRdd = rddArray(i)
           first = false
         } else {
-          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1)) //TODO: fix this join!!
+          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
         }
       }
     }

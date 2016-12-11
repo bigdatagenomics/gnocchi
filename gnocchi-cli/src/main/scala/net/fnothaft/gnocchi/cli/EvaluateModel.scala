@@ -72,7 +72,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
   override val companion = EvaluateModel
   var kcount = 0
 
-  val totalsArray = new Array[EvalResult](args.kfold)
+  val totalsArray = Array.fill[EvalResult](args.kfold)(new EvalResult())
 
   override def run(sc: SparkContext) {
 
@@ -193,7 +193,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
                  sc: SparkContext,
                  evalResult: EvalResult) = {
     // save dataset
-    val outputFile = args.associations + "-" + kcount.toString
+    val outputFile = args.results + "-" + kcount.toString
     val sqlContext = SQLContext.getOrCreate(sc)
     val assocsFile = new File(outputFile)
     if (assocsFile.exists) {
