@@ -57,11 +57,11 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Args4jOption(required = false, name = "ENSEMBLE_WEIGHTS", usage = "The weights to be used in the ensembler's weighted average call.")
   var ensembleWeights: String = ""
 
-  @Args4jOption(required = false, name = "KFOLD", usage = "The number of folds to split into using Monte Carlo CV.")
-  var kfold = 10
+  @Args4jOption(required = false, name = "-kfold", usage = "The number of folds to split into using Monte Carlo CV.")
+  var kfold = 1
 
   @Args4jOption(required = false, name = "-numProgressiveSplits", usage = "The number of splits for progressive validation.")
-  var numProgressiveSplits = 2
+  var numProgressiveSplits = 1
 
   @Args4jOption(required = false, name = "-monteCarlo", usage = "Use MonteCarlo cross validation instead of kfolds cross validation")
   var monteCarlo = false
