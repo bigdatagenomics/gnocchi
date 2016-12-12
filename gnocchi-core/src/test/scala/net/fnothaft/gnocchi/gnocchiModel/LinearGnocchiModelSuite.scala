@@ -17,14 +17,13 @@ package net.fnothaft.gnocchi.gnocchiModel
 
 import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
 import net.fnothaft.gnocchi.models.Association
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
 
-class LogisticGnocchiModelSuite extends GnocchiFunSuite {
+class LinearGnocchiModelSuite extends GnocchiFunSuite {
 
-  sparkTest("Build AdditiveLogisticGnocchiModel from data and update") {
+  sparkTest("Build AdditiveLinearGnocchiModel from data and update") {
     // read in the data from binary.csv
     // data comes from: http://www.ats.ucla.edu/stat/sas/dae/binary.sas7bdat
     // results can be found here: http://www.ats.ucla.edu/stat/sas/dae/logit.htm
@@ -51,11 +50,11 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     val updateGroups = forUpdate.toList.grouped(25).toList
 
     // feed it into logisitic regression and compare the Wald Chi Squared tests
-    val incrementalVariantModel = BuildAdditiveLogisticVariantModel(initial, locus, altAllele, phenotype)
+    val incrementalVariantModel = BuildAdditiveLinearVariantModel(initial, locus, altAllele, phenotype)
     for (group <- updateGroups) {
       incrementalVariantModel.update(group.toArray, locus, altAllele, phenotype)
     }
-    val nonincremental = BuildAdditiveLogisticVariantModel(observations, locus, altAllele, phenotype)
+    val nonincremental = BuildAdditiveLinearVariantModel(observations, locus, altAllele, phenotype)
 
     val incrementalAssoc = Association(incrementalVariantModel.variant, "pheno", 0.0, Map("weights" -> incrementalVariantModel.weights))
     val nonincrementalAssoc = Association(incrementalVariantModel.variant, "pheno", 0.0, Map("weights" -> nonincremental.weights))

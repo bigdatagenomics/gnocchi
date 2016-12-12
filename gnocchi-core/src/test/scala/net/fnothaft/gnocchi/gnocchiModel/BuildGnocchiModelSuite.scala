@@ -53,4 +53,5 @@ class BuildGnocchiModelSuite extends GnocchiFunSuite {
       assert(estWeights(i) >= (compWeights(i) - .01), s"Weight $i incorrect")
     }
   }
+
 }

@@ -15,16 +15,12 @@
  */
 package net.fnothaft.gnocchi.models
 
-import breeze.linalg.{ DenseVector => BreezeDense }
-import net.fnothaft.gnocchi.association.AdditiveLogisticAssociation
-import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
 import net.fnothaft.gnocchi.transformations.Obs2LabeledPoints
-import org.apache.spark.mllib.optimization.LogisticGradient
 import org.apache.spark.mllib.linalg.DenseVector
-import org.bdgenomics.adam.models.ReferenceRegion
+import org.apache.spark.mllib.optimization.LeastSquaresGradient
 import org.bdgenomics.formats.avro.Variant
 
-trait LogisticVariantModel extends VariantModel {
+trait LinearVariantModel extends VariantModel {
 
   var variance = 0.0
   var variantID = "No ID for this Variant"

@@ -23,7 +23,8 @@ trait BuildGnocchiModel {
 
   def apply[T](rdd: RDD[GenotypeState],
                phenotypes: RDD[Phenotype[T]],
-               sc: SparkContext): GnocchiModel = {
+               sc: SparkContext,
+               save: Boolean = false): GnocchiModel = {
 
     // call RegressPhenotypes on the data
     val assocs = fit(rdd, phenotypes)
@@ -32,7 +33,9 @@ trait BuildGnocchiModel {
     val model = extractModel(assocs, sc)
 
     // save the LogisticGnocchiModel
-    //    model.save
+    if (save) {
+      //SaveGnocchiModel(model)
+    }
 
     model
   }

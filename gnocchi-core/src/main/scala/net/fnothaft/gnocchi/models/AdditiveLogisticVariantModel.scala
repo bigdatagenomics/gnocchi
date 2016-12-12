@@ -15,7 +15,10 @@
  */
 package net.fnothaft.gnocchi.models
 
-import net.fnothaft.gnocchi.association.{ Additive, LogisticSiteRegression }
+import breeze.linalg.{ DenseVector => BreezeDense }
+import net.fnothaft.gnocchi.association.{ AdditiveLogisticAssociation }
+import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
+import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
 class AdditiveLogisticVariantModel extends LogisticVariantModel {
@@ -23,4 +26,22 @@ class AdditiveLogisticVariantModel extends LogisticVariantModel {
   var modelType = "Additive Logistic Variant Model"
   val regressionName = "Additive Logistic Regression"
 
+  def update(observations: Array[(Double, Array[Double])],
+             locus: ReferenceRegion,
+             altAllele: String,
+             phenotype: String): Unit = {
+
+    val clippedObs = BuildAdditiveLogisticVariantModel.arrayClipOrKeepState(observations)
+    val assoc = AdditiveLogisticAssociation.regressSite(clippedObs, locus, altAllele, phenotype)
+    if (assoc.statistics.nonEmpty) {
+      assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
+      val numNewSamples = observations.length
+      val totalSamples = numSamples + numNewSamples
+      val oldWeight = numSamples.toDouble / totalSamples.toDouble
+      val newWeight = 1.0 - oldWeight
+      val newWeights = BreezeDense(assoc.statistics("weights").asInstanceOf[Array[Double]])
+      weights = (oldWeight * BreezeDense(weights) + newWeight * newWeights).toArray
+      numSamples = totalSamples
+    }
+  }
 }

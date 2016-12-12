@@ -43,7 +43,7 @@ trait BuildVariantModel {
 }
 
 trait AdditiveVariant extends BuildVariantModel {
-  protected def arrayClipOrKeepState(observations: Array[(Double, Array[Double])]): Array[(Double, Array[Double])] = {
+  def arrayClipOrKeepState(observations: Array[(Double, Array[Double])]): Array[(Double, Array[Double])] = {
     observations.map(obs => {
       (obs._1.toDouble, obs._2)
     })
@@ -55,7 +55,7 @@ trait AdditiveVariant extends BuildVariantModel {
 }
 
 trait DominantVariant extends BuildVariantModel {
-  protected def arrayClipOrKeepState(observations: Array[(Double, Array[Double])]): Array[(Double, Array[Double])] = {
+  def arrayClipOrKeepState(observations: Array[(Double, Array[Double])]): Array[(Double, Array[Double])] = {
     observations.map(obs => {
       if (obs._1 == 0) (0.0, obs._2) else (1.0, obs._2)
     })
