@@ -20,7 +20,7 @@ import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
-trait GnocchiModel {
+trait GnocchiModel extends Serializable {
   var numSamples: List[(String, Int)] //(VariantID, NumSamples)
   var numVariants: Int
   var variances: List[(String, Double)] // (VariantID, variance)
