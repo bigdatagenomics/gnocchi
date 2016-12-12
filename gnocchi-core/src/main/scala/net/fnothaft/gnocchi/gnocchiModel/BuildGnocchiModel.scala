@@ -15,7 +15,7 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{Association, GenotypeState, GnocchiModel, Phenotype}
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, GnocchiModel, Phenotype }
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
@@ -34,7 +34,7 @@ trait BuildGnocchiModel {
 
     // save the LogisticGnocchiModel
     if (save) {
-      SaveGnocchiModel(model)
+      //SaveGnocchiModel(model)
     }
 
     model

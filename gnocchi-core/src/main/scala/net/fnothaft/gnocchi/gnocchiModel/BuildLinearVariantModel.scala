@@ -17,36 +17,48 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.association.LinearSiteRegression
-import net.fnothaft.gnocchi.models.{ Association, VariantModel }
+import net.fnothaft.gnocchi.models.{ AdditiveLinearVariantModel, Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
 
-//object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSiteRegression with AdditiveVariant {
-//  def compute(observations: Array[(Double, Array[Double])],
-//              locus: ReferenceRegion,
-//              altAllele: String,
-//              phenotype: String): Association = {
-//
-//    val clippedObs = arrayClipOrKeepState(observations)
-//    regressSite(observations, locus, altAllele, phenotype)
-//  }
-//
-//  //  def extractVariantModel(assoc: Association): VariantModel = {
-//  //
-//  //    // code for extracting the VariantModel from the Association
-//  //
-//  //  }
-//
-//  val regressionName = "Additive Linear Regression"
-//}
+object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSiteRegression with AdditiveVariant {
+
+  def compute(observations: Array[(Double, Array[Double])],
+              locus: ReferenceRegion,
+              altAllele: String,
+              phenotype: String): Association = {
+
+    val clippedObs = arrayClipOrKeepState(observations)
+    val assoc = regressSite(clippedObs, locus, altAllele, phenotype)
+    assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
+    assoc
+  }
+
+  def extractVariantModel(assoc: Association): VariantModel = {
+
+    val logRegModel = new AdditiveLinearVariantModel
+    logRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
+      .setHyperParamValues(Map[String, Double]())
+      .setIncrementalUpdateValue(0.0)
+      .setNumSamples(assoc.statistics("numSamples").asInstanceOf[Int]) // assoc.numSamples
+      .setVariance(0.0) // assoc.variance
+      .setVariantID("assoc.variantID")
+      .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+      .setIntercept(assoc.statistics("intercept").asInstanceOf[Double])
+    logRegModel
+  }
+
+  val regressionName = "Additive Linear Regression"
+}
 
 //object BuildDominantLinearVariantModel extends BuildVariantModel with LinearSiteRegression with DominantVariant {
+//
 //  def compute(observations: Array[(Double, Array[Double])],
 //              locus: ReferenceRegion,
 //              altAllele: String,
 //              phenotype: String): Association = {
 //
 //    val clippedObs = arrayClipOrKeepState(observations)
-//    regressSite(observations, locus, altAllele, phenotype)
+//    regressSite(clippedObs, locus, altAllele, phenotype)
 //  }
 //
 //  //  def extractVariantModel(assoc: Association): VariantModel = {
@@ -54,7 +66,6 @@ import org.bdgenomics.adam.models.ReferenceRegion
 //  //    // code for extracting the VariantModel from the Association
 //  //
 //  //  }
-//
 //  val regressionName = "Dominant Linear Regression"
 //}
 
