@@ -127,13 +127,13 @@ trait ValidationRegression extends SiteRegression {
     var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
     for (i <- rddArray.indices) {
       if (i == exclude) {
-        val trainRDD = rddArray(i)
+        val testRdd = rddArray(i)
       } else {
         if (first) {
-          testRdd = rddArray(i)
+          trainRdd = rddArray(i)
           first = false
         } else {
-          testRdd = testRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
+          trainRdd = trainRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
         }
       }
     }
