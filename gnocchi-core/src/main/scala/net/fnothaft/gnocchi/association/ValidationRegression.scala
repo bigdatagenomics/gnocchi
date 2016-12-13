@@ -69,7 +69,7 @@ trait ValidationRegression extends SiteRegression {
           var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1f / k))
           for (a <- splitArray.indices) {
             println(s"\n\n\n\n\n\n\n a = $a \n\n\n\n\n\n\n\n\n")
-            val (trainRdd, testRdd) = mergeRDDs(a, splitArray)
+            val (testRdd, trainRdd) = mergeRDDs(a, splitArray)
             progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
           }
         }
