@@ -66,7 +66,7 @@ trait ValidationRegression extends SiteRegression {
           assert(false, "Normal crossvalidation not possible for progressive validation. Please use --monteCarlo.")
         } else {
           // kfold splits with rotating train/test. Note: ValidationRegression should only be called ONCE.
-          var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1 / k))
+          var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1f / k))
           for (a <- 1 until k) {
             val (trainRdd, testRdd) = mergeRDDs(a, splitArray)
             progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
