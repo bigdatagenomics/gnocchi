@@ -127,24 +127,24 @@ trait ValidationRegression extends SiteRegression {
   }
 
   def mergeRDDs[T](sc: SparkContext, exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
-    var first = true
     var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
-    var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
+    var trainingData: Array[(String, (GenotypeState, Phenotype[T]))] = new Array[(String, (GenotypeState, Phenotype[T]))](0)
+    if (exclude == 0) {
+      trainingData = rddArray(1).collect
+    } else {
+      trainingData = rddArray(0).collect
+    }
     for (i <- rddArray.indices) {
       if (i == exclude) {
         val testRdd = rddArray(i)
       } else {
-        if (first) {
-          trainRdd = rddArray(i)
-          first = false
-        } else {
-          println("pre-join count: " + trainRdd.count) // 67 samples in pre-join count
+          println("pre-join count: " + trainingData.length) // 67 samples in pre-join count
           //          trainRdd = trainRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
-          trainRdd = sc.parallelize(trainRdd.collect ++ rddArray(i).collect)
-          println("post-join count: " + trainRdd.count) // 0 sampels in post-join count.
-        }
+           trainingData = trainingData ++ rddArray(i).collect
+          println("post-join count: " + trainingData.length) // 0 sampels in post-join count.
       }
     }
+    val trainRdd = sc.parallelize(trainingData)
     (testRdd, trainRdd)
   }
 
