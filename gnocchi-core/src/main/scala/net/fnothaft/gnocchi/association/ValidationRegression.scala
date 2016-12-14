@@ -67,9 +67,13 @@ trait ValidationRegression extends SiteRegression {
         } else {
           // kfold splits with rotating train/test. Note: ValidationRegression should only be called ONCE.
           var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1f / k))
+//          println("\n\n\n\n\n\n number of splits: " + splitArray.length + "\n\n\n\n\n")
           for (a <- splitArray.indices) {
             println(s"\n\n\n\n\n\n\n a = $a \n\n\n\n\n\n\n\n\n")
+            println("\n\n\n\n\n\n number of splits: " + splitArray.length + "\n\n\n\n\n")
             val (testRdd, trainRdd) = mergeRDDs(a, splitArray)
+            println("\n\n\n\n\n\n testRdd length: " + testRdd.count)
+            println("\n\n\n\n\n\n trainRdd length: " + trainRdd.count)
             progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
           }
         }
