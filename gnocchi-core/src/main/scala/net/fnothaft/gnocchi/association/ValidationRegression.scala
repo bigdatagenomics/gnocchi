@@ -168,9 +168,11 @@ trait ValidationRegression extends SiteRegression {
         variant.setEnd(gs.end)
         variant.setAlternateAllele(gs.alt)
         ((variant, pheno.phenotype), p)
-      }).groupByKey()
+      })
+      println("temp01: \n" + temp01.take(5).toList)
+      // ^ for some reason there is only one uniqe key
       println("\n\n\n\n\n\n\n temp01 count: " + temp01.count + "\n\n\n\n\n\n\n\n\n")
-      val temp0 = temp01
+      val temp0 = temp01.groupByKey()
       .map(site =>  {
         val ((variant, pheno), observations) = site
 
