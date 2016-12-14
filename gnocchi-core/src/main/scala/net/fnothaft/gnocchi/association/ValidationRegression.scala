@@ -152,7 +152,7 @@ trait ValidationRegression extends SiteRegression {
                          testRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
                          phenotypes: RDD[Phenotype[T]]): RDD[(Array[(String, (Double, Double))], Association)] = {
     println("TrainRDD count: " + trainRdd.count)
-    val temp0 = trainRdd
+    val temp01 = trainRdd
       .map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
         val (_, p) = kvv
@@ -169,7 +169,9 @@ trait ValidationRegression extends SiteRegression {
         variant.setAlternateAllele(gs.alt)
         ((variant, pheno.phenotype), p)
       }).groupByKey()
-      .map(site => {
+      println("\n\n\n\n\n\n\n temp01 count: " + temp01.count + "\n\n\n\n\n\n\n\n\n")
+      val temp0 = temp01
+      .map(site =>  {
         val ((variant, pheno), observations) = site
 
         // build array to regress on, and then regress
@@ -181,7 +183,6 @@ trait ValidationRegression extends SiteRegression {
         }).toArray, variant, pheno)
         ((variant, pheno), assoc)
       })
-      println("\n\n\n\n\n\n\n temp0 count: " + temp0.count + "\n\n\n\n\n\n\n\n\n")
       val modelRdd = temp0.filter(varModel => {
         val ((variant, phenotype), assoc) = varModel
         assoc.statistics.nonEmpty
