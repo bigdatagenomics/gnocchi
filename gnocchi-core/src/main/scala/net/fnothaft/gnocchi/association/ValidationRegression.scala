@@ -138,10 +138,10 @@ trait ValidationRegression extends SiteRegression {
       if (i == exclude) {
         val testRdd = rddArray(i)
       } else {
-          println("pre-join count: " + trainingData.length) // 67 samples in pre-join count
-          //          trainRdd = trainRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
-           trainingData = trainingData ++ rddArray(i).collect
-          println("post-join count: " + trainingData.length) // 0 sampels in post-join count.
+        println("pre-join count: " + trainingData.length) // 67 samples in pre-join count
+        //          trainRdd = trainRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
+        trainingData = trainingData ++ rddArray(i).collect
+        println("post-join count: " + trainingData.length) // 0 sampels in post-join count.
       }
     }
     val trainRdd = sc.parallelize(trainingData)
