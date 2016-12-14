@@ -176,7 +176,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
     val evaluations = args.associationType match {
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, monte = args.monteCarlo)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
     }
     evaluations
   }

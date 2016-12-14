@@ -33,6 +33,7 @@ trait ValidationRegression extends SiteRegression {
                      scOption: Option[SparkContext] = None,
                      k: Int = 1,
                      n: Int = 1,
+                     sc: SparkContext,
                      monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val progressiveResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
@@ -67,11 +68,11 @@ trait ValidationRegression extends SiteRegression {
         } else {
           // kfold splits with rotating train/test. Note: ValidationRegression should only be called ONCE.
           var splitArray = genoPhenoRdd.randomSplit(Array.fill(k)(1f / k))
-//          println("\n\n\n\n\n\n number of splits: " + splitArray.length + "\n\n\n\n\n")
+          //          println("\n\n\n\n\n\n number of splits: " + splitArray.length + "\n\n\n\n\n")
           for (a <- splitArray.indices) {
             println(s"\n\n\n\n\n\n\n a = $a \n\n\n\n\n\n\n\n\n")
             println("\n\n\n\n\n\n number of splits: " + splitArray.length + "\n\n\n\n\n")
-            val (testRdd, trainRdd) = mergeRDDs(a, splitArray)
+            val (testRdd, trainRdd) = mergeRDDs(sc, a, splitArray)
             println("\n\n\n\n\n\n testRdd length: " + testRdd.count)
             println("\n\n\n\n\n\n trainRdd length: " + trainRdd.count)
             progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
@@ -125,7 +126,7 @@ trait ValidationRegression extends SiteRegression {
     progressiveResults
   }
 
-  def mergeRDDs[T](exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
+  def mergeRDDs[T](sc: SparkContext, exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
     var first = true
     var testRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
     var trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))] = rddArray(0)
@@ -137,9 +138,10 @@ trait ValidationRegression extends SiteRegression {
           trainRdd = rddArray(i)
           first = false
         } else {
-          println("pre-join count: " + trainRdd.count)
-          trainRdd = trainRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
-          println("post-join count: " + trainRdd.count)
+          println("pre-join count: " + trainRdd.count) // 67 samples in pre-join count
+          //          trainRdd = trainRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
+          trainRdd = sc.parallelize(trainRdd.collect ++ rddArray(i).collect)
+          println("post-join count: " + trainRdd.count) // 0 sampels in post-join count.
         }
       }
     }
