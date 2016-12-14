@@ -137,7 +137,9 @@ trait ValidationRegression extends SiteRegression {
           trainRdd = rddArray(i)
           first = false
         } else {
+          println("pre-join count: " + trainRdd.count)
           trainRdd = trainRdd.join(rddArray(i)).flatMapValues(x => List(x._1))
+          println("post-join count: " + trainRdd.count)
         }
       }
     }
