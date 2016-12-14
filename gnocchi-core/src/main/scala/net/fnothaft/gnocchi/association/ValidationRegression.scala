@@ -152,7 +152,7 @@ trait ValidationRegression extends SiteRegression {
                          testRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
                          phenotypes: RDD[Phenotype[T]]): RDD[(Array[(String, (Double, Double))], Association)] = {
     println("TrainRDD count: " + trainRdd.count)
-    val modelRdd = trainRdd
+    val temp0 = trainRdd
       .map(kvv => {
         // unpack the entry of the joined rdd into id and actual info
         val (_, p) = kvv
@@ -180,7 +180,9 @@ trait ValidationRegression extends SiteRegression {
           (clipOrKeepState(genotypeState), phenotype.toDouble)
         }).toArray, variant, pheno)
         ((variant, pheno), assoc)
-      }).filter(varModel => {
+      })
+      println("\n\n\n\n\n\n\n temp0 count: " + temp0.count + "\n\n\n\n\n\n\n\n\n")
+      val modelRdd = temp0.filter(varModel => {
         val ((variant, phenotype), assoc) = varModel
         assoc.statistics.nonEmpty
       })
