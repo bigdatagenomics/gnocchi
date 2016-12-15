@@ -200,8 +200,8 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
   }
 
   def evaluate(evalArray: Array[RDD[(Array[(String, (Double, Double))], Association)]]): Array[EvalResult] = {
-    val resultsArray = new Array[EvalResult](0)
-    for (i <- evalArray.indices) {
+    val resultsArray = Array(evaluateResult(evalArray(0)))
+    for (i <- 1 until evalArray.length) {
       resultsArray ++ Array(evaluateResult(evalArray(i)))
     }
     resultsArray
