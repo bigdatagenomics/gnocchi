@@ -19,7 +19,7 @@ package net.fnothaft.gnocchi.association
 import net.fnothaft.gnocchi.models.{ Association, GenotypeState, Phenotype }
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.bdgenomics.adam.models.ReferenceRegion
+import net.fnothaft.gnocchi.transformations.gs2variant
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait ValidationRegression extends SiteRegression {
@@ -160,13 +160,7 @@ trait ValidationRegression extends SiteRegression {
         val (gs, pheno) = p
         // create contig and Variant objects and group by Variant
         // pack up the information into an Association object
-        val variant = new Variant()
-        val contig = new Contig()
-        contig.setContigName(gs.contig + "_" + gs.sampleId)
-        variant.setContig(contig)
-        variant.setStart(gs.start)
-        variant.setEnd(gs.end)
-        variant.setAlternateAllele(gs.alt)
+        val variant = gs2variant(gs)
         ((variant, pheno.phenotype), p)
       })
       println("temp01: \n" + temp01.take(5).toList)
@@ -199,13 +193,7 @@ trait ValidationRegression extends SiteRegression {
 
         // create contig and Variant objects and group by Variant
         // pack up the information into an Association object
-        val variant = new Variant()
-        val contig = new Contig()
-        contig.setContigName(gs.contig)
-        variant.setContig(contig)
-        variant.setStart(gs.start)
-        variant.setEnd(gs.end)
-        variant.setAlternateAllele(gs.alt)
+        val variant = gs2variant(gs)
         ((variant, pheno.phenotype), (sampleid, p))
       }).groupByKey()
     //    println("\n\n" + temp.take(1).toList)
