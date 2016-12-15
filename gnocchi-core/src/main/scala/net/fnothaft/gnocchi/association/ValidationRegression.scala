@@ -162,7 +162,7 @@ trait ValidationRegression extends SiteRegression {
         // pack up the information into an Association object
         val variant = new Variant()
         val contig = new Contig()
-        contig.setContigName(gs.contig)
+        contig.setContigName(gs.contig + "_" + gs.sampleId)
         variant.setContig(contig)
         variant.setStart(gs.start)
         variant.setEnd(gs.end)
@@ -170,7 +170,6 @@ trait ValidationRegression extends SiteRegression {
         ((variant, pheno.phenotype), p)
       })
       println("temp01: \n" + temp01.take(5).toList)
-      // ^ for some reason there is only one uniqe key
       println("\n\n\n\n\n\n\n temp01 count: " + temp01.count + "\n\n\n\n\n\n\n\n\n")
       val temp0 = temp01.groupByKey()
       .map(site =>  {
