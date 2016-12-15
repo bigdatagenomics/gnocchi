@@ -163,8 +163,7 @@ trait ValidationRegression extends SiteRegression {
         val variant = gs2variant(gs)
         ((variant, pheno.phenotype), p)
       })
-    println("temp01: \n" + temp01.take(5).toList)
-    println("\n\n\n\n\n\n\n temp01 count: " + temp01.count + "\n\n\n\n\n\n\n\n\n")
+    println("temp01: \n" + temp01.count + "\n" + temp01.take(5).toList)
     val temp0 = temp01.groupByKey()
       .map(site => {
         val ((variant, pheno), observations) = site
@@ -178,6 +177,7 @@ trait ValidationRegression extends SiteRegression {
         }).toArray, variant, pheno)
         ((variant, pheno), assoc)
       })
+    println("\n\n\n\n\n\n\n temp0 count: " + temp0.count + "\n\n\n\n\n\n\n\n\n")
     val modelRdd = temp0.filter(varModel => {
       val ((variant, phenotype), assoc) = varModel
       assoc.statistics.nonEmpty
