@@ -24,7 +24,7 @@ object gs2variant {
   def apply(gs: GenotypeState): Variant = {
     val variant = new Variant()
     val contig = new Contig()
-    contig.setContigName(gs.contig + "_" + gs.sampleId)
+    contig.setContigName(gs.contig)
     variant.setContig(contig)
     variant.setStart(gs.start)
     variant.setEnd(gs.end)

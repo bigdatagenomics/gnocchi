@@ -76,7 +76,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
   override def run(sc: SparkContext) {
 
-    // Load in genotype data
+    // Load in filtered genotype data
     val genotypeStates = loadGenotypes(sc)
 
     // instantiate regressPhenotypes obj

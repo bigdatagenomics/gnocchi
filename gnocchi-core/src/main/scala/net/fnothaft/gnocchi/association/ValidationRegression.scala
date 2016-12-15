@@ -197,7 +197,7 @@ trait ValidationRegression extends SiteRegression {
         ((variant, pheno.phenotype), (sampleid, p))
       }).groupByKey()
     //    println("\n\n" + temp.take(1).toList)
-    println("pre-join samples at a site: \n" + temp.take(5).toList)
+    println("Number of testSamples: " + temp.count)
     println("Number of models: " + modelRdd.count)
     val temp2 = temp.join(modelRdd)
     println("Post-join samples and models at a site: \n" + temp2.take(0).toList)
