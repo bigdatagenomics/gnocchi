@@ -16,6 +16,8 @@
 package net.fnothaft.gnocchi.cli
 
 import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.{ Files, Paths }
 
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
@@ -76,7 +78,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
   override def run(sc: SparkContext) {
 
-    // Load in filtered genotype data
+    // Load in genotype data filtering out any SNPs not provided in command line
     val genotypeStates = loadGenotypes(sc)
 
     // instantiate regressPhenotypes obj
@@ -84,25 +86,15 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
     // Load in phenotype data
     val phenotypes = regPheno.loadPhenotypes(sc)
-    if (args.monteCarlo) {
-      while (kcount < args.kfold) {
-        // Perform analysis
-        val results = performEvaluation(genotypeStates, phenotypes, sc)
-        // Log the results
-        for (i <- results.indices) {
-          val result = results(i)
-          logResults(result, sc, totalsArray(i))
-        }
-        kcount += 1
-      }
-    } else {
-      val results = performEvaluation(genotypeStates, phenotypes, sc)
-      for (i <- results.indices) {
-        val result = results(i)
-        logResults(result, sc, totalsArray(i))
-      }
-    }
-    logKFold()
+
+    // perform cross validation
+    val crossValResultsArray = performValidation(genotypeStates, phenotypes, sc)
+
+    // evaluate results
+    val resultsArray = evaluate(crossValResultsArray)
+
+    // log results
+    logResults(resultsArray)
   }
 
   def logKFold(): Unit = {
@@ -181,24 +173,40 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     evaluations
   }
 
-  /**
-   * Logs results of an evaluation.
-   * FIXME: Make this right.
-   *
-   * @param results RDD of (Array[(id, (predicted, actual))], Association).
-   *                The association model contains the weights.
-   * @param sc the spark context to be used.
-   */
-  def logResults(results: RDD[(Array[(String, (Double, Double))], Association)],
-                 sc: SparkContext,
-                 evalResult: EvalResult) = {
-    // save dataset
-    val outputFile = args.results + "-" + kcount.toString
-    val sqlContext = SQLContext.getOrCreate(sc)
-    val assocsFile = new File(outputFile)
-    if (assocsFile.exists) {
-      FileUtils.deleteDirectory(assocsFile)
+  def performValidation(genotypeStates: Dataset[GenotypeState],
+                        phenotypes: RDD[Phenotype[Array[Double]]],
+                        sc: SparkContext): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
+
+    var results = performEvaluation(genotypeStates, phenotypes, sc)
+    if (args.monteCarlo) {
+      while (kcount < args.kfold - 1) {
+
+        // Perform analysis
+        results = results ++ performEvaluation(genotypeStates, phenotypes, sc)
+
+        // Log the results
+        //        for (i <- results.indices) {
+        //          val result = results(i)
+        //          logResults(result, sc, totalsArray(i))
+        //        }
+        kcount += 1
+      }
+      //    } else {
+      //
     }
+    results
+  }
+
+  def evaluate(evalArray: Array[RDD[(Array[(String, (Double, Double))], Association)]]): Array[EvalResult] = {
+    val resultsArray = new Array[EvalResult](0)
+    for (i <- evalArray.indices) {
+      resultsArray ++ Array(evaluateResult(evalArray(i)))
+    }
+    resultsArray
+  }
+
+  def evaluateResult(toEvaluate: RDD[(Array[(String, (Double, Double))], Association)]): EvalResult = {
+    val evalResult = new EvalResult
 
     val ensembleMethod = args.ensembleMethod
     var ensembleWeights = Array[Double]()
@@ -206,7 +214,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       ensembleWeights = args.ensembleWeights.split(",").map(x => x.toDouble)
     }
 
-    val resultsBySample = results.flatMap(ipaa => {
+    val resultsBySample = toEvaluate.flatMap(ipaa => {
       var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
       for (i <- 1 until ipaa._1.length) {
         toRet = toRet :+ (ipaa._1(i)._1, (ipaa._1(i)._2._1, ipaa._1(i)._2._2, ipaa._2))
@@ -250,54 +258,94 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val percentPredZero = numZeroPred / numSamples
     val percentPredOne = 1 - percentPredZero
 
-    // TODO: fix this so that you can do 10-fold cross validation on progressive validation
     evalResult.totalPZA += percentZeroActual
     evalResult.totalPOA += percentOneActual
     evalResult.totalPPZAO += percentPredZeroActualOne
     evalResult.totalPPOAZ += percentPredOneActualZero
     evalResult.totalPPZ += percentPredZero
     evalResult.totalPPO += percentPredOne
+    evalResult
+  }
 
-    //      .map(ipaa => {
-    //        val ((sampleId, (pred, actual)), assoc): ((String, (Double, Double)), Association) = ipaa
-    //        (sampleId, (assoc, pred, actual))
-    //      }).groupByKey
-    //
-    //
-    //      .map(_._1).flatMap(_.toTraversable).map(sampleSite => {
-    //      val sampleId = sampleSite._1
-    //      val res = sampleSite._2
-    //      (sampleId, (if (res._1 == res._2) 1 else 0, 1))
-    //    }).reduceByKey((p1, p2) => (p1._1 + p2._1, p1._2 + p2._2)).map(s => {
-    //      val sampleId = s._1
-    //      val nums = s._2
-    //      (sampleId, nums._1.toDouble / nums._2.toDouble)
-    //    })
-    val assocs = results.map(site => site._2)
-    if (args.saveAsText) {
-      assocs.map(r => "%s, %s, %s"
-        .format(r.variant.getContig.getContigName,
-          r.variant.getContig.getContigMD5, exp(r.logPValue).toString))
-        .saveAsTextFile(outputFile)
-      //      valResults.map(r => "%s, %f"
-      //        .format(r._1, r._2))
-      //        .saveAsTextFile(evalArgs.results)
-      println(s"Percent of samples with actual unaffected phenotype: $percentZeroActual")
-      println(s"Percent of samples with actual affected phenotype: $percentOneActual")
-      println(s"Percent of samples predicted to be unaffected but actually were affected: $percentPredZeroActualOne")
-      println(s"Percent of samples predicted to be affected but actually were unaffected: $percentPredOneActualZero")
-      println(s"Percent of samples predicted to be unaffected: $percentPredZero")
-      println(s"Percent of samples predicted to be affected: $percentPredOne")
-    } else {
-      sqlContext.createDataFrame(assocs).write.parquet(outputFile)
-      sqlContext.createDataFrame(resultsBySample).write.parquet(args.results)
-      println(s"Percent of samples with actual unaffected phenotype: $percentZeroActual")
-      println(s"Percent of samples with actual affected phenotype: $percentOneActual")
-      println(s"Percent of samples predicted to be unaffected but actually were affected: $percentPredZeroActualOne")
-      println(s"Percent of samples predicted to be affected but actually were unaffected: $percentPredOneActualZero")
-      println(s"Percent of samples predicted to be unaffected: $percentPredZero")
-      println(s"Percent of samples predicted to be affected: $percentPredOne")
+  //  /**
+  //   * Logs results of an evaluation.
+  //   * FIXME: Make this right.
+  //   *
+  //   * @param results RDD of (Array[(id, (predicted, actual))], Association).
+  //   *                The association model contains the weights.
+  //   * @param sc the spark context to be used.
+  //   */
+  //  def logResults(results: RDD[(Array[(String, (Double, Double))], Association)],
+  //                 sc: SparkContext,
+  //                 evalResult: EvalResult) = {
+  def logResults(results: Array[EvalResult]) = {
+
+    // save results
+    //    val output = args.results
+    //    val sqlContext = SQLContext.getOrCreate(sc)
+    //    val outputFile = new File(output)
+    //    if (outputFile.exists) {
+    //      FileUtils.deleteDirectory(outputFile)
+    //    }
+
+    //    val assocs = results.map(site => site._2)
+    //    if (args.saveAsText) {
+    //      assocs.map(r => "%s, %s, %s"
+    //        .format(r.variant.getContig.getContigName,
+    //          r.variant.getContig.getContigMD5, exp(r.logPValue).toString))
+    //        .saveAsTextFile(outputFile)
+    //      valResults.map(r => "%s, %f"
+    //        .format(r._1, r._2))
+    //        .saveAsTextFile(evalArgs.results)
+    //      println(s"Percent of samples with actual unaffected phenotype: $percentZeroActual")
+    //      println(s"Percent of samples with actual affected phenotype: $percentOneActual")
+    //      println(s"Percent of samples predicted to be unaffected but actually were affected: $percentPredZeroActualOne")
+    //      println(s"Percent of samples predicted to be affected but actually were unaffected: $percentPredOneActualZero")
+    //      println(s"Percent of samples predicted to be unaffected: $percentPredZero")
+    //      println(s"Percent of samples predicted to be affected: $percentPredOne")
+    //    } else {
+    //      sqlContext.createDataFrame(assocs).write.parquet(outputFile)
+    //      sqlContext.createDataFrame(resultsBySample).write.parquet(args.results)
+    //      println(s"Percent of samples with actual unaffected phenotype: $percentZeroActual")
+    //      println(s"Percent of samples with actual affected phenotype: $percentOneActual")
+    //      println(s"Percent of samples predicted to be unaffected but actually were affected: $percentPredZeroActualOne")
+    //      println(s"Percent of samples predicted to be affected but actually were unaffected: $percentPredOneActualZero")
+    //      println(s"Percent of samples predicted to be unaffected: $percentPredZero")
+    //      println(s"Percent of samples predicted to be affected: $percentPredOne")
+    //    }
+    //  }
+    val sumEval = new EvalResult
+    for (i <- results.indices) {
+      val result = results(i)
+      println(s"\n----------------------$i th Fold---------------------------------------------------------\n")
+      println(s"Percent of samples with actual unaffected phenotype: $result.totalPZA")
+      println(s"Percent of samples with actual affected phenotype: $result.totalPOA")
+      println(s"Percent of samples predicted to be unaffected but actually were affected: $result.totalPPZAO")
+      println(s"Percent of samples predicted to be affected but actually were unaffected: $result.totalPPOAZ")
+      println(s"Percent of samples predicted to be unaffected: $result.totalPPZ")
+      println(s"Percent of samples predicted to be affected: $result.totalPPO")
+      sumEval.totalPZA ++ result.totalPZA
+      sumEval.totalPOA ++ result.totalPOA
+      sumEval.totalPPZAO ++ result.totalPPZAO
+      sumEval.totalPPOAZ ++ result.totalPPOAZ
+      sumEval.totalPPZ ++ result.totalPPZ
+      sumEval.totalPPO ++ result.totalPPO
     }
+    val avgPZA = sumEval.totalPZA.sum / results.length
+    val avgPOA = sumEval.totalPOA.sum / results.length
+    val avgPPZAO = sumEval.totalPPZAO.sum / results.length
+    val avgPPOAZ = sumEval.totalPPOAZ.sum / results.length
+    val avgPPZ = sumEval.totalPPZ.sum / results.length
+    val avgPPO = sumEval.totalPPO.sum / results.length
+
+    println("\n------------------------------- Average ---------------------------------------------\n")
+    println(s"Average percent of samples with actual unaffected phenotype: $avgPZA")
+    println(s"Average percent of samples with actual affected phenotype: $avgPOA")
+    println(s"Average percent of samples predicted to be unaffected but actually were affected: $avgPPZAO")
+    println(s"Average percent of samples predicted to be affected but actually were unaffected: $avgPPOAZ")
+    println(s"Average percent of samples predicted to be unaffected: $avgPPZ")
+    println(s"Avergae percent of samples predicted to be affected: $avgPPO")
+
   }
 }
 
