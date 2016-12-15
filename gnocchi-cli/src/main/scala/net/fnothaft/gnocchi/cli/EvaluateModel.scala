@@ -326,12 +326,12 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       println(s"Percent of samples predicted to be affected but actually were unaffected: $result.totalPPOAZ")
       println(s"Percent of samples predicted to be unaffected: $result.totalPPZ")
       println(s"Percent of samples predicted to be affected: $result.totalPPO")
-      sumEval.totalPZA ++ result.totalPZA
-      sumEval.totalPOA ++ result.totalPOA
-      sumEval.totalPPZAO ++ result.totalPPZAO
-      sumEval.totalPPOAZ ++ result.totalPPOAZ
-      sumEval.totalPPZ ++ result.totalPPZ
-      sumEval.totalPPO ++ result.totalPPO
+      sumEval.totalPZA += result.totalPZA.head
+      sumEval.totalPOA += result.totalPOA.head
+      sumEval.totalPPZAO += result.totalPPZAO.head
+      sumEval.totalPPOAZ += result.totalPPOAZ.head
+      sumEval.totalPPZ += result.totalPPZ.head
+      sumEval.totalPPO += result.totalPPO.head
     }
     val avgPZA = sumEval.totalPZA.sum / results.length
     val avgPOA = sumEval.totalPOA.sum / results.length
