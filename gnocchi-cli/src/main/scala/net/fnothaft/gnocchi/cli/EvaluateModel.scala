@@ -320,12 +320,18 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     for (i <- results.indices) {
       val result = results(i)
       println(s"\n----------------------Fold $i---------------------------------------------------------\n")
-      println(s"Percent of samples with actual unaffected phenotype: $result.totalPZA.head")
-      println(s"Percent of samples with actual affected phenotype: $result.totalPOA.head")
-      println(s"Percent of samples predicted to be unaffected but actually were affected: $result.totalPPZAO.head")
-      println(s"Percent of samples predicted to be affected but actually were unaffected: $result.totalPPOAZ.head")
-      println(s"Percent of samples predicted to be unaffected: $result.totalPPZ.head")
-      println(s"Percent of samples predicted to be affected: $result.totalPPO.head")
+      val pza = result.totalPZA.head
+      println(s"Percent of samples with actual unaffected phenotype: $pza")
+      val poa = result.totalPOA.head
+      println(s"Percent of samples with actual affected phenotype: $poa")
+      val ppzao = result.totalPPZAO.head
+      println(s"Percent of samples predicted to be unaffected but actually were affected: $ppzao")
+      val ppoaz = result.totalPPOAZ.head
+      println(s"Percent of samples predicted to be affected but actually were unaffected: $ppoaz")
+      val ppz = result.totalPPZ.head
+      println(s"Percent of samples predicted to be unaffected: $ppz")
+      val ppo = result.totalPPO.head
+      println(s"Percent of samples predicted to be affected: $ppo")
       sumEval.totalPZA += result.totalPZA.head
       sumEval.totalPOA += result.totalPOA.head
       sumEval.totalPPZAO += result.totalPPZAO.head
