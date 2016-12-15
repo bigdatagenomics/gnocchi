@@ -36,7 +36,7 @@ trait ValidationRegression extends SiteRegression {
                      sc: SparkContext,
                      monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
-    val progressiveResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
+    val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](k)
 
     if (k != 1) {
       if (monte) {
@@ -49,13 +49,13 @@ trait ValidationRegression extends SiteRegression {
           val testRdd = splitArray(1)
           println("\n\n\n\n\n\n In apply, trainRdd count: " + trainRdd.count)
           println("SplitArray length: " + splitArray.length)
-          progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
+          crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
           for (a <- 1 until n) {
             splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
             splitArray.drop(1)
             val trainRdd = splitArray(0)
             val testRdd = splitArray(1)
-            progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+            crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
           }
         } else {
           // a single k-1/1 split kfolds times.
@@ -75,7 +75,7 @@ trait ValidationRegression extends SiteRegression {
             val (testRdd, trainRdd) = mergeRDDs(sc, a, splitArray)
             println("\n\n\n\n\n\n testRdd length: " + testRdd.count)
             println("\n\n\n\n\n\n trainRdd length: " + trainRdd.count)
-            progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+            crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
           }
         }
       }
@@ -89,13 +89,13 @@ trait ValidationRegression extends SiteRegression {
         val testRdd = splitArray(1)
         println("\n\n\n\n\n\n In apply, trainRdd count: " + trainRdd.count)
         println("SplitArray length: " + splitArray.length)
-        progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
+        crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
         for (a <- 1 until n) {
           splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
           splitArray.drop(1)
           val trainRdd = splitArray(0)
           val testRdd = splitArray(1)
-          progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+          crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
         }
       } else {
         // 1 random 90/10 split
@@ -114,16 +114,16 @@ trait ValidationRegression extends SiteRegression {
       // Incrementally build up training set by merging first two elements (training set) and testing on second element
       val trainRdd = splitArray(0)
       val testRdd = splitArray(1)
-      progressiveResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
+      crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
       for (a <- 1 until n) {
         splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
         splitArray.drop(1)
         val trainRdd = splitArray(0)
         val testRdd = splitArray(1)
-        progressiveResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+        crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
       }
     }
-    progressiveResults
+    crossValResults
   }
 
   def mergeRDDs[T](sc: SparkContext, exclude: Int, rddArray: Array[RDD[(String, (GenotypeState, Phenotype[T]))]]): (RDD[(String, (GenotypeState, Phenotype[T]))], RDD[(String, (GenotypeState, Phenotype[T]))]) = {
@@ -197,11 +197,7 @@ trait ValidationRegression extends SiteRegression {
         ((variant, pheno.phenotype), (sampleid, p))
       }).groupByKey()
     //    println("\n\n" + temp.take(1).toList)
-    println("Number of testSamples: " + temp.count)
-    println("Number of models: " + modelRdd.count)
     val temp2 = temp.join(modelRdd)
-    println("Post-join samples and models at a site: \n" + temp2.take(0).toList)
-    println(temp2.take(1).toList)
     temp2.map(site => {
       val (key, value) = site
       val (sampleObservations, association) = value
