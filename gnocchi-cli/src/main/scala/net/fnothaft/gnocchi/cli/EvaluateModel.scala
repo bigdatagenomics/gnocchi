@@ -91,9 +91,11 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val crossValResultsArray = performValidation(genotypeStates, phenotypes, sc)
 
     // evaluate results
+    println("crossValResultsArray.length: " + crossValResultsArray.length)
     val resultsArray = evaluate(crossValResultsArray)
 
     // log results
+    println("resultsArray.length: " + resultsArray.length)
     logResults(resultsArray)
   }
 
