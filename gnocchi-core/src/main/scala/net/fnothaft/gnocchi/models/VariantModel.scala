@@ -15,6 +15,7 @@
  */
 package net.fnothaft.gnocchi.models
 
+import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
@@ -84,18 +85,22 @@ trait VariantModel {
              altAllele: String,
              phenotype: String): Unit
 
-  // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
-  // the primary phenotype as the first value and covariates following it.
-  //  def predict(observations: Array[(Double, Array[Double])],
-  //              locus: ReferenceRegion,
-  //              altAllele: String,
-  //              phenotype: String): Map[String, Double]
+  def predict(obs: Array[(Double, Array[Double])]): Array[(String, (Double, Double))]
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  //  def test(observations: Array[(Double, Array[Double])],
-  //           locus: ReferenceRegion,
-  //           altAllele: String,
-  //           phenotype: String): Double
+//  def test(observations: Array[(Double, Array[Double])]): Double = {
+//    var correct = 0
+//    var affected = 0
+//    for (elem <- observations) {
+//      val (str, (prediction, actual)): (String, (Double, Double)) = elem
+//      if (prediction == actual) {
+//        correct += 1
+//      }
+//      if (prediction == 1) {
+//        affected += 1
+//      }
+//    }
+//  }
 
 }
