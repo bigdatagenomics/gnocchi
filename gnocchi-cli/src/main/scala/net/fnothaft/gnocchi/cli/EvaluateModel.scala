@@ -88,7 +88,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val phenotypes = regPheno.loadPhenotypes(sc)
 
     // perform cross validation
-    val crossValResultsArray = performValidation(genotypeStates, phenotypes, sc)
+    val crossValResultsArray = performEvaluation(genotypeStates, phenotypes, sc)
 
     // evaluate results
     println("crossValResultsArray.length: " + crossValResultsArray.length)
@@ -200,30 +200,6 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     evaluations.asInstanceOf[Array[RDD[(Array[(String, (Double, Double))], Association)]]]
   }
 
-  def performValidation(genotypeStates: Dataset[GenotypeState],
-                        phenotypes: RDD[Phenotype[Array[Double]]],
-                        sc: SparkContext): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
-
-    var results = performEvaluation(genotypeStates, phenotypes, sc)
-    if (args.monteCarlo) {
-      while (kcount < args.kfold - 1) {
-
-        // Perform analysis
-        results = results ++ performEvaluation(genotypeStates, phenotypes, sc)
-
-        // Log the results
-        //        for (i <- results.indices) {
-        //          val result = results(i)
-        //          logResults(result, sc, totalsArray(i))
-        //        }
-        kcount += 1
-      }
-      //    } else {
-      //
-    }
-    results
-  }
-
   def evaluate(evalArray: Array[RDD[(Array[(String, (Double, Double))], Association)]]): Array[EvalResult] = {
     val resultsArray = new Array[EvalResult](10)
     for (i <- evalArray.indices) {
@@ -300,6 +276,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     evalResult.totalPPOAZ += percentPredOneActualZero
     evalResult.totalPPZ += percentPredZero
     evalResult.totalPPO += percentPredOne
+    evalResult.numSamples = numSamples
     evalResult
   }
 
@@ -350,9 +327,18 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     //    }
     //  }
     val sumEval = new EvalResult
+    var splitType = "Fold"
+    if (args.numProgressiveSplits > 1) {
+      splitType = "NumSamples"
+    }
     for (i <- results.indices) {
       val result = results(i)
-      println(s"\n----------------------Fold $i---------------------------------------------------------\n")
+      val samples = result.numSamples
+      if (splitType == "Fold") {
+        println(s"\n----------------------Fold $i---------------------------------------------------------\n")
+      } else {
+        println(s"\n----------------------Number of Samples $samples---------------------------------------------------------\n")
+      }
       val pza = result.totalPZA.head
       println(s"Percent of samples with actual unaffected phenotype: $pza")
       val poa = result.totalPOA.head
@@ -372,25 +358,28 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
       sumEval.totalPPZ += result.totalPPZ.head
       sumEval.totalPPO += result.totalPPO.head
     }
-    val avgPZA = sumEval.totalPZA.sum / results.length
-    val avgPOA = sumEval.totalPOA.sum / results.length
-    val avgPPZAO = sumEval.totalPPZAO.sum / results.length
-    val avgPPOAZ = sumEval.totalPPOAZ.sum / results.length
-    val avgPPZ = sumEval.totalPPZ.sum / results.length
-    val avgPPO = sumEval.totalPPO.sum / results.length
+    if (splitType == "Fold") {
+      val avgPZA = sumEval.totalPZA.sum / results.length
+      val avgPOA = sumEval.totalPOA.sum / results.length
+      val avgPPZAO = sumEval.totalPPZAO.sum / results.length
+      val avgPPOAZ = sumEval.totalPPOAZ.sum / results.length
+      val avgPPZ = sumEval.totalPPZ.sum / results.length
+      val avgPPO = sumEval.totalPPO.sum / results.length
 
-    println("\n------------------------------- Average ---------------------------------------------\n")
-    println(s"Average percent of samples with actual unaffected phenotype: $avgPZA")
-    println(s"Average percent of samples with actual affected phenotype: $avgPOA")
-    println(s"Average percent of samples predicted to be unaffected but actually were affected: $avgPPZAO")
-    println(s"Average percent of samples predicted to be affected but actually were unaffected: $avgPPOAZ")
-    println(s"Average percent of samples predicted to be unaffected: $avgPPZ")
-    println(s"Avergae percent of samples predicted to be affected: $avgPPO")
+      println("\n------------------------------- Average ---------------------------------------------\n")
+      println(s"Average percent of samples with actual unaffected phenotype: $avgPZA")
+      println(s"Average percent of samples with actual affected phenotype: $avgPOA")
+      println(s"Average percent of samples predicted to be unaffected but actually were affected: $avgPPZAO")
+      println(s"Average percent of samples predicted to be affected but actually were unaffected: $avgPPOAZ")
+      println(s"Average percent of samples predicted to be unaffected: $avgPPZ")
+      println(s"Avergae percent of samples predicted to be affected: $avgPPO")
+    }
 
   }
 }
 
 class EvalResult {
+  val numSamples = Int
   val totalPZA = new ListBuffer[Double]
   val totalPOA = new ListBuffer[Double]
   val totalPPZAO = new ListBuffer[Double]
