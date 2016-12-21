@@ -379,7 +379,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 }
 
 class EvalResult {
-  var numSamples = Int
+  var numSamples = 0
   val totalPZA = new ListBuffer[Double]
   val totalPOA = new ListBuffer[Double]
   val totalPPZAO = new ListBuffer[Double]
