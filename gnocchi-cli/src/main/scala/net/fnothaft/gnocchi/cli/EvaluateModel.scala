@@ -217,9 +217,18 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     }
 
     val resultsBySample = toEvaluate.flatMap(ipaa => {
-      var toRet = Array((ipaa._1(0)._1, (ipaa._1(0)._2._1, ipaa._1(0)._2._2, ipaa._2)))
-      for (i <- 1 until ipaa._1.length) {
-        toRet = toRet :+ (ipaa._1(i)._1, (ipaa._1(i)._2._1, ipaa._1(i)._2._2, ipaa._2))
+      var sampleId = ipaa._1(0)._1
+      var prediction = ipaa._1(0)._2._1
+      var actual = ipaa._1(0)._2._2
+      val association = ipaa._2
+      var toRet = Array((sampleId, (prediction, actual, association)))
+      if (ipaa._1.length > 1) {
+        for (i <- 1 until ipaa._1.length) {
+          var sampleId = ipaa._1(i)._1
+          var prediction = ipaa._1(i)._2._1
+          var actual = ipaa._1(i)._2._2
+          toRet = toRet :+ (sampleId, (prediction, actual, association))
+        }
       }
       toRet.toList
     }).groupByKey
