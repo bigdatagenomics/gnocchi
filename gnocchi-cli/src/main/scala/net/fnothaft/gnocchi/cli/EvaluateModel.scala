@@ -169,10 +169,35 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
                         sc: SparkContext): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
+    val k = args.kfold
+    val n = args.numProgressiveSplits
+    val monte = args.monteCarlo
     val evaluations = args.associationType match {
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+      case "ADDITIVE_LOGISTIC" => {
+        if (k != 1) {
+          if (monte) {
+            if (n != 1) {
+              assert(false, "cross validation not possible for progressive validation.")
+            } else {
+              AdditiveLogisticMonteCarloEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+            }
+          } else {
+            if (n != 1) {
+              assert(false, "cross validation not possible for progressive validation.")
+            } else {
+              AdditiveLogisticKfoldsEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+            }
+          }
+        } else {
+          if (n != 1) {
+            AdditiveLogisticProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+          } else {
+            AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+          }
+        }
+      }
     }
-    evaluations
+    evaluations.asInstanceOf[Array[RDD[(Array[(String, (Double, Double))], Association)]]]
   }
 
   def performValidation(genotypeStates: Dataset[GenotypeState],

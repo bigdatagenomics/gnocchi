@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Taner Dagdelen
+ * Copyright 2016 Taner Dagdelen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,4 +102,16 @@ object AdditiveLogisticEvaluation extends LogisticValidationRegression with Addi
 
 object DominantLogisticEvaluation extends LogisticValidationRegression with Dominant {
   val regressionName = "dominantLogisticEvaluation"
+}
+
+object AdditiveLogisticMonteCarloEvaluation extends LogisticValidationRegression with Additive with MonteCarlo {
+  val regressionName = "additiveLogisticEvaluation"
+}
+
+object AdditiveLogisticKfoldsEvaluation extends LogisticValidationRegression with Additive with kfolds {
+  val regressionName = "additiveLogisticEvaluation"
+}
+
+object AdditiveLogisticProgressiveEvaluation extends LogisticValidationRegression with Additive with Progressive {
+  val regressionName = "additiveLogisticEvaluation"
 }
