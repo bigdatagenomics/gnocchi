@@ -271,7 +271,6 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
   //  /**
   //   * Logs results of an evaluation.
-  //   * FIXME: Make this right.
   //   *
   //   * @param results RDD of (Array[(id, (predicted, actual))], Association).
   //   *                The association model contains the weights.
