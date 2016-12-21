@@ -99,6 +99,7 @@ trait ValidationRegression extends SiteRegression {
         }
       } else {
         // 1 random 90/10 split
+        println("\n\n\n\n\n\n\n k=1, n=1 \n\n\n\n\n\n\n")
         val rdds = genoPhenoRdd.randomSplit(Array(.9, .1))
         val trainRdd = rdds(0)
         val testRdd = rdds(1)
