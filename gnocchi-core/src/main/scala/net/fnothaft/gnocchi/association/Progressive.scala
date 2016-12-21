@@ -32,7 +32,7 @@ trait Progressive extends ValidationRegression {
                         sc: SparkContext,
                         monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
-    val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](k)
+    val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
 
     // random [1/n] split 
     // Split genotype array into equal pieces of size 1/n
@@ -51,7 +51,7 @@ trait Progressive extends ValidationRegression {
     crossValResults
   }
 
-  def mergeRDDs[T]( sc: SparkContext, rdd1: RDD[(String, (GenotypeState, Phenotype[T]))], rdd2: RDD[(String, (GenotypeState, Phenotype[T]))]): RDD[(String, (GenotypeState, Phenotype[T]))] = {
+  def mergeRDDs[T](sc: SparkContext, rdd1: RDD[(String, (GenotypeState, Phenotype[T]))], rdd2: RDD[(String, (GenotypeState, Phenotype[T]))]): RDD[(String, (GenotypeState, Phenotype[T]))] = {
     sc.parallelize(rdd1.collect ++ rdd2.collect)
   }
 }
