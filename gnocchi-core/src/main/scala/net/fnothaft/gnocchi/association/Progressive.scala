@@ -38,18 +38,20 @@ trait Progressive extends ValidationRegression {
     // Split genotype array into equal pieces of size 1/n
     var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1f / n))
     // Incrementally build up training set by merging first two elements (training set) and testing on second element
-    val trainRdd = splitArray(0)
-    val testRdd = splitArray(1)
+    var trainRdd = splitArray(0)
+    var testRdd = splitArray(1)
     println("\n\n\n\n\n\n In apply, trainRdd count: " + trainRdd.count)
     println("SplitArray length: " + splitArray.length)
     crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
-    for (a <- 1 until n) {
-      splitArray(1) = splitArray(1).join(splitArray(0)).flatMapValues(x => List(x._1))
-      splitArray.drop(1)
-      val trainRdd = splitArray(0)
-      val testRdd = splitArray(1)
+    for (a <- 2 until n) {
+      trainRdd = mergeRDDs(sc, trainRdd, testRdd)
+      testRdd = splitArray(a)
       crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
     }
     crossValResults
+  }
+
+  def mergeRDDs[T]( sc: SparkContext, rdd1: RDD[(String, (GenotypeState, Phenotype[T]))], rdd2: RDD[(String, (GenotypeState, Phenotype[T]))]): RDD[(String, (GenotypeState, Phenotype[T]))] = {
+    sc.parallelize(rdd1.collect ++ rdd2.collect)
   }
 }
