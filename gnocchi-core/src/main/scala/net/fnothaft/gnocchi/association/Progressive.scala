@@ -36,16 +36,16 @@ trait Progressive extends ValidationRegression {
 
     // random [1/n] split 
     // Split genotype array into equal pieces of size 1/n
-    var splitArray = genoPhenoRdd.randomSplit(Array.fill(n)(1f / n))
+    var splitArray = genoPhenoRdd.randomSplit(Array.fill(n + 1)(1f / (n + 1)))
     // Incrementally build up training set by merging first two elements (training set) and testing on second element
     var trainRdd = splitArray(0)
     var testRdd = splitArray(1)
     println("\n\n\n\n\n\n In apply, trainRdd count: " + trainRdd.count)
     println("SplitArray length: " + splitArray.length)
     crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
-    for (a <- 2 until n) {
+    for (a <- 1 until n) {
       trainRdd = mergeRDDs(sc, trainRdd, testRdd)
-      testRdd = splitArray(a)
+      testRdd = splitArray(a + 1)
       crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
     }
     crossValResults
