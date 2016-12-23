@@ -229,6 +229,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
   def evaluateResult(toEvaluate: RDD[(Array[(String, (Double, Double))], Association)]): EvalResult = {
     val evalResult = new EvalResult
+    val numTrainingSamples = toEvaluate.take(1)(0)._2.statistics("numSamples").asInstanceOf[Int]
 
     val ensembleMethod = args.ensembleMethod
     var ensembleWeights = Array[Double]()
@@ -295,7 +296,7 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     evalResult.totalPPOAZ += percentPredOneActualZero
     evalResult.totalPPZ += percentPredZero
     evalResult.totalPPO += percentPredOne
-    evalResult.numSamples = numSamples
+    evalResult.numSamples = numTrainingSamples
     evalResult
   }
 

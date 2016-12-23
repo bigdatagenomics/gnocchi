@@ -167,7 +167,8 @@ trait LogisticSiteRegression extends SiteRegression {
         log10(t)
       })
 
-      val statistics = Map("weights" -> beta,
+      val statistics = Map("numSamples" -> numObservations,
+        "weights" -> beta,
         "intercept" -> beta(0),
         "'P Values' aka Wald Tests" -> waldTests,
         "log of wald tests" -> logWaldTests,
