@@ -44,7 +44,8 @@ trait EndProgressive extends ValidationRegression {
     println("SplitArray length: " + splitArray.length)
     crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
     for (a <- 1 until n) {
-      trainRdd = mergeRDDs(sc, trainRdd, testRdd)
+      val nextRdd = splitArray(a + 1)
+      trainRdd = mergeRDDs(sc, trainRdd, nextRdd)
       crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
     }
     crossValResults
