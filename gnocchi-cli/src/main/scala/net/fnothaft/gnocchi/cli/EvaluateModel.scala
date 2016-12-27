@@ -16,8 +16,6 @@
 package net.fnothaft.gnocchi.cli
 
 import java.io.File
-import java.nio.charset.Charset
-import java.nio.file.{ Files, Paths }
 
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
@@ -27,7 +25,6 @@ import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import org.bdgenomics.adam.cli.Vcf2ADAM
-import breeze.numerics.exp
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
@@ -67,6 +64,9 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
 
   @Args4jOption(required = false, name = "-monteCarlo", usage = "Use MonteCarlo cross validation instead of kfolds cross validation")
   var monteCarlo = false
+
+  @Args4jOption(required = false, name = "-end", usage = "Uses final fold for testing of all progressive models in progressive validation regression")
+  var end = false
 
 }
 
@@ -187,33 +187,15 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
           }
         } else {
           if (k == 1) {
-            AdditiveLogisticProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+            if (args.end) {
+              AdditiveLogisticEndProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+            } else {
+              AdditiveLogisticProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+            }
           } else {
             assert(false, "cross validation not possible for progressive validation.")
           }
         }
-
-        //        if (k != 1) {
-        //          if (monte) {
-        //            if (n != 1) {
-        //              assert(false, "cross validation not possible for progressive validation.")
-        //            } else {
-        //              AdditiveLogisticMonteCarloEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
-        //            }
-        //          } else {
-        //            if (n != 1) {
-        //              assert(false, "cross validation not possible for progressive validation.")
-        //            } else {
-        //              AdditiveLogisticKfoldsEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
-        //            }
-        //          }
-        //        } else {
-        //          if (n != 1) {
-        //            AdditiveLogisticProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
-        //          } else {
-        //            AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
-        //          }
-        //        }
       }
     }
     evaluations.asInstanceOf[Array[RDD[(Array[(String, (Double, Double))], Association)]]]

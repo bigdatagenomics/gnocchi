@@ -15,19 +15,9 @@
  */
 package net.fnothaft.gnocchi.association
 
-import breeze.numerics.log10
 import breeze.linalg._
-import breeze.numerics._
 import net.fnothaft.gnocchi.models.Association
-import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.apache.spark.SparkContext
-import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.bdgenomics.adam.models.ReferenceRegion
-import org.apache.spark.ml.classification.LogisticRegressionModel
-import org.apache.spark.sql.SQLContext
-import org.apache.commons.math3.special.Gamma
-import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait LogisticValidationRegression extends ValidationRegression with LogisticSiteRegression {
 
@@ -113,5 +103,9 @@ object AdditiveLogisticKfoldsEvaluation extends LogisticValidationRegression wit
 }
 
 object AdditiveLogisticProgressiveEvaluation extends LogisticValidationRegression with Additive with Progressive {
+  val regressionName = "additiveLogisticEvaluation"
+}
+
+object AdditiveLogisticEndProgressiveEvaluation extends LogisticValidationRegression with Additive with EndProgressive {
   val regressionName = "additiveLogisticEvaluation"
 }
