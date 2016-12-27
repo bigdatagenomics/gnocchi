@@ -33,7 +33,7 @@ trait EndProgressive extends ValidationRegression {
                         monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
-
+    println("EndProgressive \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
     // random [1/n] split
     // Split genotype array into equal pieces of size 1/n
     var splitArray = genoPhenoRdd.randomSplit(Array.fill(n + 1)(1f / (n + 1)))
