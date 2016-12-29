@@ -24,7 +24,8 @@ object GnocchiMain {
   private val commands = List(ComputeSampleSimilarity,
     FillIn,
     ReduceDimensions,
-    RegressPhenotypes)
+    RegressPhenotypes,
+    EvaluateModel)
 
   private def printCommands() {
     println("\n")
