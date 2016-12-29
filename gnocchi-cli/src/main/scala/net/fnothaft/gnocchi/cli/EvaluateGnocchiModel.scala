@@ -24,7 +24,7 @@ import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{Argument, Option => Args4jOption}
+import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
@@ -35,16 +35,16 @@ import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticGnocchiModel
 
 import scala.collection.mutable.ListBuffer
 
-object PredictWithGnocchiModel extends BDGCommandCompanion {
-  val commandName = "PredictWithGnocchiModel"
+object EvaluateGnocchiModel extends BDGCommandCompanion {
+  val commandName = "EvaluateGnocchiModel"
   val commandDescription = "Fill this out later!!"
 
   def apply(cmdLine: Array[String]) = {
-    new PredictWithGnocchiModel(Args4j[PredictWithGnocchiModelArgs](cmdLine))
+    new EvaluateGnocchiModel(Args4j[EvaluateGnocchiModelArgs](cmdLine))
   }
 }
 
-class PredictWithGnocchiModelArgs extends RegressPhenotypesArgs {
+class EvaluateGnocchiModelArgs extends RegressPhenotypesArgs {
 
   @Args4jOption(required = true, metaVar = "-modelLocation", usage = "The location of the model to load.")
   var modelLocation: String = _
@@ -57,7 +57,7 @@ class PredictWithGnocchiModelArgs extends RegressPhenotypesArgs {
 
 }
 
-class PredictWithGnocchiModel(protected val args: PredictWithGnocchiModelArgs) extends BDGSparkCommand[ConstructGnocchiModelArgs] {
+class EvaluateGnocchiModel(protected val args: EvaluateGnocchiModelArgs) extends BDGSparkCommand[ConstructGnocchiModelArgs] {
   override val companion = PredictWithGnocchiModel
 
   override def run(sc: SparkContext) {
@@ -72,13 +72,13 @@ class PredictWithGnocchiModel(protected val args: PredictWithGnocchiModelArgs) e
     val phenotypes = regPheno.loadPhenotypes(sc)
 
     // load model TODO: Write load GnocchiModel object
-//    val model = LoadGnocchiModel(args.modelLocation, sc)
+    val model = LoadGnocchiModel(args.modelLocation)
 
     // make predictions on new data
-//    val predictions = model.predict(genotypeStates, phenotypes, sc)
+    val predictions = model.predict(genotypeStates.rdd, phenotypes, sc)
 
     // save the predictions TODO: write savePredictions function
-//    savePredictions(predictions)
+    //    savePredictions(predictions)
 
     // evaluate the model based on predictions
 //    evaluateModel(predictions)
@@ -87,76 +87,76 @@ class PredictWithGnocchiModel(protected val args: PredictWithGnocchiModelArgs) e
   }
 
   // TODO: adapt model.predict so that the reults can be fed into evaluateResult.
-//  def evaluateResult(toEvaluate: RDD[(Array[(String, (Double, Double))], Association)]): EvalResult = {
-//    val evalResult = new EvalResult
-//    val numTrainingSamples = toEvaluate.take(1)(0)._2.statistics("numSamples").asInstanceOf[Int]
-//
-//    val ensembleMethod = args.ensembleMethod
-//    var ensembleWeights = Array[Double]()
-//    if (args.ensembleWeights != "") {
-//      ensembleWeights = args.ensembleWeights.split(",").map(x => x.toDouble)
-//    }
-//
-//    val resultsBySample = toEvaluate.flatMap(ipaa => {
-//      var sampleId = ipaa._1(0)._1
-//      var prediction = ipaa._1(0)._2._1
-//      var actual = ipaa._1(0)._2._2
-//      val association = ipaa._2
-//      var toRet = Array((sampleId, (prediction, actual, association)))
-//      if (ipaa._1.length > 1) {
-//        for (i <- 1 until ipaa._1.length) {
-//          var sampleId = ipaa._1(i)._1
-//          var prediction = ipaa._1(i)._2._1
-//          var actual = ipaa._1(i)._2._2
-//          toRet = toRet :+ (sampleId, (prediction, actual, association))
-//        }
-//      }
-//      toRet.toList
-//    }).groupByKey
-//
-//      // ensemble the SNP models for each sample
-//      .map(sample => {
-//      val (sampleId, snpArray) = sample
-//      (sampleId, Ensembler(ensembleMethod, snpArray.toArray, ensembleWeights))
-//    })
-//
-//    // compute final results
-//    val resArray = resultsBySample.collect
-//    val numSamples = resArray.length
-//    var numZeroActual = 0.0
-//    var numZeroPred = 0.0
-//    var numZeroPredOneActual = 0.0
-//    var numOnePredZeroActual = 0.0
-//    for (i <- resArray.indices) {
-//      val pred = resArray(i)._2._1
-//      val actual = resArray(i)._2._2
-//      if (actual == 0.0) {
-//        numZeroActual += 1.0
-//        if (pred == 1.0) {
-//          numOnePredZeroActual += 1.0
-//        } else {
-//          numZeroPred += 1.0
-//        }
-//      } else {
-//        if (pred == 0.0) {
-//          numZeroPredOneActual += 1.0
-//        }
-//      }
-//    }
-//    val percentZeroActual = numZeroActual / numSamples
-//    val percentOneActual = 1 - percentZeroActual
-//    val percentPredZeroActualOne = numZeroPredOneActual / (numSamples - numZeroActual)
-//    val percentPredOneActualZero = numOnePredZeroActual / numZeroActual
-//    val percentPredZero = numZeroPred / numSamples
-//    val percentPredOne = 1 - percentPredZero
-//
-//    evalResult.totalPZA += percentZeroActual
-//    evalResult.totalPOA += percentOneActual
-//    evalResult.totalPPZAO += percentPredZeroActualOne
-//    evalResult.totalPPOAZ += percentPredOneActualZero
-//    evalResult.totalPPZ += percentPredZero
-//    evalResult.totalPPO += percentPredOne
-//    evalResult.numSamples = numTrainingSamples
-//    evalResult
-//  }
+  //  def evaluateResult(toEvaluate: RDD[(Array[(String, (Double, Double))], Association)]): EvalResult = {
+  //    val evalResult = new EvalResult
+  //    val numTrainingSamples = toEvaluate.take(1)(0)._2.statistics("numSamples").asInstanceOf[Int]
+  //
+  //    val ensembleMethod = args.ensembleMethod
+  //    var ensembleWeights = Array[Double]()
+  //    if (args.ensembleWeights != "") {
+  //      ensembleWeights = args.ensembleWeights.split(",").map(x => x.toDouble)
+  //    }
+  //
+  //    val resultsBySample = toEvaluate.flatMap(ipaa => {
+  //      var sampleId = ipaa._1(0)._1
+  //      var prediction = ipaa._1(0)._2._1
+  //      var actual = ipaa._1(0)._2._2
+  //      val association = ipaa._2
+  //      var toRet = Array((sampleId, (prediction, actual, association)))
+  //      if (ipaa._1.length > 1) {
+  //        for (i <- 1 until ipaa._1.length) {
+  //          var sampleId = ipaa._1(i)._1
+  //          var prediction = ipaa._1(i)._2._1
+  //          var actual = ipaa._1(i)._2._2
+  //          toRet = toRet :+ (sampleId, (prediction, actual, association))
+  //        }
+  //      }
+  //      toRet.toList
+  //    }).groupByKey
+  //
+  //      // ensemble the SNP models for each sample
+  //      .map(sample => {
+  //      val (sampleId, snpArray) = sample
+  //      (sampleId, Ensembler(ensembleMethod, snpArray.toArray, ensembleWeights))
+  //    })
+  //
+  //    // compute final results
+  //    val resArray = resultsBySample.collect
+  //    val numSamples = resArray.length
+  //    var numZeroActual = 0.0
+  //    var numZeroPred = 0.0
+  //    var numZeroPredOneActual = 0.0
+  //    var numOnePredZeroActual = 0.0
+  //    for (i <- resArray.indices) {
+  //      val pred = resArray(i)._2._1
+  //      val actual = resArray(i)._2._2
+  //      if (actual == 0.0) {
+  //        numZeroActual += 1.0
+  //        if (pred == 1.0) {
+  //          numOnePredZeroActual += 1.0
+  //        } else {
+  //          numZeroPred += 1.0
+  //        }
+  //      } else {
+  //        if (pred == 0.0) {
+  //          numZeroPredOneActual += 1.0
+  //        }
+  //      }
+  //    }
+  //    val percentZeroActual = numZeroActual / numSamples
+  //    val percentOneActual = 1 - percentZeroActual
+  //    val percentPredZeroActualOne = numZeroPredOneActual / (numSamples - numZeroActual)
+  //    val percentPredOneActualZero = numOnePredZeroActual / numZeroActual
+  //    val percentPredZero = numZeroPred / numSamples
+  //    val percentPredOne = 1 - percentPredZero
+  //
+  //    evalResult.totalPZA += percentZeroActual
+  //    evalResult.totalPOA += percentOneActual
+  //    evalResult.totalPPZAO += percentPredZeroActualOne
+  //    evalResult.totalPPOAZ += percentPredOneActualZero
+  //    evalResult.totalPPZ += percentPredZero
+  //    evalResult.totalPPO += percentPredOne
+  //    evalResult.numSamples = numTrainingSamples
+  //    evalResult
+  //  }
 }

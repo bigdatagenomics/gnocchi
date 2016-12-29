@@ -24,7 +24,7 @@ import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{Argument, Option => Args4jOption}
+import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
@@ -45,7 +45,6 @@ object ConstructGnocchiModel extends BDGCommandCompanion {
 }
 
 class ConstructGnocchiModelArgs extends RegressPhenotypesArgs {
-
 
   @Args4jOption(required = true, metaVar = "-saveModelTo", usage = "The location to save model to.")
   var saveTo: String = _
@@ -75,7 +74,8 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     regPheno.logResults(assocs, sc)
 
     // save the model
-    //    gnocchiModel.save(args.saveTo)
+    SaveGnocchiModel(gnocchiModel, args.saveTo)
+
   }
 
   def buildModel[T](genotypeStates: RDD[GenotypeState],
@@ -89,7 +89,6 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     }
     model
   }
-
 
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
     // set up sqlContext

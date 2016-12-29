@@ -13,9 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.models
 
-class GMTestResult(predictions: Array[(VariantModel, Array[(String, (Double, Double))])],
-                   testStatistics: Map[String, Double]) {
+package net.fnothaft.gnocchi.cli
 
+import java.io.{FileOutputStream, ObjectOutputStream}
+import net.fnothaft.gnocchi.models.GnocchiModel
+
+
+object SaveGnocchiModel {
+
+  def apply(model: GnocchiModel, saveTo: String): Unit = {
+    val fos = new FileOutputStream(saveTo)
+    val oos = new ObjectOutputStream(fos)
+    oos.writeObject(model)
+    oos.close()
+  }
 }

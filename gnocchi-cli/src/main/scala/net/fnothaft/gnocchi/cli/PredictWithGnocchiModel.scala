@@ -24,7 +24,7 @@ import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{Argument, Option => Args4jOption}
+import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
@@ -69,15 +69,15 @@ class PredictWithGnocchiModel(protected val args: PredictWithGnocchiModelArgs) e
     val phenotypes = regPheno.loadPhenotypes(sc)
 
     // load model TODO: Write load GnocchiModel object
-//    val model = LoadGnocchiModel(args.modelLocation, sc)
+    val model = LoadGnocchiModel(args.modelLocation)
 
     // make predictions on new data
-//    val predictions = model.predict(genotypeStates, phenotypes, sc)
+    val predictions = model.predict(genotypeStates.rdd, phenotypes, sc)
 
     // save the predictions TODO: write savePredictions function
-//    savePredictions(predictions)
+    //    savePredictions(predictions)
 
     // save the model
-    //    gnocchiModel.save(args.saveTo)
+    SaveGnocchiModel(model, args.saveTo)
   }
 }

@@ -120,21 +120,19 @@ trait GnocchiModel extends Serializable {
                         obs: Array[(Double, Array[Double])]): VariantModel
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample and comparing to actual value
-    def test(rdd: RDD[GenotypeState],
-             phenotypes: RDD[Phenotype[Array[Double]]],
-             sc: SparkContext): GMTestResult = {
-      val modelsWithPredictions = predict(rdd, phenotypes, sc)
-
-
-    }
-
+  //  def test(rdd: RDD[GenotypeState],
+  //           phenotypes: RDD[Phenotype[Array[Double]]],
+  //           sc: SparkContext): GMTestResult = {
+  //    val modelsWithPredictions = predict(rdd, phenotypes, sc)
+  //
+  //  }
 
   // save the model
   //TODO: write save functionality
   //  def save
 
-  def pairSamplesWithPhenotypes (rdd: RDD[GenotypeState],
-                                 phenotypes: RDD[Phenotype[Array[Double]]]): RDD[(Variant, Array[(Double, Array[Double])])] = {
+  def pairSamplesWithPhenotypes(rdd: RDD[GenotypeState],
+                                phenotypes: RDD[Phenotype[Array[Double]]]): RDD[(Variant, Array[(Double, Array[Double])])] = {
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
@@ -157,9 +155,9 @@ trait GnocchiModel extends Serializable {
         val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
         (variant, ob)
       }).groupByKey().map(site => {
-      val (variant, obArray) = site
-      (variant, obArray.toArray)
-    })
+        val (variant, obArray) = site
+        (variant, obArray.toArray)
+      })
   }
 }
 

@@ -20,7 +20,7 @@ import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
-class AdditiveLogisticGnocchiModel extends GnocchiModel with Additive {
+case class AdditiveLogisticGnocchiModel extends Serializable with GnocchiModel with Additive {
 
   var numSamples = List(("Empty List", 0)) //(VariantID, NumSamples)
   var numVariants = 1
@@ -36,7 +36,7 @@ class AdditiveLogisticGnocchiModel extends GnocchiModel with Additive {
   var sampleIds = List("Empty String", "") // list of sampleIDs from all samples the model has seen.
   var variantModels = List[(Variant, VariantModel)]() //RDD[VariantModel.variantId, VariantModel[T]]
   var qrVariantModels = List[(VariantModel, Array[(Double, Array[Double])])]() // the variant model and the observations that the model must be trained on
-
+  var flaggedVariants = List[Variant]()
   //  val numSamples: RDD[(String, Int)] //(VariantID, NumSamples)
   //  val numVariants: Int
   //  val variances: RDD[(String, Double)] // (VariantID, variance)

@@ -39,7 +39,8 @@ trait LogisticVariantModel extends VariantModel {
   var QRFactorizationValue = 0.0
   var numSamples = 0
   var phenotype = "Empty Phenotype"
-
+  var predictions = List[(Array[(String, (Double, Double))], Association)]()//Array[(String, (Double, Double))]()
+  var association = Association(variant, phenotype, 0.0, Map())
   //  def update(observations: Array[(Double, Array[Double])],
   //             locus: ReferenceRegion,
   //             altAllele: String,
@@ -64,7 +65,7 @@ trait LogisticVariantModel extends VariantModel {
 
   //  }
 
-  def predict(obs: Array[(Double, Array[Double])]): Unit = {
+  def predict(obs: Array[(Double, Array[Double])]): Array[(String, (Double, Double))] = {
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = obs(0)._2.length
     val numObservations = obs.length
@@ -97,11 +98,13 @@ trait LogisticVariantModel extends VariantModel {
 
     // TODO: Check that this actually matches the samples with the right results.
     // receive 0/1 results from datapoints and model
-    val results = predict(lp, b)
-    this.predictions = samples zip results
+    val results = predictLP(lp, b)
+    val preds = (samples zip results, this.association)
+    this.predictions = preds
+    preds
   }
 
-  def predict(lpArray: Array[LabeledPoint], b: Array[Double]): Array[(Double, Double)] = {
+  def predictLP(lpArray: Array[LabeledPoint], b: Array[Double]): Array[(Double, Double)] = {
     val expitResults = expit(lpArray, b)
     // (Predicted, Actual)
     val predictions = new Array[(Double, Double)](expitResults.length)

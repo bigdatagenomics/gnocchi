@@ -33,6 +33,7 @@ trait VariantModel {
   var QRFactorizationValue: Double
   var QRFactorizationWeights: Array[Double]
   var predictions: Array[(String, (Double, Double))]
+  var association: Association
 
   def setVariantID(id: String): this.type = {
     variantID = id
@@ -89,18 +90,18 @@ trait VariantModel {
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-//  def test(observations: Array[(Double, Array[Double])]): Double = {
-//    var correct = 0
-//    var affected = 0
-//    for (elem <- observations) {
-//      val (str, (prediction, actual)): (String, (Double, Double)) = elem
-//      if (prediction == actual) {
-//        correct += 1
-//      }
-//      if (prediction == 1) {
-//        affected += 1
-//      }
-//    }
-//  }
+  //  def test(observations: Array[(Double, Array[Double])]): Double = {
+  //    var correct = 0
+  //    var affected = 0
+  //    for (elem <- observations) {
+  //      val (str, (prediction, actual)): (String, (Double, Double)) = elem
+  //      if (prediction == actual) {
+  //        correct += 1
+  //      }
+  //      if (prediction == 1) {
+  //        affected += 1
+  //      }
+  //    }
+  //  }
 
 }
