@@ -35,6 +35,7 @@ trait GnocchiModel extends Serializable {
   var sampleIds: List[String] // list of sampleIDs from all samples the model has seen.
   var variantModels: List[(Variant, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
   var qrVariantModels: List[(VariantModel, Array[(Double, Array[Double])])] // the variant model and the observations that the model must be trained on
+  var flaggedVariants: List[Variant]
 
   // filters out all variants that don't pass a certian predicate and returns a GnocchiModel containing only those variants.
   //  def filter: GnocchiModel
@@ -46,28 +47,7 @@ trait GnocchiModel extends Serializable {
              sc: SparkContext): Unit = {
 
     // convert genotypes and phenotypes into observations
-    val newData = rdd.keyBy(_.sampleId)
-      // join together the samples with both genotype and phenotype entry
-      .join(phenotypes.keyBy(_.sampleId))
-      .map(kvv => {
-        // unpack the entry of the joined rdd into id and actual info
-        val (_, p) = kvv
-        // unpack the information into genotype state and pheno
-        val (gs, pheno) = p
-        // extract referenceAllele and phenotype and pack up with p, then group by key
-
-        // create contig and Variant objects and group by Variant
-        // pack up the information into an Association object
-        val variant = new Variant()
-        val contig = new Contig()
-        contig.setContigName(gs.contig)
-        variant.setContig(contig)
-        variant.setStart(gs.start)
-        variant.setEnd(gs.end)
-        variant.setAlternateAllele(gs.alt)
-        val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
-        (variant, ob)
-      }).groupByKey()
+    val newData = pairSamplesWithPhenotypes(rdd, phenotypes)
 
     // combine the new sample observations with the old ones for the qr variants.
     val joinedqrData = sc.parallelize(qrVariantModels).map(kv => {
@@ -93,7 +73,7 @@ trait GnocchiModel extends Serializable {
     // map an update call to all variants
     val updatedVMRdd = vmAndDataRDD.map(kvv => {
       val (variant, (model, data)) = kvv
-      model.update(data.toArray, new ReferenceRegion(variant.getContig.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, model.phenotype)
+      model.update(data, new ReferenceRegion(variant.getContig.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, model.phenotype)
       (variant, model)
     })
 
@@ -110,8 +90,9 @@ trait GnocchiModel extends Serializable {
       val increValue = increModel.incrementalUpdateValue
       val qrValue = qrModel.QRFactorizationValue
       Math.abs(increValue - qrValue) / qrValue > HBDThreshold
-    }).map(_._1).collect
+    }).map(_._1).collect.toList
 
+    flaggedVariants = variantsToFlag
     variantModels = updatedVMRdd.collect.toList
     qrVariantModels = qrRDD.collect.toList
   }
@@ -119,21 +100,67 @@ trait GnocchiModel extends Serializable {
   def clipOrKeepState(gs: GenotypeState): Double
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample.
-  //  def predict(rdd: RDD[GenotypeState],
-  //              phenotypes: RDD[Phenotype[Array[Double]]])
+  def predict(rdd: RDD[GenotypeState],
+              phenotypes: RDD[Phenotype[Array[Double]]],
+              sc: SparkContext): RDD[(Variant, VariantModel)] = {
+    val newData = pairSamplesWithPhenotypes(rdd, phenotypes)
+    val models = sc.parallelize(variantModels)
+    val modelsAndData = models.join(newData)
+    modelsAndData.map(vmd => {
+      val (variant, md) = vmd
+      val variantModel = md._1
+      val obs = md._2 //[Array[(Double, Array[Double])]]
+      variantModel.predict(obs)
+    })
+    models
+  }
 
   // calls the appropriate version of BuildVariantModel
   def buildVariantModel(varModel: VariantModel,
                         obs: Array[(Double, Array[Double])]): VariantModel
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample and comparing to actual value
-  //  def test(rdd: RDD[GenotypeState],
-  //           phenotypes: RDD[Phenotype[Array[Double]]]): GMTestResult
+    def test(rdd: RDD[GenotypeState],
+             phenotypes: RDD[Phenotype[Array[Double]]],
+             sc: SparkContext): GMTestResult = {
+      val modelsWithPredictions = predict(rdd, phenotypes, sc)
+
+
+    }
+
 
   // save the model
   //TODO: write save functionality
   //  def save
 
+  def pairSamplesWithPhenotypes (rdd: RDD[GenotypeState],
+                                 phenotypes: RDD[Phenotype[Array[Double]]]): RDD[(Variant, Array[(Double, Array[Double])])] = {
+    rdd.keyBy(_.sampleId)
+      // join together the samples with both genotype and phenotype entry
+      .join(phenotypes.keyBy(_.sampleId))
+      .map(kvv => {
+        // unpack the entry of the joined rdd into id and actual info
+        val (_, p) = kvv
+        // unpack the information into genotype state and pheno
+        val (gs, pheno) = p
+        // extract referenceAllele and phenotype and pack up with p, then group by key
+
+        // create contig and Variant objects and group by Variant
+        // pack up the information into an Association object
+        val variant = new Variant()
+        val contig = new Contig()
+        contig.setContigName(gs.contig)
+        variant.setContig(contig)
+        variant.setStart(gs.start)
+        variant.setEnd(gs.end)
+        variant.setAlternateAllele(gs.alt)
+        val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
+        (variant, ob)
+      }).groupByKey().map(site => {
+      val (variant, obArray) = site
+      (variant, obArray.toArray)
+    })
+  }
 }
 
 trait Additive extends GnocchiModel {

@@ -15,7 +15,6 @@
  */
 package net.fnothaft.gnocchi.models
 
-import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
@@ -33,6 +32,7 @@ trait VariantModel {
   var incrementalUpdateValue: Double
   var QRFactorizationValue: Double
   var QRFactorizationWeights: Array[Double]
+  var predictions: Array[(String, (Double, Double))]
 
   def setVariantID(id: String): this.type = {
     variantID = id

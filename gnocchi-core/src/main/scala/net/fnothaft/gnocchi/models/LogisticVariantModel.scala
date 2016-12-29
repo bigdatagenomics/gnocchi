@@ -64,7 +64,7 @@ trait LogisticVariantModel extends VariantModel {
 
   //  }
 
-  def predict(obs: Array[(Double, Array[Double])]): Array[(String, (Double, Double))] = {
+  def predict(obs: Array[(Double, Array[Double])]): Unit = {
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = obs(0)._2.length
     val numObservations = obs.length
@@ -98,7 +98,7 @@ trait LogisticVariantModel extends VariantModel {
     // TODO: Check that this actually matches the samples with the right results.
     // receive 0/1 results from datapoints and model
     val results = predict(lp, b)
-    samples zip results
+    this.predictions = samples zip results
   }
 
   def predict(lpArray: Array[LabeledPoint], b: Array[Double]): Array[(Double, Double)] = {
@@ -197,19 +197,5 @@ trait LogisticVariantModel extends VariantModel {
     val mag = Math.pow(sm, 0.5)
     features.map(elem => elem / mag)
   }
-
-  // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
-  // the primary phenotype as the first value and covariates following it.
-  //  def predict(observations: Array[(Double, Array[Double])],
-  //              locus: ReferenceRegion,
-  //              altAllele: String,
-  //              phenotype: String): Map[String, Double]
-
-  // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
-  // the primary phenotype as the first value and covariates following it.
-  //  def test(observations: Array[(Double, Array[Double])],
-  //           locus: ReferenceRegion,
-  //           altAllele: String,
-  //           phenotype: String): Double
 
 }
