@@ -46,10 +46,10 @@ object ConstructGnocchiModel extends BDGCommandCompanion {
 
 class ConstructGnocchiModelArgs extends RegressPhenotypesArgs {
 
-  @Args4jOption(required = true, metaVar = "-saveModelTo", usage = "The location to save model to.")
+  @Args4jOption(required = true, name = "-saveModelTo", usage = "The location to save model to.")
   var saveTo: String = _
 
-  @Args4jOption(required = false, metaVar = "SNPS", usage = "The IDs of the SNPs to include in the model, if not all.")
+  @Args4jOption(required = false, name = "SNPS", usage = "The IDs of the SNPs to include in the model, if not all.")
   var snps: String = _
 }
 
@@ -68,26 +68,28 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     val phenotypes = regPheno.loadPhenotypes(sc)
 
     // build model
-    val (gnocchiModel, assocs) = buildModel[Array[Double]](genotypeStates.rdd, phenotypes, sc)
+    val (model, assocs): (GnocchiModel, RDD[Association]) = buildModel[Array[Double]](genotypeStates.rdd, phenotypes, sc)
 
     // save the associations
-    regPheno.logResults(assocs, sc)
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+    regPheno.logResults(assocs.toDS, sc)
 
     // save the model
-    SaveGnocchiModel(gnocchiModel, args.saveTo)
+    SaveGnocchiModel(model, args.saveTo)
 
   }
 
   def buildModel[T](genotypeStates: RDD[GenotypeState],
                     phenotypes: RDD[Phenotype[T]],
-                    sc: SparkContext): GnocchiModel = {
+                    sc: SparkContext): (GnocchiModel, RDD[Association]) = {
     val (model, assocs) = args.associationType match {
       //      case "ADDITIVE_LINEAR"   => BuildAdditiveLinearGnocchiModel(genotypeStates, phenotypes, sc)
       case "ADDITIVE_LOGISTIC" => BuildAdditiveLogisticGnocchiModel(genotypeStates, phenotypes, sc)
       //      case "DOMINANT_LINEAR"   => BuildDominantLinearGnocchiModel(genotypeStates, phenotypes, sc)
       //      case "DOMINANT_LOGISTIC" => BuildDominantLogisticGnocchiModel
     }
-    model
+    (model, assocs)
   }
 
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {

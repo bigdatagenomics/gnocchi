@@ -39,7 +39,7 @@ trait LogisticVariantModel extends VariantModel {
   var QRFactorizationValue = 0.0
   var numSamples = 0
   var phenotype = "Empty Phenotype"
-  var predictions = List[(Array[(String, (Double, Double))], Association)]()//Array[(String, (Double, Double))]()
+  var predictions = List[(Array[(String, (Double, Double))], Association)]() //Array[(String, (Double, Double))]()
   var association = Association(variant, phenotype, 0.0, Map())
   //  def update(observations: Array[(Double, Array[Double])],
   //             locus: ReferenceRegion,
@@ -65,7 +65,7 @@ trait LogisticVariantModel extends VariantModel {
 
   //  }
 
-  def predict(obs: Array[(Double, Array[Double])]): Array[(String, (Double, Double))] = {
+  def predict(obs: Array[(Double, Array[Double])]): List[(Array[(String, (Double, Double))], Association)] = {
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = obs(0)._2.length
     val numObservations = obs.length
@@ -99,7 +99,7 @@ trait LogisticVariantModel extends VariantModel {
     // TODO: Check that this actually matches the samples with the right results.
     // receive 0/1 results from datapoints and model
     val results = predictLP(lp, b)
-    val preds = (samples zip results, this.association)
+    val preds = List((samples zip results, this.association))
     this.predictions = preds
     preds
   }

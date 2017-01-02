@@ -65,10 +65,9 @@ case class AdditiveLogisticGnocchiModel extends Serializable with GnocchiModel w
   // calls the appropriate version of BuildVariantModel
   def buildVariantModel(varModel: VariantModel,
                         obs: Array[(Double, Array[Double])]): VariantModel = {
-    val locus = new ReferenceRegion(varModel.variant.getReferenceAllele, varModel.variant.getStart, varModel.variant.getEnd)
-    val altAllele = varModel.variant.getAlternateAllele
+    val variant = varModel.variant
     val phenotype = varModel.phenotype
-    BuildAdditiveLogisticVariantModel(obs, locus, altAllele, phenotype)
+    BuildAdditiveLogisticVariantModel(obs, variant, phenotype)
   }
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample and comparing to actual value

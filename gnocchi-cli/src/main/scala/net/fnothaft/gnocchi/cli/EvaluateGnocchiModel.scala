@@ -46,18 +46,18 @@ object EvaluateGnocchiModel extends BDGCommandCompanion {
 
 class EvaluateGnocchiModelArgs extends RegressPhenotypesArgs {
 
-  @Args4jOption(required = true, metaVar = "-modelLocation", usage = "The location of the model to load.")
+  @Args4jOption(required = true, name = "-modelLocation", usage = "The location of the model to load.")
   var modelLocation: String = _
 
-  @Args4jOption(required = true, metaVar = "-savePredictionsTo", usage = "The location to save predictions to.")
+  @Args4jOption(required = true, name = "-savePredictionsTo", usage = "The location to save predictions to.")
   var saveTo: String = _
 
-  @Args4jOption(required = true, metaVar = "-saveEvalResultsTo", usage = "The location to save evaluation results to.")
+  @Args4jOption(required = true, name = "-saveEvalResultsTo", usage = "The location to save evaluation results to.")
   var evalTo: String = _
 
 }
 
-class EvaluateGnocchiModel(protected val args: EvaluateGnocchiModelArgs) extends BDGSparkCommand[ConstructGnocchiModelArgs] {
+class EvaluateGnocchiModel(protected val args: EvaluateGnocchiModelArgs) extends BDGSparkCommand[EvaluateGnocchiModelArgs] {
   override val companion = PredictWithGnocchiModel
 
   override def run(sc: SparkContext) {
@@ -81,7 +81,7 @@ class EvaluateGnocchiModel(protected val args: EvaluateGnocchiModelArgs) extends
     //    savePredictions(predictions)
 
     // evaluate the model based on predictions
-//    evaluateModel(predictions)
+    //    evaluateModel(predictions)
     // save the model
     //    gnocchiModel.save(args.saveTo)
   }

@@ -16,10 +16,9 @@
 
 package net.fnothaft.gnocchi.cli
 
-import java.io.{FileInputStream, ObjectInputStream}
+import java.io.{ FileInputStream, ObjectInputStream }
 
 import net.fnothaft.gnocchi.models.GnocchiModel
-
 
 object LoadGnocchiModel {
 

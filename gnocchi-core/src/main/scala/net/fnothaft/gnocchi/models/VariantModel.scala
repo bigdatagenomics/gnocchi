@@ -32,7 +32,7 @@ trait VariantModel {
   var incrementalUpdateValue: Double
   var QRFactorizationValue: Double
   var QRFactorizationWeights: Array[Double]
-  var predictions: Array[(String, (Double, Double))]
+  var predictions: List[(Array[(String, (Double, Double))], Association)]
   var association: Association
 
   def setVariantID(id: String): this.type = {
@@ -86,7 +86,7 @@ trait VariantModel {
              altAllele: String,
              phenotype: String): Unit
 
-  def predict(obs: Array[(Double, Array[Double])]): Array[(String, (Double, Double))]
+  def predict(obs: Array[(Double, Array[Double])]): List[(Array[(String, (Double, Double))], Association)]
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.

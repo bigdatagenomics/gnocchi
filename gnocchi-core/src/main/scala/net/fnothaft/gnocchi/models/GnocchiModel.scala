@@ -15,6 +15,7 @@
  */
 package net.fnothaft.gnocchi.models
 
+import net.fnothaft.gnocchi.transformations.{ PairSamplesWithPhenotypes, Gs2variant }
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
@@ -47,7 +48,16 @@ trait GnocchiModel extends Serializable {
              sc: SparkContext): Unit = {
 
     // convert genotypes and phenotypes into observations
-    val newData = pairSamplesWithPhenotypes(rdd, phenotypes)
+    val data = PairSamplesWithPhenotypes(rdd, phenotypes)
+    val newData = data.map(kvv => {
+      val (varStr, genPhen) = kvv
+      val (variant, phenoName) = varStr
+      val obs = genPhen.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]].map(gp => {
+        val (str, (gs, pheno)) = gp
+        val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
+        ob
+      })
+    }).asInstanceOf[RDD[(Variant, Array[(Double, Array[Double])])]]
 
     // combine the new sample observations with the old ones for the qr variants.
     val joinedqrData = sc.parallelize(qrVariantModels).map(kv => {
@@ -103,7 +113,15 @@ trait GnocchiModel extends Serializable {
   def predict(rdd: RDD[GenotypeState],
               phenotypes: RDD[Phenotype[Array[Double]]],
               sc: SparkContext): RDD[(Variant, VariantModel)] = {
-    val newData = pairSamplesWithPhenotypes(rdd, phenotypes)
+    val data = PairSamplesWithPhenotypes(rdd, phenotypes)
+    val newData = data.map(kv => {
+      val ((variant, pheno), obArray) = kv
+      (variant, obArray.map(kvv => {
+        val (sampleId, (gs, pheno)) = kvv
+        val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
+        ob
+      }).toArray)
+    })
     val models = sc.parallelize(variantModels)
     val modelsAndData = models.join(newData)
     modelsAndData.map(vmd => {
@@ -131,34 +149,6 @@ trait GnocchiModel extends Serializable {
   //TODO: write save functionality
   //  def save
 
-  def pairSamplesWithPhenotypes(rdd: RDD[GenotypeState],
-                                phenotypes: RDD[Phenotype[Array[Double]]]): RDD[(Variant, Array[(Double, Array[Double])])] = {
-    rdd.keyBy(_.sampleId)
-      // join together the samples with both genotype and phenotype entry
-      .join(phenotypes.keyBy(_.sampleId))
-      .map(kvv => {
-        // unpack the entry of the joined rdd into id and actual info
-        val (_, p) = kvv
-        // unpack the information into genotype state and pheno
-        val (gs, pheno) = p
-        // extract referenceAllele and phenotype and pack up with p, then group by key
-
-        // create contig and Variant objects and group by Variant
-        // pack up the information into an Association object
-        val variant = new Variant()
-        val contig = new Contig()
-        contig.setContigName(gs.contig)
-        variant.setContig(contig)
-        variant.setStart(gs.start)
-        variant.setEnd(gs.end)
-        variant.setAlternateAllele(gs.alt)
-        val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
-        (variant, ob)
-      }).groupByKey().map(site => {
-        val (variant, obArray) = site
-        (variant, obArray.toArray)
-      })
-  }
 }
 
 trait Additive extends GnocchiModel {

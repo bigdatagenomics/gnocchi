@@ -46,15 +46,15 @@ object UpdateGnocchiModel extends BDGCommandCompanion {
 
 class UpdateGnocchiModelArgs extends RegressPhenotypesArgs {
 
-  @Args4jOption(required = true, metaVar = "-modelLocation", usage = "The location of the model to load.")
+  @Args4jOption(required = true, name = "-modelLocation", usage = "The location of the model to load.")
   var modelLocation: String = _
 
-  @Args4jOption(required = true, metaVar = "-saveModelTo", usage = "The location to save model to.")
+  @Args4jOption(required = true, name = "-saveModelTo", usage = "The location to save model to.")
   var saveTo: String = _
 
 }
 
-class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDGSparkCommand[ConstructGnocchiModelArgs] {
+class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDGSparkCommand[UpdateGnocchiModelArgs] {
   override val companion = UpdateGnocchiModel
 
   override def run(sc: SparkContext) {

@@ -19,7 +19,7 @@ package net.fnothaft.gnocchi.transformations
 import net.fnothaft.gnocchi.models.GenotypeState
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
-object gs2variant {
+object Gs2variant {
 
   def apply(gs: GenotypeState): Variant = {
     val variant = new Variant()
