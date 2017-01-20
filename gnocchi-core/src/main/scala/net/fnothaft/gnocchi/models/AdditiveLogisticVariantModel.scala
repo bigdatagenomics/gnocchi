@@ -16,7 +16,7 @@
 package net.fnothaft.gnocchi.models
 
 import breeze.linalg.{ DenseVector => BreezeDense }
-import net.fnothaft.gnocchi.association.{ Additive, AdditiveLogisticAssociation, LogisticSiteRegression }
+import net.fnothaft.gnocchi.association.{ AdditiveLogisticAssociation }
 import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
