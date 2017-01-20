@@ -42,4 +42,9 @@ case class GenotypeState(contig: String,
       .setAlternateAllele(alt)
       .build()
   }
+
+  def tempVariantId = {
+    val posString = start.toString
+    s"$posString" + "_$alt"
+  }
 }

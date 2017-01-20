@@ -98,6 +98,7 @@ class RegressPhenotypesArgs extends Args4jBase {
   //
   //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
   //  var mapFile: String = null
+
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {

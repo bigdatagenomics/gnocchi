@@ -110,7 +110,8 @@
     <dependency>
       <groupId>org.bdgenomics.adam</groupId>
       <artifactId>adam-core_${scala.version.prefix}</artifactId>
-      <version>0.19.0</version>
+      <version>${adam.version}</version>
+      <!--<version>0.19.0</version>-->
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>

@@ -20,7 +20,6 @@ import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.bdgenomics.adam.models.ReferenceRegion
 import scala.math.log10
 import org.apache.commons.math3.distribution.TDistribution
-import org.apache.spark.SparkContext
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 trait LinearSiteRegression extends SiteRegression {
