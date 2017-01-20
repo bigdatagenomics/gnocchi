@@ -32,8 +32,9 @@ class AdditiveLogisticVariantModel extends LogisticVariantModel {
              phenotype: String): Unit = {
 
     val clippedObs = BuildAdditiveLogisticVariantModel.arrayClipOrKeepState(observations)
-    val assoc = AdditiveLogisticAssociation.regressSite(clippedObs, locus, altAllele, phenotype)
+    val assoc = AdditiveLogisticAssociation.regressSite(clippedObs, variant, phenotype)
     if (assoc.statistics.nonEmpty) {
+      association = assoc
       assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
       val numNewSamples = observations.length
       val totalSamples = numSamples + numNewSamples

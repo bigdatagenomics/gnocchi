@@ -15,12 +15,13 @@
  */
 package net.fnothaft.gnocchi.models
 
-import breeze.linalg.{ DenseVector => BreezeDense }
+import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.association.AdditiveLogisticAssociation
 import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
 import net.fnothaft.gnocchi.transformations.Obs2LabeledPoints
 import org.apache.spark.mllib.optimization.LogisticGradient
-import org.apache.spark.mllib.linalg.DenseVector
+//import org.apache.spark.mllib.linalg.DenseVector
+import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
@@ -38,7 +39,8 @@ trait LogisticVariantModel extends VariantModel {
   var QRFactorizationValue = 0.0
   var numSamples = 0
   var phenotype = "Empty Phenotype"
-
+  var predictions = List[(Array[(String, (Double, Double))], Association)]() //Array[(String, (Double, Double))]()
+  var association = Association(variant, phenotype, 0.0, Map())
   //  def update(observations: Array[(Double, Array[Double])],
   //             locus: ReferenceRegion,
   //             altAllele: String,
@@ -59,8 +61,71 @@ trait LogisticVariantModel extends VariantModel {
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.
-  //  def update(observations: Array[(Double, Array[Double])]): Unit = {
-  //    println("\n\n\n\n\n\n\n\n\n" + weights.toList + "\n\n\n\n\n\n\n")
+  //    def update(observations: Array[(Double, Array[Double])]): Unit = {
+
+  //  }
+
+  def predict(obs: Array[(Double, Array[Double])]): List[(Array[(String, (Double, Double))], Association)] = {
+    // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
+    val observationLength = obs(0)._2.length
+    val numObservations = obs.length
+    val lp = new Array[LabeledPoint](numObservations)
+
+    val sampleObservations = obs.map(kv => {
+      val (geno, pheno) = kv
+      val str = "sampleId"
+      (geno, pheno, str)
+    })
+
+    // iterate over observations, copying correct elements into sample array and filling the x matrix.
+    // the first element of each sample in x is the coded genotype and the rest are the covariates.
+    var features = new Array[Double](observationLength)
+    val samples = new Array[String](sampleObservations.length)
+    for (i <- sampleObservations.indices) {
+      // rearrange variables into label and features
+      features = new Array[Double](observationLength)
+      features(0) = sampleObservations(i)._1.toDouble
+      sampleObservations(i)._2.slice(1, observationLength).copyToArray(features, 1)
+      val label = sampleObservations(i)._2(0)
+
+      // pack up info into LabeledPoint object
+      lp(i) = new LabeledPoint(label, new org.apache.spark.mllib.linalg.DenseVector(features))
+
+      samples(i) = sampleObservations(i)._3
+    }
+
+    val b = weights
+
+    // TODO: Check that this actually matches the samples with the right results.
+    // receive 0/1 results from datapoints and model
+    val results = predictLP(lp, b)
+    val preds = List((samples zip results, this.association))
+    this.predictions = preds
+    preds
+  }
+
+  def predictLP(lpArray: Array[LabeledPoint], b: Array[Double]): Array[(Double, Double)] = {
+    val expitResults = expit(lpArray, b)
+    // (Predicted, Actual)
+    val predictions = new Array[(Double, Double)](expitResults.length)
+    for (j <- predictions.indices) {
+      predictions(j) = (lpArray(j).label, Math.round(expitResults(j)))
+      //      predictions(j) = (lpArray(j).label, expitResults(j))
+    }
+    predictions
+  }
+
+  def expit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
+    val expitResults = new Array[Double](lpArray.length)
+    val bDense = DenseVector(b)
+    for (j <- expitResults.indices) {
+      val lp = lpArray(j)
+      expitResults(j) = 1 / (1 + Math.exp(-DenseVector(1.0 +: lp.features.toArray) dot bDense))
+    }
+    expitResults
+  }
+
+  // println("\n\n\n\n\n\n\n\n\n" + weights.toList + "\n\n\n\n\n\n\n")
   //    // Update the weights
   //    val logGrad = new LogisticGradient(2)
   //    var points = Obs2LabeledPoints(observations)
@@ -135,19 +200,5 @@ trait LogisticVariantModel extends VariantModel {
     val mag = Math.pow(sm, 0.5)
     features.map(elem => elem / mag)
   }
-
-  // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
-  // the primary phenotype as the first value and covariates following it.
-  //  def predict(observations: Array[(Double, Array[Double])],
-  //              locus: ReferenceRegion,
-  //              altAllele: String,
-  //              phenotype: String): Map[String, Double]
-
-  // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
-  // the primary phenotype as the first value and covariates following it.
-  //  def test(observations: Array[(Double, Array[Double])],
-  //           locus: ReferenceRegion,
-  //           altAllele: String,
-  //           phenotype: String): Double
 
 }

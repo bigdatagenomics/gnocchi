@@ -21,6 +21,7 @@ import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
 import net.fnothaft.gnocchi.models.Association
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 class LogisticGnocchiModelSuite extends GnocchiFunSuite {
 
@@ -44,6 +45,13 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     val phenotype = "acceptance"
     val locus = ReferenceRegion("Name", 1, 2)
     val scOption = Option(sc)
+    val variant = new Variant()
+    val contig = new Contig()
+    contig.setContigName(locus.referenceName)
+    variant.setContig(contig)
+    variant.setStart(locus.start)
+    variant.setEnd(locus.end)
+    variant.setAlternateAllele(altAllele)
 
     // break observations into initial group and group to use in update 
     val initial = observations.slice(0, 25)
@@ -51,11 +59,11 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     val updateGroups = forUpdate.toList.grouped(25).toList
 
     // feed it into logisitic regression and compare the Wald Chi Squared tests
-    val incrementalVariantModel = BuildAdditiveLogisticVariantModel(initial, locus, altAllele, phenotype)
+    val incrementalVariantModel = BuildAdditiveLogisticVariantModel(initial, variant, phenotype)
     for (group <- updateGroups) {
       incrementalVariantModel.update(group.toArray, locus, altAllele, phenotype)
     }
-    val nonincremental = BuildAdditiveLogisticVariantModel(observations, locus, altAllele, phenotype)
+    val nonincremental = BuildAdditiveLogisticVariantModel(observations, variant, phenotype)
 
     val incrementalAssoc = Association(incrementalVariantModel.variant, "pheno", 0.0, Map("weights" -> incrementalVariantModel.weights))
     val nonincrementalAssoc = Association(incrementalVariantModel.variant, "pheno", 0.0, Map("weights" -> nonincremental.weights))

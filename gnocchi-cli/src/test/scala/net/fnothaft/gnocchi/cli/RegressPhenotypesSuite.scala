@@ -144,7 +144,9 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
 
     RegressPhenotypes(cliArgs).logResults(assocs, sc)
     //Assert that the rsquared is in the right threshold. 
-    assert(regressionResult(0).statistics("rSquared") == 0.7681191628941112, "rSquared = " + regressionResult(0).statistics("rSquared"))
+    //    assert(regressionResult(0).statistics("rSquared") == 0.7681191628941112, "rSquared = " + regressionResult(0).statistics("rSquared"))
+    assert(regressionResult(0).statistics("rSquared") == 0.833277921795612, "rSquared = " + regressionResult(0).statistics("rSquared"))
+
   }
 
 }

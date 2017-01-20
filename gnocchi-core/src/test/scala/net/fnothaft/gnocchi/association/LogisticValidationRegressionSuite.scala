@@ -18,11 +18,12 @@ package net.fnothaft.gnocchi.association
 import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import org.bdgenomics.adam.models.ReferenceRegion
+import net.fnothaft.gnocchi.models.Association
 import org.bdgenomics.formats.avro.Variant
 
-class LogisticSiteRegressionSuite extends GnocchiFunSuite {
+class LogisticValidationRegressionSuite extends GnocchiFunSuite {
 
-  sparkTest("Test logisticRegression on binary data") {
+  sparkTest("Test logistic regression prediction on binary data") {
     // read in the data from binary.csv
     // data comes from: http://www.ats.ucla.edu/stat/sas/dae/binary.sas7bdat
     // results can be found here: http://www.ats.ucla.edu/stat/sas/dae/logit.htm
@@ -31,31 +32,41 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val data = csv.map(line => line.split(",").map(elem => elem.toDouble)) //get rows
 
     // transform it into the right format
-    val observations = data.map(row => {
+    val sampleObservations = data.map(row => {
       val geno: Double = row(0)
       val covars: Array[Double] = row.slice(1, 3)
       val phenos: Array[Double] = Array(row(3)) ++ covars
-      (geno, phenos)
+      (geno, phenos, "")
     }).collect()
-    val altAllele = "No allele"
-    val phenotype = "acceptance"
-    val locus = ReferenceRegion("Name", 1, 2)
-    val scOption = Option(sc)
-    val variant = new Variant
 
-    // feed it into logisitic regression and compare the Wald Chi Squared tests
-    val regressionResult = AdditiveLogisticAssociation.regressSite(observations, variant, phenotype)
+    // generate array of expected results for each sample, based on given phenotype
+    val expectedResults = data.map(row => {
+      val predicted: Double = row(3)
+      val actual: Double = row(4)
+      ("", (predicted, actual))
+    }).collect()
 
-    // Assert that the weights are correct within a threshold.
-    val estWeights: Array[Double] = regressionResult.statistics("weights").asInstanceOf[Array[Double]] :+ regressionResult.statistics("intercept").asInstanceOf[Double]
-    val compWeights = Array(-3.4495484, .0022939, .77701357, -0.5600314)
-    for (i <- 0 until 3) {
-      assert(estWeights(i) <= (compWeights(i) + 1), s"Weight $i incorrect")
-      assert(estWeights(i) >= (compWeights(i) - 1), s"Weight $i incorrect")
+    val fakeVariant = new Variant()
+    val fakePhenotype = "acceptance"
+    // Our known fitting model
+    val weights = Array(-3.4495484, .0022939, .77701357, -0.5600314)
+    val statistics = Map("weights" -> weights)
+    val assoc = Association(fakeVariant, "", 0.0, statistics)
+
+    // Array[(String, Double)] where String is sampleid and Double is predicted value
+    val predictionResult = AdditiveLogisticEvaluation.predictSite(sampleObservations, assoc)
+
+    // Assert that the predictions result in the same as the actual phenotype (on dummy set)
+    for (i <- predictionResult.indices) {
+      if (predictionResult(i) != expectedResults(i)) {
+        print("Error --> ")
+      }
+      println("Ours: " + predictionResult(i) + " | Theirs: " + expectedResults(i))
     }
-    //Assert that the Wald chi squared value is in the right threshold. Answer should be 0.0385
-    val pval: Array[Double] = regressionResult.statistics("'P Values' aka Wald Tests").asInstanceOf[DenseVector[Double]].toArray
-    assert(pval(1) <= 0.0385 + 0.01, "'P Values' aka Wald Tests = " + pval)
-    assert(pval(1) >= 0.0385 - 0.01, "'P Values' aka Wald Tests = " + pval)
+    println(predictionResult.indices.map(i => {
+      predictionResult(i) == expectedResults(i)
+    }).count(b => { b }))
+    assert(predictionResult.sameElements(expectedResults))
   }
 }
+

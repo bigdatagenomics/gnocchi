@@ -30,15 +30,13 @@ trait LogisticSiteRegression extends SiteRegression {
    * This method will perform logistic regression on a single site.
    *
    * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
-   * @param locus        A ReferenceRegion object representing the location in the genome of the site.
-   * @param altAllele    A String specifying the value of the alternate allele that makes up the variant or SNP
+   * @param variant The variant that is being regressed.
    * @param phenotype    The name of the phenotype being regressed.
    * @return The Association object that results from the linear regression
    */
 
   def regressSite(observations: Array[(Double, Array[Double])],
-                  locus: ReferenceRegion,
-                  altAllele: String,
+                  variant: Variant,
                   phenotype: String): Association = {
 
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
@@ -136,13 +134,13 @@ trait LogisticSiteRegression extends SiteRegression {
     var matrixSingular = false
 
     // pack up the information into an Association object
-    val variant = new Variant()
-    val contig = new Contig()
-    contig.setContigName(locus.referenceName)
-    variant.setContig(contig)
-    variant.setStart(locus.start)
-    variant.setEnd(locus.end)
-    variant.setAlternateAllele(altAllele)
+    //    val variant = new Variant()
+    //    val contig = new Contig()
+    //    contig.setContigName(locus.referenceName)
+    //    variant.setContig(contig)
+    //    variant.setStart(locus.start)
+    //    variant.setEnd(locus.end)
+    //    variant.setAlternateAllele(altAllele)
 
     var toRet = new Association(null, null, -9.0, null)
     try {
@@ -169,7 +167,8 @@ trait LogisticSiteRegression extends SiteRegression {
         log10(t)
       })
 
-      val statistics = Map("weights" -> beta,
+      val statistics = Map("numSamples" -> numObservations,
+        "weights" -> beta,
         "intercept" -> beta(0),
         "'P Values' aka Wald Tests" -> waldTests,
         "log of wald tests" -> logWaldTests,

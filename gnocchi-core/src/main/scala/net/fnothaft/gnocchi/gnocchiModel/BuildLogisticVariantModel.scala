@@ -19,16 +19,16 @@ package net.fnothaft.gnocchi.gnocchiModel
 import net.fnothaft.gnocchi.association.LogisticSiteRegression
 import net.fnothaft.gnocchi.models.{ AdditiveLogisticVariantModel, Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.bdgenomics.formats.avro.Variant
 
 object BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with AdditiveVariant {
 
   def compute(observations: Array[(Double, Array[Double])],
-              locus: ReferenceRegion,
-              altAllele: String,
+              variant: Variant,
               phenotype: String): Association = {
 
     val clippedObs = arrayClipOrKeepState(observations)
-    val assoc = regressSite(clippedObs, locus, altAllele, phenotype)
+    val assoc = regressSite(clippedObs, variant, phenotype)
     assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
     assoc
   }
