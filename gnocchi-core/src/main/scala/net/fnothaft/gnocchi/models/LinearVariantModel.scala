@@ -34,7 +34,8 @@ trait LinearVariantModel extends VariantModel {
   var QRFactorizationValue = 0.0
   var numSamples = 0
   var phenotype = "Empty Phenotype"
-
+  var predictions = List[(Array[(String, (Double, Double))], Association)]() //Array[(String, (Double, Double))]()
+  var association = Association(variant, phenotype, 0.0, Map())
   //  def update(observations: Array[(Double, Array[Double])],
   //             locus: ReferenceRegion,
   //             altAllele: String,
@@ -138,6 +139,9 @@ trait LinearVariantModel extends VariantModel {
   //              locus: ReferenceRegion,
   //              altAllele: String,
   //              phenotype: String): Map[String, Double]
+  def predict(obs: Array[(Double, Array[Double])]): List[(Array[(String, (Double, Double))], Association)] = {
+    null
+  }
 
   // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
   // the primary phenotype as the first value and covariates following it.

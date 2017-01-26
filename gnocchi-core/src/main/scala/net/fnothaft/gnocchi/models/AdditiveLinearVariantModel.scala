@@ -31,7 +31,7 @@ class AdditiveLinearVariantModel extends LinearVariantModel {
              phenotype: String): Unit = {
 
     val clippedObs = BuildAdditiveLinearVariantModel.arrayClipOrKeepState(observations)
-    val assoc = AdditiveLinearAssociation.regressSite(clippedObs, locus, altAllele, phenotype)
+    val assoc = AdditiveLinearAssociation.regressSite(clippedObs, variant, phenotype)
     if (assoc.statistics.nonEmpty) {
       assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
       val numNewSamples = observations.length

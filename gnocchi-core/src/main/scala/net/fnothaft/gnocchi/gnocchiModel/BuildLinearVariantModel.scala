@@ -19,24 +19,24 @@ package net.fnothaft.gnocchi.gnocchiModel
 import net.fnothaft.gnocchi.association.LinearSiteRegression
 import net.fnothaft.gnocchi.models.{ AdditiveLinearVariantModel, Association, VariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
+import org.bdgenomics.formats.avro.Variant
 
 object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSiteRegression with AdditiveVariant {
 
   def compute(observations: Array[(Double, Array[Double])],
-              locus: ReferenceRegion,
-              altAllele: String,
+              variant: Variant,
               phenotype: String): Association = {
 
     val clippedObs = arrayClipOrKeepState(observations)
-    val assoc = regressSite(clippedObs, locus, altAllele, phenotype)
+    val assoc = regressSite(clippedObs, variant, phenotype)
     assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
     assoc
   }
 
   def extractVariantModel(assoc: Association): VariantModel = {
 
-    val logRegModel = new AdditiveLinearVariantModel
-    logRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
+    val linRegModel = new AdditiveLinearVariantModel
+    linRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
       .setHyperParamValues(Map[String, Double]())
       .setIncrementalUpdateValue(0.0)
       .setNumSamples(assoc.statistics("numSamples").asInstanceOf[Int]) // assoc.numSamples
@@ -44,7 +44,7 @@ object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSite
       .setVariantID("assoc.variantID")
       .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
       .setIntercept(assoc.statistics("intercept").asInstanceOf[Double])
-    logRegModel
+    linRegModel
   }
 
   val regressionName = "Additive Linear Regression"

@@ -85,13 +85,13 @@ trait LinearSiteRegression extends SiteRegression {
     val logPValue = log10(pvalue)
 
     // pack up the information into an Association object
-    val variant = new Variant()
-    val contig = new Contig()
-    contig.setContigName(locus.referenceName)
-    variant.setContig(contig)
-    variant.setStart(locus.start)
-    variant.setEnd(locus.end)
-    variant.setAlternateAllele(altAllele)
+    //    val variant = new Variant()
+    //    val contig = new Contig()
+    //    contig.setContigName(locus.referenceName)
+    //    variant.setContig(contig)
+    //    variant.setStart(locus.start)
+    //    variant.setEnd(locus.end)
+    //    variant.setAlternateAllele(altAllele)
     val statistics = Map("rSquared" -> rSquared,
       "weights" -> beta,
       "intercept" -> beta(0))

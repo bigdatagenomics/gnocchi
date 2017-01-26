@@ -35,7 +35,7 @@ class AdditiveLinearGnocchiModel extends GnocchiModel with Additive {
   var sampleIds = List("Empty String", "") // list of sampleIDs from all samples the model has seen.
   var variantModels = List[(Variant, VariantModel)]() //RDD[VariantModel.variantId, VariantModel[T]]
   var qrVariantModels = List[(VariantModel, Array[(Double, Array[Double])])]() // the variant model and the observations that the model must be trained on
-
+  var flaggedVariants = List[Variant]()
   //  val numSamples: RDD[(String, Int)] //(VariantID, NumSamples)
   //  val numVariants: Int
   //  val variances: RDD[(String, Double)] // (VariantID, variance)
@@ -64,10 +64,9 @@ class AdditiveLinearGnocchiModel extends GnocchiModel with Additive {
   // calls the appropriate version of BuildVariantModel
   def buildVariantModel(varModel: VariantModel,
                         obs: Array[(Double, Array[Double])]): VariantModel = {
-    val locus = new ReferenceRegion(varModel.variant.getReferenceAllele, varModel.variant.getStart, varModel.variant.getEnd)
-    val altAllele = varModel.variant.getAlternateAllele
+    val variant = varModel.variant
     val phenotype = varModel.phenotype
-    BuildAdditiveLinearVariantModel(obs, locus, altAllele, phenotype)
+    BuildAdditiveLinearVariantModel(obs, variant, phenotype)
   }
 
   // apply the GnocchiModel to a new batch of samples, predicting the phenotype of the sample and comparing to actual value
