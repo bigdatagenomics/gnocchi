@@ -1,6 +1,6 @@
 # gnocchi
 
-Demo code showing how one could possibly do genotype-phenotype analysis using ADAM.
+Genotype-phenotype analysis using the [ADAM](https://github.com/bigdatagenomics/adam) genomics analysis platform.
 This is work-in-progress. Currently, we implement a simple case/control analysis using a Chi squared test.
 
 # Build
