@@ -18,8 +18,12 @@ package net.fnothaft.gnocchi.cli
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.association._
 import java.io.File
+import java.nio.file.Files
 
 class RegressPhenotypesSuite extends GnocchiFunSuite {
+
+  val path = "src/test/resources/testData/Association"
+  val destination = Files.createTempDirectory("").toAbsolutePath.toString + "/" + path
 
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
@@ -32,7 +36,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val genoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
     val phenoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
     val baseDir = new File(".").getAbsolutePath()
-    val destination = "File://" + baseDir + "src/test/resources/testData/Association"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -overwriteParquet -oneTwo"
     val cliArgs = cliCall.split(" ").drop(2)
     intercept[AssertionError] {
@@ -43,7 +46,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with -covar but not -covarNames") {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    val destination = "src/test/resources/testData/Association"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -phenoName pheno2 -covar -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     intercept[AssertionError] {
@@ -54,7 +56,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   sparkTest("Test loadGenotypes: output from vcf input") {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    val destination = "src/test/resources/testData/Association"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno2 -covar -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStateDataset = RegressPhenotypes(cliArgs).loadGenotypes(sc)
@@ -72,7 +73,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     // import AssociationEncoder._
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("1snp10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples1Phenotype.txt").getFile
-    val destination = "src/test/resources/testData/Association"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
@@ -85,7 +85,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   sparkTest("Test full pipeline: 1 snp, 10 samples, 12 samples in phenotype file (10 matches) 1 phenotype, no covar") {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("1snp10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("12samples1Phenotype.txt").getFile
-    val destination = "src/test/resources/testData/Association"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
@@ -126,7 +125,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
     val covarFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
     println(genoFilePath)
-    val destination = "src/test/resources/testData/Association"
     // val destination = "~/Users/Taner/desktop/associations"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
