@@ -34,7 +34,8 @@ trait ValidationRegression extends SiteRegression {
                k: Int = 1,
                n: Int = 1,
                sc: SparkContext,
-               monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
+               monte: Boolean = false,
+               threshold: Double = 0.5): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](k)
 
@@ -43,7 +44,7 @@ trait ValidationRegression extends SiteRegression {
     val rdds = genoPhenoRdd.randomSplit(Array(.9, .1))
     val trainRdd = rdds(0)
     val testRdd = rdds(1)
-    crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
+    crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes, threshold)
 
     //    if (k != 1) {
     //      if (monte) {
@@ -158,7 +159,8 @@ trait ValidationRegression extends SiteRegression {
 
   def applyRegression[T](trainRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
                          testRdd: RDD[(String, (GenotypeState, Phenotype[T]))],
-                         phenotypes: RDD[Phenotype[T]]): RDD[(Array[(String, (Double, Double))], Association)] = {
+                         phenotypes: RDD[Phenotype[T]],
+                         threshold: Double): RDD[(Array[(String, (Double, Double))], Association)] = {
     println("TrainRDD count: " + trainRdd.count)
     val temp01 = trainRdd
       .map(kvv => {
@@ -216,7 +218,7 @@ trait ValidationRegression extends SiteRegression {
         val (sampleid, (genotypeState, phenotype)) = p
         // return genotype and phenotype in the correct form
         (clipOrKeepState(genotypeState), phenotype.toDouble, sampleid)
-      }).toArray, association), association)
+      }).toArray, association, threshold), association)
     })
   }
 
@@ -227,6 +229,7 @@ trait ValidationRegression extends SiteRegression {
    * To be implemented by any class that implements this trait.
    */
   protected def predictSite(sampleObservations: Array[(Double, Array[Double], String)],
-                            association: Association): Array[(String, (Double, Double))]
+                            association: Association,
+                            threshold: Double): Array[(String, (Double, Double))]
 }
 

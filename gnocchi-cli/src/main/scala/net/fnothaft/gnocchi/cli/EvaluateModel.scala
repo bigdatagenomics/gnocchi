@@ -68,6 +68,8 @@ class EvaluateModelArgs extends RegressPhenotypesArgs {
   @Args4jOption(required = false, name = "-end", usage = "Uses final fold for testing of all progressive models in progressive validation regression")
   var end = false
 
+  @Args4jOption(required = false, name = "-threshold", usage = "The threshold by which to round the resulting classes. Default is 0.5")
+  var threshold = 0.5
 }
 
 class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkCommand[EvaluateModelArgs] {
@@ -177,20 +179,20 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
 
         if (n == 1) {
           if (k == 1) {
-            AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+            AdditiveLogisticEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo, threshold = args.threshold)
           } else {
             if (monte) {
-              AdditiveLogisticMonteCarloEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+              AdditiveLogisticMonteCarloEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo, threshold = args.threshold)
             } else {
-              AdditiveLogisticKfoldsEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+              AdditiveLogisticKfoldsEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo, threshold = args.threshold)
             }
           }
         } else {
           if (k == 1) {
             if (args.end) {
-              AdditiveLogisticEndProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+              AdditiveLogisticEndProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo, threshold = args.threshold)
             } else {
-              AdditiveLogisticProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo)
+              AdditiveLogisticProgressiveEvaluation(genotypeStates.rdd, phenotypes, scOption = contextOption, k = args.kfold, n = args.numProgressiveSplits, sc, monte = args.monteCarlo, threshold = args.threshold)
             }
           } else {
             assert(false, "cross validation not possible for progressive validation.")

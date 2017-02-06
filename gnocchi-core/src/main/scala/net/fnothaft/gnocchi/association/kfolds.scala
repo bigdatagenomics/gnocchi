@@ -30,7 +30,8 @@ trait kfolds extends ValidationRegression {
                         k: Int = 1,
                         n: Int = 1,
                         sc: SparkContext,
-                        monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
+                        monte: Boolean = false,
+                        threshold: Double = 0.5): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](k)
 
@@ -43,7 +44,7 @@ trait kfolds extends ValidationRegression {
       val (testRdd, trainRdd) = mergeRDDs(sc, a, splitArray)
       println("\n\n\n\n\n\n testRdd length: " + testRdd.count)
       println("\n\n\n\n\n\n trainRdd length: " + trainRdd.count)
-      crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+      crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes, threshold)
     }
     crossValResults
   }

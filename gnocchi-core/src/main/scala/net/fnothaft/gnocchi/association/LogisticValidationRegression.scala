@@ -33,7 +33,8 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
    */
 
   def predictSite(sampleObservations: Array[(Double, Array[Double], String)],
-                  association: Association): Array[(String, (Double, Double))] = {
+                  association: Association,
+                  threshold: Double): Array[(String, (Double, Double))] = {
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = sampleObservations(0)._2.length
     val numObservations = sampleObservations.length
@@ -61,16 +62,16 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
 
     // TODO: Check that this actually matches the samples with the right results.
     // receive 0/1 results from datapoints and model
-    val results = predict(lp, b)
+    val results = predict(lp, b, threshold)
     samples zip results
   }
 
-  def predict(lpArray: Array[LabeledPoint], b: Array[Double]): Array[(Double, Double)] = {
+  def predict(lpArray: Array[LabeledPoint], b: Array[Double], threshold: Double): Array[(Double, Double)] = {
     val expitResults = expit(lpArray, b)
     // (Predicted, Actual)
     val predictions = new Array[(Double, Double)](expitResults.length)
     for (j <- predictions.indices) {
-      predictions(j) = (lpArray(j).label, Math.round(expitResults(j)))
+      predictions(j) = (lpArray(j).label, if (expitResults(j) >= threshold) 1 else 0)
     }
     predictions
   }

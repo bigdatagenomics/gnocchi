@@ -30,14 +30,15 @@ trait MonteCarlo extends ValidationRegression {
                         k: Int = 1,
                         n: Int = 1,
                         sc: SparkContext,
-                        monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
+                        monte: Boolean = false,
+                        threshold: Double = 0.5): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](k)
 
     // a single k-1/1 split kfolds times.
     for (i <- 0 until k) {
       val Array(trainRdd, testRdd) = genoPhenoRdd.randomSplit(Array(1.0 - (1.0 / k), 1.0 / k))
-      crossValResults(i) = applyRegression(trainRdd, testRdd, phenotypes)
+      crossValResults(i) = applyRegression(trainRdd, testRdd, phenotypes, threshold)
     }
     crossValResults
   }
