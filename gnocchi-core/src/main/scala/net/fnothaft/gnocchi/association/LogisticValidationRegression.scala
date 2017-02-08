@@ -34,7 +34,7 @@ trait LogisticValidationRegression extends ValidationRegression with LogisticSit
 
   def predictSite(sampleObservations: Array[(Double, Array[Double], String)],
                   association: Association,
-                  threshold: Double): Array[(String, (Double, Double))] = {
+                  threshold: Double = 0.5): Array[(String, (Double, Double))] = {
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = sampleObservations(0)._2.length
     val numObservations = sampleObservations.length

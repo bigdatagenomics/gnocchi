@@ -55,4 +55,4 @@ trait EndProgressive extends ValidationRegression {
   def mergeRDDs[T](sc: SparkContext, rdd1: RDD[(String, (GenotypeState, Phenotype[T]))], rdd2: RDD[(String, (GenotypeState, Phenotype[T]))]): RDD[(String, (GenotypeState, Phenotype[T]))] = {
     sc.parallelize(rdd1.collect ++ rdd2.collect)
   }
-}g
+}
