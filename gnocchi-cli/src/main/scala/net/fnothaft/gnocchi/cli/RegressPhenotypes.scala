@@ -287,10 +287,11 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // Load phenotypes
     var phenotypes: RDD[Phenotype[Array[Double]]] = null
+    val missingPhenoLoc = args.writeMissingPheno + "missingPhenotypes.txt"
     if (args.includeCovariates) {
-      phenotypes = LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc, args.writeMissingPheno)
+      phenotypes = LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc, missingPhenoLoc)
     } else {
-      phenotypes = LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc, args.writeMissingPheno)
+      phenotypes = LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc, missingPhenoLoc)
     }
     phenotypes
   }
