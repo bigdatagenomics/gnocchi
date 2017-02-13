@@ -31,13 +31,14 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
                covarFile: String,
                phenoName: String,
                covarNames: String,
-               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
+               sc: SparkContext,
+               writeMissingPheno: Boolean = false)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
     println("Loading phenotypes from %s.".format(file))
 
     // get the relevant parts of the phenotypes file and put into a DF
     val phenotypes = sc.textFile(file).persist()
     val covars = sc.textFile(covarFile).persist()
-    println("Loading covars form %s.".format(covarFile))
+    println("Loading covars from %s.".format(covarFile))
 
     // separate header and data
     val header = phenotypes.first()
@@ -95,7 +96,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     }
 
     // construct the phenotypes RDD, filtering out all samples that don't have the phenotype or one of the covariates
-    val data = getAndFilterPhenotypes(oneTwo, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
+    val data = getAndFilterPhenotypes(oneTwo, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc, writeMissingPheno)
 
     return data
   }
@@ -107,7 +108,8 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
                                               covarHeader: String,
                                               primaryPhenoIndex: Int,
                                               covarIndices: Array[Int],
-                                              sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
+                                              sc: SparkContext,
+                                              writeMissingPheno: Boolean = false): RDD[Phenotype[Array[Double]]] = {
 
     // !!! NEED TO ASSERT THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
 
@@ -182,16 +184,10 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     })
     // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
 
-    val finalData = joinedData.filter(p => {
-      //      println("p: " + p.toList)
-      //      println("plength = " + p.length)
+    val cleanData = joinedData.filter(p => {
       if (p.length > 2) {
-
         var keep = true
         for (valueIndex <- indices) {
-          //          println("index = " + valueIndex)
-          //          println(p.toList)
-          //          println("here: " + p(valueIndex).toDouble)
           if (isMissing(p(valueIndex))) {
             keep = false
           }
@@ -200,7 +196,27 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       } else {
         false
       }
-    }).map(p => {
+    })
+
+    if (writeMissingPheno) {
+      val dirtyData = joinedData.filter(p => {
+        if (p.length > 2) {
+          var keep = false
+          for (valueIndex <- indices) {
+            if (isMissing(p(valueIndex))) {
+              keep = true
+            }
+          }
+          keep
+        } else {
+          true
+        }
+      })
+        .coalesce(1)
+        .saveAsTextFile("missingPhenotypes.txt")
+    }
+
+    val finalData = cleanData.map(p => {
       if (oneTwo) {
         println("oneTwo flagged")
         val toRet = p.slice(0, primaryPhenoIndex) ++ List((p(primaryPhenoIndex).toDouble - 1).toString) ++ p.slice(primaryPhenoIndex + 1, p.length)

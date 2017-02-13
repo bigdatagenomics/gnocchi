@@ -147,6 +147,17 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
 
   }
 
+  sparkTest("Test LoadPhenotypes: filter out missing results") {
+    val genoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("1snp10samples.vcf").getFile
+    val phenoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
+    val covarFilePath = ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
+
+    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet -oneTwo"
+    val cliArgs = cliCall.split(" ").drop(2)
+    val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
+    val phenotypes = RegressPhenotypes(cliArgs).loadPhenotypes(sc).collect()
+  }
+
 }
 // genoFilePath 
 // ./bin/gnocchi-submit regressPhenotypes gnocchi-cli/target/test-classes/5snps10samples.vcf gnocchi-cli/target/test-classes/10samples5Phenotypes2covars.txt ADDITIVE_LINEAR TestDataResults -saveAsText -phenoName pheno1 -covar -covarNames pheno4,pheno5 -overwriteParquet
