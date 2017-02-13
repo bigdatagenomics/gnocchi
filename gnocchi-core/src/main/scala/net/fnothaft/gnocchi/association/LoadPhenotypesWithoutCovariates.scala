@@ -111,6 +111,9 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
             true
           }
         })
+        .map(p => {
+          p.mkString(",")
+        })
         .coalesce(1)
         .saveAsTextFile(writeMissingPheno)
     }
