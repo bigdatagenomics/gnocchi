@@ -152,7 +152,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val phenoFilePath = "File://" + ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
     val covarFilePath = ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
 
-    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet -oneTwo"
+    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -covar -covarFile $covarFilePath -covarNamess -overwriteParquet -oneTwo"
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
     val phenotypes = RegressPhenotypes(cliArgs).loadPhenotypes(sc).collect()

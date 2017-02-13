@@ -31,7 +31,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
                file: String,
                phenoName: String,
                sc: SparkContext,
-               writeMissingPheno: Boolean = false)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
+               writeMissingPheno: String = null)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
     println("Loading phenotypes from %s.".format(file))
 
     // get the relevant parts of the phenotypes file and put into a DF
@@ -75,7 +75,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
                                               header: String,
                                               primaryPhenoIndex: Int,
                                               sc: SparkContext,
-                                              writeMissingPheno: Boolean = false): RDD[Phenotype[Array[Double]]] = {
+                                              writeMissingPheno: String = null): RDD[Phenotype[Array[Double]]] = {
 
     // !!! NEED TO ASSERT THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
 
@@ -93,7 +93,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
 
     // construct the RDD of Phenotype objects from the data in the textfile
     val indices = Array(primaryPhenoIndex)
-    if (writeMissingPheno) {
+    if (writeMissingPheno != null) {
       val dirtyData = phenotypes.filter(line => line != header)
         // split the line by column
         .map(line => line.split("\t"))
@@ -112,7 +112,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
           }
         })
         .coalesce(1)
-        .saveAsTextFile("missingPhenotypes.txt")
+        .saveAsTextFile(writeMissingPheno)
     }
 
     val cleanData = phenotypes.filter(line => line != header)

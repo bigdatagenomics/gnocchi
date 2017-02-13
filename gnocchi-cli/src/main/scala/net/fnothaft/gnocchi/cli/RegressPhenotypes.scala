@@ -96,8 +96,8 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
 
-  @Args4jOption(required = false, name = "-writeMissingPheno", usage = "Writes a file that contains all the missing phenotypes")
-  var writeMissingPheno = false
+  @Args4jOption(required = false, name = "-writeMissingPheno", usage = "Write missing phenotypes to the location supplied.")
+  var writeMissingPheno: String = null
 
   //
   //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
