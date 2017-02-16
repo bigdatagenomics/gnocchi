@@ -15,8 +15,6 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.File
-
 import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
 import net.fnothaft.gnocchi.sql.GnocchiContext._
@@ -25,12 +23,12 @@ import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 import org.bdgenomics.adam.cli.Vcf2ADAM
-import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import net.fnothaft.gnocchi.models.{ Association, Phenotype }
 import org.apache.spark.sql.functions._
 import net.fnothaft.gnocchi.association.Ensembler
+import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scala.collection.mutable.ListBuffer
 
@@ -117,21 +115,22 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     // set up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
+    val fs = FileSystem.get(sc.hadoopConfiguration)
 
-    val absAssociationPath = new File(args.associations).getAbsolutePath
+    val absAssociationPath = fs.getFileStatus(new Path(args.associations)).getPath.toString
     var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
-    val parquetFiles = new File(parquetInputDestination)
+    val parquetFiles = new Path(parquetInputDestination)
 
     val vcfPath = args.genotypes
     val posAndIds = GetVariantIds(sc, vcfPath)
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
-    if (!parquetFiles.getAbsoluteFile.exists) {
+    if (!fs.exists(parquetFiles)) {
       val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     } else if (args.overwrite) {
-      FileUtils.deleteDirectory(parquetFiles)
+      fs.delete(parquetFiles, true)
       val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
     }
