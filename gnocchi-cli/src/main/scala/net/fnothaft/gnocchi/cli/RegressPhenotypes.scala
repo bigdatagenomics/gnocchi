@@ -23,15 +23,15 @@ import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{Argument, Option => Args4jOption}
+import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 
 import scala.math.exp
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.functions.{concat, lit}
-import net.fnothaft.gnocchi.models.{Association, AuxEncoders, Phenotype}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.spark.sql.functions.{ concat, lit }
+import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
+import org.apache.hadoop.fs.{ FileSystem, Path }
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -122,10 +122,11 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sqlContext = SQLContext.getOrCreate(sc)
 
     import sqlContext.implicits._
-    val fs = FileSystem.get(sc.hadoopConfiguration)
 
-    val absAssociationPath = fs.getFileStatus(new Path(args.associations)).getPath.toString
-    var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
+    val absAssociationPath = new Path(args.associations)
+    val fs = absAssociationPath.getFileSystem(sc.hadoopConfiguration)
+    // val absAssociationStr = fs.getFileStatus(relAssociationPath).getPath.toString
+    var parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/")
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
     val parquetFiles = new Path(parquetInputDestination)
 
@@ -256,8 +257,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
                  sc: SparkContext) = {
     // save dataset
     val sqlContext = SQLContext.getOrCreate(sc)
-    val fs = FileSystem.get(sc.hadoopConfiguration)
     val associationsFile = new Path(args.associations)
+    val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
     if (fs.exists(associationsFile)) {
       fs.delete(associationsFile, true)
     }

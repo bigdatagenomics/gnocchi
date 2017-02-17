@@ -28,7 +28,7 @@ import org.apache.spark.sql.Dataset
 import net.fnothaft.gnocchi.models.{ Association, Phenotype }
 import org.apache.spark.sql.functions._
 import net.fnothaft.gnocchi.association.Ensembler
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.{ FileSystem, Path }
 
 import scala.collection.mutable.ListBuffer
 
@@ -115,10 +115,11 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     // set up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
-    val fs = FileSystem.get(sc.hadoopConfiguration)
 
-    val absAssociationPath = fs.getFileStatus(new Path(args.associations)).getPath.toString
-    var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
+    val relAssociationPath = new Path(args.associations)
+    val fs = relAssociationPath.getFileSystem(sc.hadoopConfiguration)
+    val absAssociationStr = fs.getFileStatus(new Path(args.associations)).getPath.toString
+    var parquetInputDestination = absAssociationStr.toString.split("/").reverse.drop(1).reverse.mkString("/")
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
     val parquetFiles = new Path(parquetInputDestination)
 
