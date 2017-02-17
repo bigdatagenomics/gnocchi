@@ -68,14 +68,13 @@ class PredictWithGnocchiModel(protected val args: PredictWithGnocchiModelArgs) e
     // Load in phenotype data
     val phenotypes = regPheno.loadPhenotypes(sc)
 
-    // load model TODO: Write load GnocchiModel object
+    // load model
     val model = LoadGnocchiModel(args.modelLocation)
 
     // make predictions on new data
     val predictions = model.predict(genotypeStates.rdd, phenotypes, sc)
 
-    // save the predictions TODO: write savePredictions function
-    //    savePredictions(predictions)
+    // savePredictions(predictions)
 
     // save the model
     SaveGnocchiModel(model, args.saveTo)

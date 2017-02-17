@@ -22,9 +22,10 @@ import net.fnothaft.gnocchi.models.GnocchiModel
 object SaveGnocchiModel {
 
   def apply(model: GnocchiModel, saveTo: String): Unit = {
-    val fos = new FileOutputStream(saveTo)
-    val oos = new ObjectOutputStream(fos)
+
+    val oos = new ObjectOutputStream(new FileOutputStream(saveTo))
     oos.writeObject(model)
     oos.close()
+
   }
 }

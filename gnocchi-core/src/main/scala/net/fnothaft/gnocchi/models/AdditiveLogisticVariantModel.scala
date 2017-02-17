@@ -21,7 +21,7 @@ import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
-class AdditiveLogisticVariantModel extends LogisticVariantModel {
+class AdditiveLogisticVariantModel extends LogisticVariantModel with Serializable {
 
   var modelType = "Additive Logistic Variant Model"
   val regressionName = "Additive Logistic Regression"

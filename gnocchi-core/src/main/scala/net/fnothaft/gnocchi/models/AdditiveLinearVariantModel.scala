@@ -20,7 +20,7 @@ import net.fnothaft.gnocchi.association.AdditiveLinearAssociation
 import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLinearVariantModel
 import org.bdgenomics.adam.models.ReferenceRegion
 
-class AdditiveLinearVariantModel extends LinearVariantModel {
+class AdditiveLinearVariantModel extends LinearVariantModel with Serializable {
 
   var modelType = "Additive Linear Variant Model"
   val regressionName = "Additive Linear Regression"

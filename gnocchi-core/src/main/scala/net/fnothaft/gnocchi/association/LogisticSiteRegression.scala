@@ -175,7 +175,8 @@ trait LogisticSiteRegression extends SiteRegression {
         "fisherInfo" -> fisherInfo,
         "XiVectors" -> xiVectors(0),
         "xixit" -> xixiT(0),
-        "prob" -> pi)
+        "prob" -> pi,
+        "rSquared" -> 0.0)
       //        "logitArray" -> logitArray(0))
 
       toRet = Association(variant, phenotype, logWaldTests(1), statistics)
@@ -184,7 +185,17 @@ trait LogisticSiteRegression extends SiteRegression {
     }
     if (matrixSingular) {
       val statistics = Map()
-      toRet = Association(variant, phenotype, 0.0, Map())
+      toRet = Association(variant, phenotype, 0.0, Map(
+        "numSamples" -> 0,
+        "weights" -> beta,
+        "intercept" -> 0.0,
+        "'P Values' aka Wald Tests" -> 0.0,
+        "log of wald tests" -> 0.0,
+        "fisherInfo" -> 0.0,
+        "XiVectors" -> xiVectors(0),
+        "xixit" -> xixiT(0),
+        "prob" -> pi,
+        "rSquared" -> 0.0))
       println("in wald test: " + hessian)
     }
     toRet

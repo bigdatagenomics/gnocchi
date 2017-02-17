@@ -167,7 +167,6 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     println(dataToPrint)
     // merge the phenos and covariates into same RDD row
 
-    // TODO: took out the cogroup here. Need to fix.
 
     val joinedData = data.cogroup(covarData).map(pair => {
       val (sampleId, (phenos, covariates)) = pair

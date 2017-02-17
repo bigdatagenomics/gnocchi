@@ -94,7 +94,8 @@ trait LinearSiteRegression extends SiteRegression {
     //    variant.setAlternateAllele(altAllele)
     val statistics = Map("rSquared" -> rSquared,
       "weights" -> beta,
-      "intercept" -> beta(0))
+      "intercept" -> beta(0),
+      "numSamples" -> numObservations)
     val associationObject = new Association(variant, phenotype, logPValue, statistics)
 
     return associationObject

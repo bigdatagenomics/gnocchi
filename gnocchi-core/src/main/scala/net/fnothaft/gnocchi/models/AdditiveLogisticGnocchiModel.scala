@@ -20,7 +20,7 @@ import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
-case class AdditiveLogisticGnocchiModel extends Serializable with GnocchiModel with Additive {
+class AdditiveLogisticGnocchiModel extends Serializable with GnocchiModel with Additive {
 
   var numSamples = List(("Empty List", 0)) //(VariantID, NumSamples)
   var numVariants = 1

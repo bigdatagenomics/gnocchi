@@ -82,6 +82,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult(0).statistics("rSquared") == 1.0, "rSquared = " + regressionResult(0).statistics("rSquared"))
   }
+
   sparkTest("Test full pipeline: 1 snp, 10 samples, 12 samples in phenotype file (10 matches) 1 phenotype, no covar") {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("1snp10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("12samples1Phenotype.txt").getFile

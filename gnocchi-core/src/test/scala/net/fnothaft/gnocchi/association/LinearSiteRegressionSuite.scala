@@ -41,14 +41,14 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val phenotype = "MyPhenotype"
     val variant = new Variant
 
-    //use additiveLinearRegression to regress on Ascombe1
+    //use additiveLinearRegression to regress on Anscombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared") == 1.0, "rSquared = " + regressionResult.statistics("rSquared"))
   }
 
-  /* generate Ascombe's quartet for linear regression 
+  /* generate Anscombe's quartet for linear regression
     the quartet data is as follows: 
         Anscombe's quartet
        I           II          III          IV
@@ -65,14 +65,14 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     7.0   4.82  7.0   7.26  7.0   6.42  8.0   7.91
     5.0   5.68  5.0   4.74  5.0   5.73  8.0   6.89
 
-    The full description of Ascombe's Quartet can be found here: https://en.wikipedia.org/wiki/Anscombe%27s_quartet
+    The full description of Anscombe's Quartet can be found here: https://en.wikipedia.org/wiki/Anscombe%27s_quartet
     Each of the members of the quartet should have roughly the same R^2 value, although the shapes of the graph are different shapes.
     Target R^2 values verified values produced here https://rstudio-pubs-static.s3.amazonaws.com/52381_36ec82827e4b476fb968d9143aec7c4f.html.  
     */
 
-  test("The rsquared for Ascombe I should be within .001 of expected results 0.6665") {
+  test("The rsquared for Anscombe I should be within .001 of expected results 0.6665") {
 
-    //load Ascombe1 into an observations variable
+    //load Anscombe1 into an observations variable
     val observations = new Array[(Double, Array[Double])](11)
     observations(0) = (10.0, Array[Double](8.04))
     observations(1) = (8.0, Array[Double](6.95))
@@ -90,7 +90,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val phenotype = "MyPhenotype"
     val variant = new Variant
 
-    //use additiveLinearRegression to regress on Ascombe1
+    //use additiveLinearRegression to regress on Anscombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
@@ -98,9 +98,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] >= 0.6660)
   }
 
-  test("The rsquared for Ascombe II should be within .001 of expected results 0.6662") {
+  test("The rsquared for Anscombe II should be within .001 of expected results 0.6662") {
 
-    //load AscombeII into an observations variable
+    //load AnscombeII into an observations variable
     val observations = new Array[(Double, Array[Double])](11)
     observations(0) = (10.0, Array[Double](9.14))
     observations(1) = (8.0, Array[Double](8.14))
@@ -118,7 +118,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val phenotype = "MyPhenotype"
     val variant = new Variant
 
-    //use additiveLinearRegression to regress on Ascombe1
+    //use additiveLinearRegression to regress on Anscombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
@@ -126,9 +126,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] >= 0.6660)
   }
 
-  test("The rsquared for Ascombe III should be within .001 of expected results 0.6663") {
+  test("The rsquared for Anscombe III should be within .001 of expected results 0.6663") {
 
-    //load AscombeIII into an observations variable
+    //load AnscombeIII into an observations variable
     val observations = new Array[(Double, Array[Double])](11)
     observations(0) = (10.0, Array[Double](7.46))
     observations(1) = (8.0, Array[Double](6.77))
@@ -146,7 +146,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val phenotype = "MyPhenotype"
     val variant = new Variant
 
-    //use additiveLinearRegression to regress on Ascombe1
+    //use additiveLinearRegression to regress on Anscombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 
@@ -154,9 +154,9 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] >= 0.6660)
   }
 
-  test("The rsquared for Ascombe IV should be within .001 of expected results 0.6667") {
+  test("The rsquared for Anscombe IV should be within .001 of expected results 0.6667") {
 
-    //load AscombeIV into an observations variable
+    //load AnscombeIV into an observations variable
     val observations = new Array[(Double, Array[Double])](11)
     observations(0) = (8.0, Array[Double](6.58))
     observations(1) = (8.0, Array[Double](5.76))
@@ -174,7 +174,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val phenotype = "MyPhenotype"
     val variant = new Variant
 
-    //use additiveLinearRegression to regress on Ascombe1
+    //use additiveLinearRegression to regress on Anscombe1
     var regressionResult = AdditiveLinearAssociation.regressSite(observations, variant, phenotype)
 
     //Assert that the rsquared is in the right threshold. 

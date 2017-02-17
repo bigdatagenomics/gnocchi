@@ -44,6 +44,7 @@ object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSite
       .setVariantID("assoc.variantID")
       .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
       .setIntercept(assoc.statistics("intercept").asInstanceOf[Double])
+      .setAssociation(assoc)
     linRegModel
   }
 
