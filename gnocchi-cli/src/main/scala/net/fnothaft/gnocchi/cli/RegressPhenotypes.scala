@@ -126,6 +126,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
+    val a = args.ploidy
+    println(s"\n\n\n\n\n\n ploidy: $a \n\n\n\n\n\n\n\n")
+
     val absAssociationPath = new File(args.associations).getAbsolutePath
     var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
     parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
@@ -233,7 +236,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       genotypeStates("sampleId"),
       genotypeStates("genotypeState"),
       genotypeStates("missingGenotypes"))
-    println(genoStatesWithNames.take(10).toList)
 
     /*
     For now, just going to use PLINK's Filtering functionality to create already-filtered vcfs from the BED.
@@ -259,6 +261,11 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
     // TODO: Resolve with "IN" sql command once spark2.0 is integrated
     val filteredGenotypeStates = genoStatesWithNames.filter(($"sampleId").isin(mindDF.collect().map(r => r(0)): _*))
+    val postFilter = filteredGenotypeStates.as[GenotypeState].rdd.take(10).toList
+    println("\n\n\n\n\n\n")
+    println(postFilter)
+    println("\n\n\n\n\n\n")
+
     filteredGenotypeStates.as[GenotypeState]
   }
 
@@ -288,6 +295,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     } else {
       phenotypes = LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc)
     }
+    println(phenotypes.take(10).toList.map(_.value.toList))
+    println("\n\n\n\n\n\n\n\n")
     phenotypes
   }
 

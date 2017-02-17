@@ -55,6 +55,11 @@ trait LinearSiteRegression extends SiteRegression {
       y(i) = observations(i)._2(0)
     }
 
+    println("\n\n\n\n")
+    println(x.map(_.toList).toList)
+    println(y.toList)
+    println("\n\n\n\n")
+
     // create linear model
     val ols = new OLSMultipleLinearRegression()
 
