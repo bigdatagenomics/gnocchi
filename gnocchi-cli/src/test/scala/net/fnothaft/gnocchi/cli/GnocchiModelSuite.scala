@@ -80,9 +80,16 @@ class GnocchiModelSuite extends GnocchiFunSuite {
   }
 
   sparkTest("GnocchiModel check numSamples for construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
+    val path = "src/test/resources/testData/Association"
+    val destination = Files.createTempDirectory("").toAbsolutePath.toString + "/" + path
+    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("5snps10samples.vcf").getFile
+    val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
+    val covarFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
+    val modelPath = "src/test/resources/testData/GnocchiModel"
+
     // create GM on subset of the data
-    val genoFilePath =
-    val phenoFilePath =
+    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("5snpsFirst5samples.vcf").getFile
+    val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("first5samples5phenotypes2covars.txt").getFile
     val ogModelDestination =
     val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
