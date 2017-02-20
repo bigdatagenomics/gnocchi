@@ -79,32 +79,53 @@ class GnocchiModelSuite extends GnocchiFunSuite {
 
   }
 
-  sparkTest("GnocchiModel construction, saving, loading, and updating: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
-    // create GM on subset of the data
-    val genoFilePath =
-    val phenoFilePath =
-    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-    val cliArgs = cliCall.split(" ").drop(2)
-    ConstructGnocchiModel(cliArgs).run(sc)
+  sparkTest("GnocchiModel construction, saving, loading, and updating: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
+//    // create GM on subset of the data
+//    val genoFilePath =
+//    val phenoFilePath =
+//    val ogModelDestination =
+//    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+//    val cliArgs = cliCall.split(" ").drop(2)
+//    ConstructGnocchiModel(cliArgs).run(sc)
+//
+//    // update GM on the remainder of the data
+//    val genosForUpdate =
+//    val phenosForUpdate =
+//    val modelLocation = ogModelDestination
+//    val updatedModelDestination = baseDir + "src/test/resources/testData/UpdatedGnocchiModel"
+//    val updateCliCall = s"../bin/gnocchi-submit UpdateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelLocation -saveModelTo $updatedModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+//
+//    // create GM on all of the data
+//    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+//    val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
+//    ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
+//
+//    // load in all three models
+//    val fullRecomputeModel = LoadGnocchiModel(ogModelDestination)
+//    val ogModel = LoadGnocchiModel(ogModelDestination)
+//    val updatedModel = LoadGnocchiModel(updatedModelDestination)
+//
+//    // verify that their numSamples are correct.
+//    val fullNumSamples = fullRecomputeModel.numSamples
+//    val ogNumSamples = ogModel.numSamples
+//    val updatedNumSamples = updatedModel.numSamples
+//    assert(updatedNumSamples === 10, "Number of samples in Updated model not consistent with full recompute model")
+//    assert(ogNumSamples === 5, "Incorrect number of samples in original model before update.")
 
-    // update GM on the remainder of the data
-    val genosForUpdate =
-    val phenosForUpdate =
-    val modelLocation = destination
-    val updatedModelDestination = baseDir + "src/test/resources/testData/UpdatedGnocchiModel"
-    val updateCliCall = s"../bin/gnocchi-submit UpdateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelLocation -saveModelTo $updatedModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-
-    // load in both models and verify that their numSamples are correct.
-
+    // verify that the updated model's results are close to the full recompute model
 
 
   }
 
-  sparkTest("GnocchiModel construction, saving, loading, updating, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
+  sparkTest("GnocchiModel construction, saving, loading, updating, re-saving, re-loading: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
     assert(false)
   }
 
-  sparkTest("GnocchiModel loading saved model, updating, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
+  sparkTest("GnocchiModel loading saved model, making predictions, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
+    assert(false)
+  }
+
+  sparkTest("GnocchiModel loading saved model, testing on new data, and re-saving") {
     assert(false)
   }
 
