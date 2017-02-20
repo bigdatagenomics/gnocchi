@@ -79,7 +79,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
 
   }
 
-  sparkTest("GnocchiModel construction, saving, loading, and updating: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
+  sparkTest("GnocchiModel construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
 //    // create GM on subset of the data
 //    val genoFilePath =
 //    val phenoFilePath =
@@ -117,15 +117,45 @@ class GnocchiModelSuite extends GnocchiFunSuite {
 
   }
 
-  sparkTest("GnocchiModel construction, saving, loading, updating, re-saving, re-loading: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
-    assert(false)
-  }
 
   sparkTest("GnocchiModel loading saved model, making predictions, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
-    assert(false)
+    // build original model
+//    val ogGenoPath =
+//    val ogPhenoPath =
+//    val ogModelDestination =
+//    val ogCovarsPath =
+//    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $ogGenoPath $ogPhenoPath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $ogCovarsPath -covarNames pheno4,pheno5 -overwriteParquet"
+//    val cliArgs = cliCall.split(" ").drop(2)
+//    ConstructGnocchiModel(cliArgs).run(sc)
+
+    // load the model
+
+    // make predictions
+
+    // re-save model
   }
 
   sparkTest("GnocchiModel loading saved model, testing on new data, and re-saving") {
+    // build original model
+
+    // load the model
+
+    // test on new data
+
+    // re-save model
+
+    // load model and check for test scores
+  }
+
+  sparkTest("GnocchiModel ensuring that endpoint phenotype is same when updating, or testing.") {
+    assert(false)
+  }
+
+  sparkTest("GnocchiModel ensuring that number and names of covariates is same when updating or testing.") {
+    assert(false)
+  }
+
+  sparkTest("GnocchiModel ensuring that type of model in update or test call is same as the model being loaded.") {
     assert(false)
   }
 
