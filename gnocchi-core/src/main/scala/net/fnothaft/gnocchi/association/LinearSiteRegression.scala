@@ -61,27 +61,61 @@ trait LinearSiteRegression extends SiteRegression {
       y(i) = observations(i)._2(0)
     }
 
+    var associationObject = new Association(null, null, -9.0, null)
+    var matrixSingular = false
     try {
+      // create linear model
       val ols = new OLSMultipleLinearRegression()
+
+      // input sample data
       ols.newSampleData(y, x)
+
+      // calculate coefficients
       val beta = ols.estimateRegressionParameters()
+
+      // calculate Rsquared
       val rSquared = ols.calculateRSquared()
+
+      // compute the regression parameters standard errors
       val standardErrors = ols.estimateRegressionParametersStandardErrors()
+
+      // get standard error for genotype parameter (for p value calculation)
       val genoSE = standardErrors(1)
 
+      // test statistic t for jth parameter is equal to bj/SEbj, the parameter estimate divided by its standard error
       val t = beta(1) / genoSE
 
-      val tDist = new TDistribution(numObservations - phenotypesLength - 1)
-      val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
+      /* calculate p-value and report:
+        Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is
+        a t-distribution with N-p-1 degrees of freedom.
+      */
+      val tDist = new TDistribution(numObservations - observationLength - 1)
+      val pvalue = 1.0 - tDist.cumulativeProbability(t)
       val logPValue = log10(pvalue)
 
+      // pack up the information into an Association object
+      //    val variant = new Variant()
+      //    val contig = new Contig()
+      //    contig.setContigName(locus.referenceName)
+      //    variant.setContig(contig)
+      //    variant.setStart(locus.start)
+      //    variant.setEnd(locus.end)
+      //    variant.setAlternateAllele(altAllele)
       val statistics = Map("rSquared" -> rSquared,
         "weights" -> beta,
         "intercept" -> beta(0))
-      Association(variant, phenotype, logPValue, statistics)
-    } catch {
-      case _: SingularMatrixException => Association(variant, phenotype, 0.0, Map())
+      associationObject = new Association(variant, phenotype, logPValue, statistics)
     }
+    catch {
+      case error: breeze.linalg.MatrixSingularException => matrixSingular = true
+    }
+    if (matrixSingular) {
+      val statistics = Map()
+      associationObject = Association(variant, phenotype, 0.0, Map())
+      println("Caught a singular matrix error!")
+    }
+
+    return associationObject
   }
 }
 
