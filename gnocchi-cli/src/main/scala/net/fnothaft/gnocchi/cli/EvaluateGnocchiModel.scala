@@ -75,18 +75,27 @@ class EvaluateGnocchiModel(protected val args: EvaluateGnocchiModelArgs) extends
     val model = LoadGnocchiModel(args.modelLocation)
 
     // make predictions on new data
-    val predictions = model.predict(genotypeStates.rdd, phenotypes, sc)
+    //    val varsAndModels = model.predict(genotypeStates.rdd, phenotypes, sc)
+    //
+    //
+    //    // evaluate the model based on predictions
+    //    val varModels = varsAndModels.map(_._2)
+    //    val predictions = varModels.foreach(_.predictions)
+    //    evaluate(predictions)
 
-    // save the predictions TODO: write savePredictions function
-    //    savePredictions(predictions)
-
-    // evaluate the model based on predictions
-    //    evaluateModel(predictions)
     // save the model
     //    gnocchiModel.save(args.saveTo)
   }
 
   // TODO: adapt model.predict so that the reults can be fed into evaluateResult.
+  //  def evaluate(evalArray: Array[RDD[(Array[(String, (Double, Double))], Association)]]): Array[EvalResult] = {
+  //    val resultsArray = new Array[EvalResult](evalArray.length)
+  //    for (i <- evalArray.indices) {
+  //      resultsArray(i) = evaluateResult(evalArray(i))
+  //    }
+  //    resultsArray
+  //  }
+  //
   //  def evaluateResult(toEvaluate: RDD[(Array[(String, (Double, Double))], Association)]): EvalResult = {
   //    val evalResult = new EvalResult
   //    val numTrainingSamples = toEvaluate.take(1)(0)._2.statistics("numSamples").asInstanceOf[Int]

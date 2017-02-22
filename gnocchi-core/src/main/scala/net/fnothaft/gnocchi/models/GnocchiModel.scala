@@ -52,7 +52,8 @@ trait GnocchiModel extends Serializable {
     val newData = data.map(kvv => {
       val (varStr, genPhen) = kvv
       val (variant, phenoName) = varStr
-      val obs = genPhen.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]].map(gp => {
+      val obs = genPhen.map(gp => {
+        //        val obs = genPhen.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]].map(gp => {
         val (str, (gs, pheno)) = gp
         val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
         ob
@@ -124,7 +125,7 @@ trait GnocchiModel extends Serializable {
     })
     val models = sc.parallelize(variantModels)
     val modelsAndData = models.join(newData)
-    modelsAndData.map(vmd => {
+    val predictions = modelsAndData.map(vmd => {
       val (variant, md) = vmd
       val variantModel = md._1
       val obs = md._2 //[Array[(Double, Array[Double])]]

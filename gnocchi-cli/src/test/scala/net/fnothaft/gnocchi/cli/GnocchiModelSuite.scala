@@ -83,19 +83,20 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
 
     // create GM on subset of the data
-    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("5snpsFirst5samples.vcf").getFile
-    val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("first5samples5phenotypes2covars.txt").getFile
+    val firstGenoFilePath = ClassLoader.getSystemClassLoader.getResource("5snpsFirst5samples.vcf").getFile
+    val firstPhenoFilePath = ClassLoader.getSystemClassLoader.getResource("first5samples5phenotypes2covars.txt").getFile
     val ogModelDestination = tmp + "OriginalModel"
-    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $firstGenoFilePath $firstPhenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $firstPhenoFilePath -covarNames pheno4,pheno5 -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     ConstructGnocchiModel(cliArgs).run(sc)
 
     // update GM on the remainder of the data
     val genosForUpdate = ClassLoader.getSystemClassLoader.getResource("5snpsSecond5samples.vcf").getFile
     val phenosForUpdate = ClassLoader.getSystemClassLoader.getResource("second5samples5phenotypes2covars.txt").getFile
-    val modelLocation = ogModelDestination
     val updatedModelDestination = tmp + "UpdatedModel"
-    val updateCliCall = s"../bin/gnocchi-submit UpdateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelLocation -saveModelTo $updatedModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    val updateCliCall = s"../bin/gnocchi-submit UpdateGnocchiModel $genosForUpdate $phenosForUpdate ADDITIVE_LINEAR $destination -saveAsText -modelLocation $ogModelDestination -saveModelTo $updatedModelDestination -phenoName pheno1 -covar -covarFile $phenosForUpdate -covarNames pheno4,pheno5 -overwriteParquet"
+    val updateCliArgs = updateCliCall.split(" ").drop(2)
+    UpdateGnocchiModel(updateCliArgs).run(sc)
 
     // create GM on all of the data
     val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
@@ -115,61 +116,74 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     assert(ogNumSamples === 5, "Incorrect number of samples in original model before update.")
   }
 
-
   sparkTest("GnocchiModel loading saved model, making predictions, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
+    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
     // build original model
-//    val ogGenoPath =
-//    val ogPhenoPath =
-//    val ogModelDestination =
-//    val ogCovarsPath =
-//    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $ogGenoPath $ogPhenoPath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $ogCovarsPath -covarNames pheno4,pheno5 -overwriteParquet"
-//    val cliArgs = cliCall.split(" ").drop(2)
-//    ConstructGnocchiModel(cliArgs).run(sc)
-
-    // load the model
-
-    // make predictions
-
-    // re-save model
-  }
-
-  sparkTest("GnocchiModel loading saved model, testing on new data, and re-saving") {
-    // build original model
-
-    // load the model
-
-    // test on new data
-
-    // re-save model
-
-    // load model and check for test scores
-  }
-
-  sparkTest("GnocchiModel check numSamples for construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
-    // create GM on subset of the data
-    val genoFilePath =
-    val phenoFilePath =
-    val ogModelDestination =
-    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-    val cliArgs = cliCall.split(" ").drop(2)
-    ConstructGnocchiModel(cliArgs).run(sc)
-
-    // update GM on the remainder of the data
-    val genosForUpdate =
-    val phenosForUpdate =
-    val modelLocation = ogModelDestination
-    val updatedModelDestination = baseDir + "src/test/resources/testData/UpdatedGnocchiModel"
-    val updateCliCall = s"../bin/gnocchi-submit UpdateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelLocation -saveModelTo $updatedModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-
-    // create GM on all of the data
     val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
     val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
     ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
 
-    // load in all three models
-    val fullRecomputeModel = LoadGnocchiModel(ogModelDestination)
-    val ogModel = LoadGnocchiModel(ogModelDestination)
-    val updatedModel = LoadGnocchiModel(updatedModelDestination)
+    // make predictions
+    val predictions = tmp + "predictions"
+    val predictCliCall = s"../bin/gnocchi-submit PredictWithGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelDestination -savePredictionsTo $predictions-phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    val predictCliArgs = predictCliCall.split(" ").drop(2)
+    PredictWithGnocchiModel(predictCliArgs).run(sc)
+
+    // check predictions TODO: figure out how to check predictions
+    assert(false)
+  }
+
+  sparkTest("GnocchiModel loading saved model, evaluating model on new data, and re-saving") {
+    // build original model
+    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
+    // build original model
+    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
+    ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
+
+    // evaluate model on same data
+    val predictions = tmp + "predictions"
+    val evaluations = tmp + "evaluations"
+    val postEvalDestination = tmp + "postEvalModel"
+    val evalCliCall = s"../bin/gnocchi-submit EvaluateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelDestination -savePredictionsTo $predictions -saveEvalResultsTo $evaluations -saveModelTo $postEvalDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    val evalCliArgs = evalCliCall.split(" ").drop(2)
+    EvaluateGnocchiModel(evalCliArgs).run(sc)
+
+    // load model and check for test scores
+    val modelPostEval = LoadGnocchiModel(postEvalDestination)
+    //    val varsAndModels = modelPostEval.variantModels //List(Variant, VariantModel)
+    //    val varModels = varsAndModels.map(_._2)
+    //    val preds = varModels.foreach(_.predictions)
+
+    assert(false) // TODO: finish implementing predict and evaluate functionality
+
+  }
+
+  sparkTest("GnocchiModel check results of construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
+    //    // create GM on subset of the data
+    //    val genoFilePath =
+    //    val phenoFilePath =
+    //    val ogModelDestination =
+    //    val cliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $ogModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    //    val cliArgs = cliCall.split(" ").drop(2)
+    //    ConstructGnocchiModel(cliArgs).run(sc)
+    //
+    //    // update GM on the remainder of the data
+    //    val genosForUpdate =
+    //    val phenosForUpdate =
+    //    val modelLocation = ogModelDestination
+    //    val updatedModelDestination = baseDir + "src/test/resources/testData/UpdatedGnocchiModel"
+    //    val updateCliCall = s"../bin/gnocchi-submit UpdateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelLocation -saveModelTo $updatedModelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    //
+    //    // create GM on all of the data
+    //    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    //    val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
+    //    ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
+    //
+    //    // load in all three models
+    //    val fullRecomputeModel = LoadGnocchiModel(ogModelDestination)
+    //    val ogModel = LoadGnocchiModel(ogModelDestination)
+    //    val updatedModel = LoadGnocchiModel(updatedModelDestination)
 
     // verify that accuracies are similar between updated an full recompute models.
     assert(false)

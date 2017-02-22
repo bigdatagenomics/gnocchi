@@ -15,25 +15,10 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.File
-
-import net.fnothaft.gnocchi.association._
-import net.fnothaft.gnocchi.models._
-import net.fnothaft.gnocchi.gnocchiModel._
-import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
-import org.bdgenomics.adam.cli.Vcf2ADAM
-import org.apache.commons.io.FileUtils
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.functions._
+import org.kohsuke.args4j.{ Option => Args4jOption }
 //import net.fnothaft.gnocchi.association.Ensembler TODO: pull in the ensembler code or predict won't work.
-import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticGnocchiModel
-
-import scala.collection.mutable.ListBuffer
 
 object UpdateGnocchiModel extends BDGCommandCompanion {
   val commandName = "UpdateGnocchiModel"
@@ -63,22 +48,20 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
     val regPheno = new RegressPhenotypes(args)
 
     // Load in genotype data filtering out any SNPs not provided in command line
-    val genotypeStates = regPheno.loadGenotypes(sc)
+    val genotypeStates = regPheno.loadGenotypes(sc).rdd
 
     // Load in phenotype data
     val phenotypes = regPheno.loadPhenotypes(sc)
 
-    // load model TODO: Write load GnocchiModel object
-    //    val model = LoadGnocchiModel(args.modelLocation, sc)
+    // load model
+    val model = LoadGnocchiModel(args.modelLocation)
 
     // update the model with new data
-    //    val (gnocchiModel, assocs) = model.update(genotypeStates, phenotypes, sc)
-
-    // save the associations
-    //    regPheno.logResults(assocs, sc)
+    model.update(genotypeStates, phenotypes, sc)
 
     // save the model
-    //    gnocchiModel.save(args.saveTo)
+    SaveGnocchiModel(model, args.saveTo)
+
   }
 
   //  def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {

@@ -163,18 +163,26 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     //      println("sampleId: " + d._1)
     //      println("data: " + d._2.toList)
     //    })
-    val dataToPrint = data.take(5).toList
-    println(dataToPrint)
+    //    val dataToPrint = data.take(5).toList
+    //    println("\n\n\n\n\n Phenotypes: ")
+    //    println(dataToPrint)
+    //    println("\n\n\n\n\n Covars: ")
+    //    println(covarData.take(5).toList)
     // merge the phenos and covariates into same RDD row
 
+    //    val temp = data.cogroup(covarData).take(5)
+    ////    val a: List[String] = temp
+    //    println("\n\n\n\n Pheno and Covar after cogroup: ")
+    //    println(temp(0)._2._1.toList.head.toList)
+    //    println(temp(0)._2._2.toList.head.toList)
 
     val joinedData = data.cogroup(covarData).map(pair => {
-      val (sampleId, (phenos, covariates)) = pair
-      val phenoArray = phenos.toArray
-      val covarArray = covariates.toArray
+      val (sampleId, (phenosIterable, covariatesIterable)) = pair
+      val phenoArray = phenosIterable.toList.head
+      val covarArray = covariatesIterable.toList.head
       //      println(phenoArray.length)
       //      println(covarArray.length)
-      val toret = phenoArray(0) ++ covarArray(0)
+      val toret = phenoArray ++ covarArray
       //      println(toret.length)
       //      println(toret)
       toret
