@@ -107,7 +107,7 @@ trait LinearSiteRegression extends SiteRegression {
       associationObject = new Association(variant, phenotype, logPValue, statistics)
     }
     catch {
-      case error: breeze.linalg.MatrixSingularException => matrixSingular = true
+      case error: org.apache.commons.math3.linear.SingularMatrixException => matrixSingular = true
     }
     if (matrixSingular) {
       val statistics = Map()
