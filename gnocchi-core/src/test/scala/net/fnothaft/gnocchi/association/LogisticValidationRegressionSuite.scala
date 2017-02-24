@@ -73,7 +73,7 @@ class LogisticValidationRegressionSuite extends GnocchiFunSuite {
     // Reads in the binaryClean data, which is the same as the above data but removes any
     // duplicate samples. The Fourth row (0 indexed) is the prediction results generated
     // from a logisitic regression model in excel with a threshold classification value of 0.3
-    val pathToFile = ClassLoader.getSystemClassLoader.getResource("binaryThreshold3.csv").getFile
+    val pathToFile = testFile("binaryThreshold3.csv")
     val csv = sc.textFile(pathToFile)
     val data = csv.map(line => line.split(",").map(elem => elem.toDouble)) //get rows
 
@@ -105,10 +105,7 @@ class LogisticValidationRegressionSuite extends GnocchiFunSuite {
 
     // Assert that the predictions result in the same as the actual phenotype (on dummy set)
     for (i <- predictionResult.indices) {
-      if (predictionResult(i) != expectedResults(i)) {
-        print("Error --> ")
-      }
-      println("Ours: " + predictionResult(i) + " | Theirs: " + expectedResults(i))
+      assert(predictionResult(i) == expectedResults(i))
     }
     println(predictionResult.indices.map(i => {
       predictionResult(i) == expectedResults(i)
