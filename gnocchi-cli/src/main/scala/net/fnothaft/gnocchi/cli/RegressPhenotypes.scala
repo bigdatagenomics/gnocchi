@@ -97,9 +97,6 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
-
-  @Args4jOption(required = false, name = "-time", usage = "Prints out the timing information for RegressPhenotypes to commandline.")
-  var time = false
   //
   //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
   //  var mapFile: String = null
@@ -112,11 +109,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val a = args.oneTwo
     //    println(s"\n\n\n\n\n\n oneTwo: $a \n\n\n\n\n\n\n\n")
 
-    import Timers._
-    Metrics.initialize(sc)
-    val metricsListener = new MetricsListener(new RecordedMetrics())
-    sc.addSparkListener(metricsListener)
-
     // Load in genotype data
     val genotypeStates = loadGenotypes(sc)
 
@@ -126,18 +118,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // Perform analysis
     val associations = performAnalysis(genotypeStates, phenotypes, sc)
 
-    if (args.time) {
-      print_metrics_to_cmdline(metricsListener)
-    }
-
     // Log the results
     logResults(associations, sc)
-  }
-
-  def print_metrics_to_cmdline(metricsListener: MetricsListener) {
-    val writer = new PrintWriter(new OutputStreamWriter(System.out, "UTF-8"))
-    Metrics.print(writer, Some(metricsListener.metrics.sparkMetrics.stageTimes))
-    writer.close()
   }
 
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
