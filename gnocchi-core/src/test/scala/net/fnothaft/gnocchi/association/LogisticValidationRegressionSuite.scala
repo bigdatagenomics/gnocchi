@@ -105,10 +105,7 @@ class LogisticValidationRegressionSuite extends GnocchiFunSuite {
 
     // Assert that the predictions result in the same as the actual phenotype (on dummy set)
     for (i <- predictionResult.indices) {
-      if (predictionResult(i) != expectedResults(i)) {
-        print("Error --> ")
-      }
-      println("Ours: " + predictionResult(i) + " | Theirs: " + expectedResults(i))
+      assert(predictionResult(i) == expectedResults(i))
     }
     println(predictionResult.indices.map(i => {
       predictionResult(i) == expectedResults(i)
