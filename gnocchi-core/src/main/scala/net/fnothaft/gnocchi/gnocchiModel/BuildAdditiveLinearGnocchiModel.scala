@@ -39,12 +39,11 @@ trait BuildAdditiveLinear extends BuildGnocchiModel {
 
   def extractModel(assocs: RDD[Association], sc: SparkContext): GnocchiModel = {
     //code for packaging up the association object elements into a GnocchiModel
-    val gm = new AdditiveLogisticGnocchiModel
+    val gm = new AdditiveLinearGnocchiModel
     gm.variantModels = assocs.map(assoc => {
       val model = BuildAdditiveLinearVariantModel.extractVariantModel(assoc)
       (model.variant, model)
     }).collect.toList
-    val model = new AdditiveLogisticGnocchiModel
     //TODO: make setters for the GnocchiModel fields and set the values in here.
     //    var variantModels: RDD[(Variant, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
     //    gm.qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])]// the variant model and the observations that the model must be trained on

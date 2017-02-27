@@ -109,25 +109,25 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     val updatedModel = LoadGnocchiModel(updatedModelDestination)
 
     // verify that their numSamples are correct.
-    val fullNumSamples = fullRecomputeModel.numSamples
-    val ogNumSamples = ogModel.numSamples
-    val updatedNumSamples = updatedModel.numSamples
+    val fullNumSamples = fullRecomputeModel.numSamples.toArray.map(_._2).max
+    val ogNumSamples = ogModel.numSamples.toArray.map(_._2).max
+    val updatedNumSamples = updatedModel.numSamples.toArray.map(_._2).max
     assert(updatedNumSamples === 10, "Number of samples in Updated model not consistent with full recompute model")
     assert(ogNumSamples === 5, "Incorrect number of samples in original model before update.")
   }
 
   sparkTest("GnocchiModel loading saved model, making predictions, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
-    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
-    // build original model
-    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-    val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
-    ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
-
-    // make predictions
-    val predictions = tmp + "predictions"
-    val predictCliCall = s"../bin/gnocchi-submit PredictWithGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelDestination -savePredictionsTo $predictions-phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-    val predictCliArgs = predictCliCall.split(" ").drop(2)
-    PredictWithGnocchiModel(predictCliArgs).run(sc)
+    //    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
+    //    // build original model
+    //    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    //    val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
+    //    ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
+    //
+    //    // make predictions
+    //    val predictions = tmp + "predictions"
+    //    val predictCliCall = s"../bin/gnocchi-submit PredictWithGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelDestination -savePredictionsTo $predictions-phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    //    val predictCliArgs = predictCliCall.split(" ").drop(2)
+    //    PredictWithGnocchiModel(predictCliArgs).run(sc)
 
     // check predictions TODO: figure out how to check predictions
     assert(false)
@@ -135,25 +135,25 @@ class GnocchiModelSuite extends GnocchiFunSuite {
 
   sparkTest("GnocchiModel loading saved model, evaluating model on new data, and re-saving") {
     // build original model
-    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
-    // build original model
-    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-    val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
-    ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
-
-    // evaluate model on same data
-    val predictions = tmp + "predictions"
-    val evaluations = tmp + "evaluations"
-    val postEvalDestination = tmp + "postEvalModel"
-    val evalCliCall = s"../bin/gnocchi-submit EvaluateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelDestination -savePredictionsTo $predictions -saveEvalResultsTo $evaluations -saveModelTo $postEvalDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
-    val evalCliArgs = evalCliCall.split(" ").drop(2)
-    EvaluateGnocchiModel(evalCliArgs).run(sc)
-
-    // load model and check for test scores
-    val modelPostEval = LoadGnocchiModel(postEvalDestination)
-    //    val varsAndModels = modelPostEval.variantModels //List(Variant, VariantModel)
-    //    val varModels = varsAndModels.map(_._2)
-    //    val preds = varModels.foreach(_.predictions)
+    //    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
+    //    // build original model
+    //    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    //    val fullRecomputeCliArgs = fullRecomputeCliCall.split(" ").drop(2)
+    //    ConstructGnocchiModel(fullRecomputeCliArgs).run(sc)
+    //
+    //    // evaluate model on same data
+    //    val predictions = tmp + "predictions"
+    //    val evaluations = tmp + "evaluations"
+    //    val postEvalDestination = tmp + "postEvalModel"
+    //    val evalCliCall = s"../bin/gnocchi-submit EvaluateGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -modelLocation $modelDestination -savePredictionsTo $predictions -saveEvalResultsTo $evaluations -saveModelTo $postEvalDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
+    //    val evalCliArgs = evalCliCall.split(" ").drop(2)
+    //    EvaluateGnocchiModel(evalCliArgs).run(sc)
+    //
+    //    // load model and check for test scores
+    //    val modelPostEval = LoadGnocchiModel(postEvalDestination)
+    //    //    val varsAndModels = modelPostEval.variantModels //List(Variant, VariantModel)
+    //    //    val varModels = varsAndModels.map(_._2)
+    //    //    val preds = varModels.foreach(_.predictions)
 
     assert(false) // TODO: finish implementing predict and evaluate functionality
 

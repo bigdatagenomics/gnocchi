@@ -49,15 +49,17 @@ trait GnocchiModel extends Serializable {
 
     // convert genotypes and phenotypes into observations
     val data = PairSamplesWithPhenotypes(rdd, phenotypes)
+    // data is RDD[((Variant, String), Iterable[(String, (GenotypeState,Phenotype[Array[Double]]))])]
     val newData = data.map(kvv => {
-      val (varStr, genPhen) = kvv
+      val (varStr, genPhenItr) = kvv
       val (variant, phenoName) = varStr
-      val obs = genPhen.map(gp => {
-        //        val obs = genPhen.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]].map(gp => {
+      //.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]]
+      val obs = genPhenItr.map(gp => {
         val (str, (gs, pheno)) = gp
-        val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
+        val ob = (clipOrKeepState(gs), pheno.value)
         ob
-      })
+      }).toArray
+      (variant, obs)
     }).asInstanceOf[RDD[(Variant, Array[(Double, Array[Double])])]]
 
     // combine the new sample observations with the old ones for the qr variants.
@@ -79,7 +81,7 @@ trait GnocchiModel extends Serializable {
     })
 
     // group new data with correct VariantModel
-    val vmAndDataRDD = sc.parallelize(variantModels).join(newData)
+    val vmAndDataRDD = sc.parallelize(this.variantModels).join(newData)
 
     // map an update call to all variants
     val updatedVMRdd = vmAndDataRDD.map(kvv => {
@@ -103,9 +105,16 @@ trait GnocchiModel extends Serializable {
       Math.abs(increValue - qrValue) / qrValue > HBDThreshold
     }).map(_._1).collect.toList
 
-    flaggedVariants = variantsToFlag
-    variantModels = updatedVMRdd.collect.toList
-    qrVariantModels = qrRDD.collect.toList
+    this.numSamples = updatedVMRdd.map(vVm => {
+      val (variant, variantModel) = vVm
+      (variantModel.variantID, variantModel.numSamples)
+    }).collect.toList
+    println("\n\n\n\n hello \n\n\n\n")
+    println(updatedVMRdd.collect.toList)
+
+    this.flaggedVariants = variantsToFlag
+    this.variantModels = updatedVMRdd.collect.toList
+    this.qrVariantModels = qrRDD.collect.toList
   }
 
   def clipOrKeepState(gs: GenotypeState): Double
