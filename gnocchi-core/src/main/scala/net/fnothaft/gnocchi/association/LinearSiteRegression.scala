@@ -19,8 +19,8 @@ package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-import org.apache.commons.math3.linear.SingularMatrixException
-import scala.math.log10
+import org.bdgenomics.adam.models.ReferenceRegion
+import scala.math.{log10, min}
 import org.apache.commons.math3.distribution.TDistribution
 import org.bdgenomics.formats.avro.Variant
 
@@ -90,7 +90,7 @@ trait LinearSiteRegression extends SiteRegression {
         a t-distribution with N-p-1 degrees of freedom.
       */
       val tDist = new TDistribution(numObservations - observationLength)
-      val pvalue = (1.0 - tDist.cumulativeProbability(t))*2
+      val pvalue = min((1.0 - tDist.cumulativeProbability(t)), tDist.cumulativeProbability(t))
       val logPValue = log10(pvalue)
 
       // pack up the information into an Association object
