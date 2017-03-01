@@ -89,7 +89,7 @@ trait LinearSiteRegression extends SiteRegression {
         Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is
         a t-distribution with N-p-1 degrees of freedom.
       */
-      val tDist = new TDistribution(numObservations - observationLength)
+      val tDist = new TDistribution(numObservations - 1)
       val pvalue = min((1.0 - tDist.cumulativeProbability(t)), tDist.cumulativeProbability(t))
       val logPValue = log10(pvalue)
 
