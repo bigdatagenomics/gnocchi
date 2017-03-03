@@ -32,7 +32,8 @@ trait EndProgressive extends ValidationRegression {
                         k: Int = 1,
                         n: Int = 1,
                         sc: SparkContext,
-                        monte: Boolean = false): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
+                        monte: Boolean = false,
+                        threshold: Double = 0.5): Array[RDD[(Array[(String, (Double, Double))], Association)]] = {
     val genoPhenoRdd = rdd.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
     val crossValResults = new Array[RDD[(Array[(String, (Double, Double))], Association)]](n)
     println("EndProgressive \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
@@ -44,11 +45,11 @@ trait EndProgressive extends ValidationRegression {
     var testRdd = splitArray(splitArray.length - 1)
     println("\n\n\n\n\n\n In apply, trainRdd count: " + trainRdd.count)
     println("SplitArray length: " + splitArray.length)
-    crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes)
+    crossValResults(0) = applyRegression(trainRdd, testRdd, phenotypes, threshold)
     for (a <- 1 until n) {
       val nextRdd = splitArray(a + 1)
       trainRdd = mergeRDDs(sc, trainRdd, nextRdd)
-      crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes)
+      crossValResults(a) = applyRegression(trainRdd, testRdd, phenotypes, threshold)
     }
     crossValResults
   }

@@ -97,6 +97,10 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
+
+  @Args4jOption(required = false, name = "-write_missing_pheno", usage = "Write missing phenotypes to the location supplied.")
+  var writeMissingPheno: String = null
+
   //
   //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
   //  var mapFile: String = null
@@ -285,10 +289,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // Load phenotypes
     var phenotypes: RDD[Phenotype[Array[Double]]] = null
+    var missingPhenoLoc: String = null
+    if (args.writeMissingPheno != null) {
+      missingPhenoLoc = args.writeMissingPheno + "/missingPhenotypes"
+    }
     if (args.includeCovariates) {
-      phenotypes = LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc)
+      phenotypes = LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc, missingPhenoLoc)
     } else {
-      phenotypes = LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc)
+      phenotypes = LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc, missingPhenoLoc)
     }
     phenotypes
   }
