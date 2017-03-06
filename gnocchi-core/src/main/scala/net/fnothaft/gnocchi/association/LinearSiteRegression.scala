@@ -18,10 +18,9 @@ package net.fnothaft.gnocchi.association
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.commons.math3.linear.SingularMatrixException
-import org.bdgenomics.adam.models.ReferenceRegion
-import scala.math.{ log10, min }
+import scala.math.log10
 import org.apache.commons.math3.distribution.TDistribution
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.formats.avro.Variant
 
 trait LinearSiteRegression extends SiteRegression {
 
@@ -42,12 +41,11 @@ trait LinearSiteRegression extends SiteRegression {
     val observationLength = observations(0)._2.length
     val numObservations = observations.length
     val x = new Array[Array[Double]](numObservations)
-    var y = new Array[Double](numObservations)
+    val y = new Array[Double](numObservations)
 
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
     var sample = new Array[Double](observationLength)
-    var genoSum = 0.0
     for (i <- 0 until numObservations) {
       sample = new Array[Double](observationLength)
       sample(0) = observations(i)._1.toDouble
@@ -87,20 +85,12 @@ trait LinearSiteRegression extends SiteRegression {
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
 
-      // pack up the information into an Association object
-      //    val variant = new Variant()
-      //    val contig = new Contig()
-      //    contig.setContigName(locus.referenceName)
-      //    variant.setContig(contig)
-      //    variant.setStart(locus.start)
-      //    variant.setEnd(locus.end)
-      //    variant.setAlternateAllele(altAllele)
       val statistics = Map("rSquared" -> rSquared,
         "weights" -> beta,
         "intercept" -> beta(0))
       Association(variant, phenotype, logPValue, statistics)
     } catch {
-      case error: org.apache.commons.math3.linear.SingularMatrixException => Association(variant, phenotype, 0.0, Map())
+      case _: SingularMatrixException => Association(variant, phenotype, 0.0, Map())
     }
   }
 }
