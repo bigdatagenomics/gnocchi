@@ -285,6 +285,8 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.2954)
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] >= 0.2944)
 
+    println(regressionResult.statistics("weights").asInstanceOf[Array[Double]].toList)
+
     // check that the p-value for Brain is correct (expectedPVal ~= 0.000855632)
     val expectedLogPVal = -3.06771
     assert(regressionResult.logPValue <= expectedLogPVal + 0.005)

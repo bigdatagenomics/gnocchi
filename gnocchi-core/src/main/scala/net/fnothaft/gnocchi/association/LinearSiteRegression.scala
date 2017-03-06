@@ -78,10 +78,10 @@ trait LinearSiteRegression extends SiteRegression {
 
       /* calculate p-value and report:
         Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is
-        a t-distribution with N-p degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates
+        a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
         https://en.wikipedia.org/wiki/T-statistic
       */
-      val tDist = new TDistribution(numObservations - 2)
+      val tDist = new TDistribution(numObservations - observationLength - 1)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
 
