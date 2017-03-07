@@ -81,7 +81,13 @@ trait GnocchiModel extends Serializable {
     })
 
     // group new data with correct VariantModel
-    val vmAndDataRDD = sc.parallelize(this.variantModels).join(newData)
+    val variantModels = sc.parallelize(this.variantModels)
+    // TODO: for some reason the variant models below are just filled with null
+    println("variantModels: " + variantModels.take(5).toList)
+    println("data: " + data.take(5).toList)
+    val vmAndDataRDD = variantModels.join(newData)
+    println("Size of this.variantModels = " + variantModels.count)
+    println("Size of vmAndDataRDD = " + vmAndDataRDD.count)
 
     // map an update call to all variants
     val updatedVMRdd = vmAndDataRDD.map(kvv => {
@@ -89,6 +95,7 @@ trait GnocchiModel extends Serializable {
       model.update(data, new ReferenceRegion(variant.getContig.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, model.phenotype)
       (variant, model)
     })
+    println("Size of updatedVMRdd = " + updatedVMRdd.count)
 
     // pair up the QR factorization and incrementalUpdate versions of the selected variantModels
     val qrAssocRDD = qrRDD.map(elem => {
