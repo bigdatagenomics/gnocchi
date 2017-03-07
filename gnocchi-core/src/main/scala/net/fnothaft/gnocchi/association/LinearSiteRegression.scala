@@ -17,16 +17,16 @@ package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-import org.bdgenomics.adam.models.ReferenceRegion
+import org.apache.commons.math3.linear.SingularMatrixException
 import scala.math.log10
 import org.apache.commons.math3.distribution.TDistribution
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.formats.avro.Variant
 
 trait LinearSiteRegression extends SiteRegression {
 
   /**
    * This method will perform linear regression on a single site.
-   * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
+   * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates.
    * @param variant The variant that is being regressed.
    * @param phenotype The name of the phenotype being regressed.
    * @return The Association object that results from the linear regression
@@ -41,12 +41,11 @@ trait LinearSiteRegression extends SiteRegression {
     val observationLength = observations(0)._2.length
     val numObservations = observations.length
     val x = new Array[Array[Double]](numObservations)
-    var y = new Array[Double](numObservations)
+    val y = new Array[Double](numObservations)
 
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
     var sample = new Array[Double](observationLength)
-    var genoSum = 0.0
     for (i <- 0 until numObservations) {
       sample = new Array[Double](observationLength)
       sample(0) = observations(i)._1.toDouble
@@ -55,54 +54,44 @@ trait LinearSiteRegression extends SiteRegression {
       y(i) = observations(i)._2(0)
     }
 
-    println("\n\n\n\n")
-    println(x.map(_.toList).toList)
-    println(y.toList)
-    println("\n\n\n\n")
+    try {
+      // create linear model
+      val ols = new OLSMultipleLinearRegression()
 
-    // create linear model
-    val ols = new OLSMultipleLinearRegression()
+      // input sample data
+      ols.newSampleData(y, x)
 
-    // input sample data 
-    ols.newSampleData(y, x)
+      // calculate coefficients
+      val beta = ols.estimateRegressionParameters()
 
-    // calculate coefficients
-    val beta = ols.estimateRegressionParameters()
+      // calculate Rsquared
+      val rSquared = ols.calculateRSquared()
 
-    // calculate Rsquared
-    val rSquared = ols.calculateRSquared()
+      // compute the regression parameters standard errors
+      val standardErrors = ols.estimateRegressionParametersStandardErrors()
 
-    // compute the regression parameters standard errors
-    val standardErrors = ols.estimateRegressionParametersStandardErrors()
+      // get standard error for genotype parameter (for p value calculation)
+      val genoSE = standardErrors(1)
 
-    // get standard error for genotype parameter (for p value calculation)
-    val genoSE = standardErrors(1)
+      // test statistic t for jth parameter is equal to bj/SEbj, the parameter estimate divided by its standard error
+      val t = beta(1) / genoSE
 
-    // test statistic t for jth parameter is equal to bj/SEbj, the parameter estimate divided by its standard error
-    val t = beta(1) / genoSE
+      /* calculate p-value and report:
+        Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is
+        a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
+        https://en.wikipedia.org/wiki/T-statistic
+      */
+      val tDist = new TDistribution(numObservations - observationLength - 1)
+      val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
+      val logPValue = log10(pvalue)
 
-    /* calculate p-value and report: 
-      Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is 
-      a t-distribution with N-p-1 degrees of freedom.
-    */
-    val tDist = new TDistribution(numObservations - observationLength - 1)
-    val pvalue = 1.0 - tDist.cumulativeProbability(t)
-    val logPValue = log10(pvalue)
-
-    // pack up the information into an Association object
-    //    val variant = new Variant()
-    //    val contig = new Contig()
-    //    contig.setContigName(locus.referenceName)
-    //    variant.setContig(contig)
-    //    variant.setStart(locus.start)
-    //    variant.setEnd(locus.end)
-    //    variant.setAlternateAllele(altAllele)
-    val statistics = Map("rSquared" -> rSquared,
-      "weights" -> beta,
-      "intercept" -> beta(0))
-    val associationObject = new Association(variant, phenotype, logPValue, statistics)
-
-    return associationObject
+      val statistics = Map("rSquared" -> rSquared,
+        "weights" -> beta,
+        "intercept" -> beta(0))
+      Association(variant, phenotype, logPValue, statistics)
+    } catch {
+      case _: SingularMatrixException => Association(variant, phenotype, 0.0, Map())
+    }
   }
 }
 
