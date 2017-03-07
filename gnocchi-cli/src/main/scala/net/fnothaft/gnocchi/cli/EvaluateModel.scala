@@ -116,15 +116,13 @@ class EvaluateModel(protected val args: EvaluateModelArgs) extends BDGSparkComma
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
-    val relAssociationPath = new Path(args.associations)
-    val fs = relAssociationPath.getFileSystem(sc.hadoopConfiguration)
-    val absAssociationStr = fs.getFileStatus(new Path(args.associations)).getPath.toString
-    var parquetInputDestination = absAssociationStr.toString.split("/").reverse.drop(1).reverse.mkString("/")
-    parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
+    val absAssociationPath = new Path(args.associations)
+    val fs = absAssociationPath.getFileSystem(sc.hadoopConfiguration)
+    // val absAssociationStr = fs.getFileStatus(relAssociationPath).getPath.toString
+    val parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetInputFiles/"
     val parquetFiles = new Path(parquetInputDestination)
 
     val vcfPath = args.genotypes
-    val posAndIds = GetVariantIds(sc, vcfPath)
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!fs.exists(parquetFiles)) {

@@ -121,17 +121,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // sets up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
 
-    import sqlContext.implicits._
-
     val absAssociationPath = new Path(args.associations)
     val fs = absAssociationPath.getFileSystem(sc.hadoopConfiguration)
     // val absAssociationStr = fs.getFileStatus(relAssociationPath).getPath.toString
-    var parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/")
-    parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
+    val parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetInputFiles/"
     val parquetFiles = new Path(parquetInputDestination)
 
     val vcfPath = args.genotypes
-    val posAndIds = GetVariantIds(sc, vcfPath)
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!fs.exists(parquetFiles)) {
