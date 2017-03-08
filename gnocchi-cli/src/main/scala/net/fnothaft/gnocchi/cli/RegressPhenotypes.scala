@@ -78,14 +78,14 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-overwriteParquet", usage = "Overwrite parquet file that was created in the vcf conversion.")
   var overwrite = false
 
-  @Args4jOption(required = false, name = "-maf", usage = "Missingness per individual threshold. Default value is 0.01.")
+  @Args4jOption(required = false, name = "-maf", usage = "Allele frequency threshold. Default value is 0.01.")
   var maf = 0.01
 
-  @Args4jOption(required = false, name = "-mind", usage = "Missingness per marker threshold. Default value is 0.1.")
+  @Args4jOption(required = false, name = "-mind", usage = "Missingness per individual threshold. Default value is 0.1.")
   var mind = 0.1
 
-  @Args4jOption(required = false, name = "-geno", usage = "Allele frequency threshold. Default value is 0.")
-  var geno = 0
+  @Args4jOption(required = false, name = "-geno", usage = "Missingness per marker threshold. Default value is 1.")
+  var geno = 1.0
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
@@ -175,7 +175,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .agg(sum($"missingGenotypes").as("missCount"),
         (count($"sampleId") * lit(2)).as("total"),
         sum(when($"genotypeState" === lit(-9), 0).otherwise($"genotypeState")).as("alleleCount"))
-      .filter(($"missCount" / $"total") <= lit(1) && ($"alleleCount" / ($"total" - $"missCount")) >= lit(0.05))
+      .filter(($"missCount" / $"total") <= lit(args.geno) && ($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
       .select($"contig")
     val contigs = genoFilterDF.collect().map(_(0))
     val filteredGenotypeStates = filteredSamplesGenotypeStates.filter($"contig".isin(contigs: _*))
