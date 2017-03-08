@@ -125,21 +125,12 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("5snps10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
     val covarFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
-    println(genoFilePath)
-    // val destination = "~/Users/Taner/desktop/associations"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
     val phenotypes = RegressPhenotypes(cliArgs).loadPhenotypes(sc)
     val assocs = RegressPhenotypes(cliArgs).performAnalysis(genotypeStates, phenotypes, sc)
     val regressionResult = assocs.collect()
-
-    for (result <- regressionResult) {
-      println("SNP Name: " + result.variant.getContig.getContigName)
-      println("SNP Locus: " + result.variant.getStart + "-" + result.variant.getEnd)
-      println("Phenotypes: " + result.phenotype)
-      println("logPValue: " + result.logPValue)
-    }
 
     RegressPhenotypes(cliArgs).logResults(assocs, sc)
     assert(regressionResult(0).statistics("rSquared") == 0.833277921795612, "rSquared = " + regressionResult(0).statistics("rSquared"))

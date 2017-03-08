@@ -42,7 +42,6 @@ trait SiteRegression extends Serializable {
         val (gs, pheno) = p
         // extract referenceAllele and phenotype and pack up with p, then group by key
 
-        // create contig and Variant objects and group by Variant
         // pack up the information into an Association object
         val variant = new Variant()
         val contig = new Contig()

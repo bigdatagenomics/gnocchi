@@ -116,7 +116,6 @@ trait GnocchiModel extends Serializable {
       val (variant, variantModel) = vVm
       (variantModel.variantID, variantModel.numSamples)
     }).collect.toList
-    println("\n\n\n\n hello \n\n\n\n")
     println(updatedVMRdd.collect.toList)
 
     this.flaggedVariants = variantsToFlag

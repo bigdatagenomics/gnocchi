@@ -66,7 +66,6 @@ trait LogisticSiteRegression extends SiteRegression {
     }
 
     // initialize parameters
-    val dampener = DenseMatrix.eye[Double](observationLength + 1)
     var iter = 0
     val maxIter = 1000
     val tolerance = 1e-6
@@ -105,13 +104,13 @@ trait LogisticSiteRegression extends SiteRegression {
         }
 
         if (beta.exists(_.isNaN)) {
+          // TODO: Log this instead of printing it
           println("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
         }
       } catch {
         case error: breeze.linalg.MatrixSingularException => {
           singular = true
-          //          println("inside while loop: " + hessian)
         }
       }
       iter += 1
@@ -140,7 +139,6 @@ trait LogisticSiteRegression extends SiteRegression {
 
       // calculate wald test statistics
       val waldTests = 1d - probs
-      //      println("WaldTest: " + waldTests(1))
 
       // calculate the log of the p-value for the genetic component
       val logWaldTests = waldTests.map(t => {
@@ -175,7 +173,6 @@ trait LogisticSiteRegression extends SiteRegression {
         "xixit" -> xixiT(0),
         "prob" -> pi,
         "rSquared" -> 0.0))
-      println("in wald test: " + hessian)
     }
     toRet
   }
@@ -183,7 +180,6 @@ trait LogisticSiteRegression extends SiteRegression {
   def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val logitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
-    //    println("b: " + b.toList)
     for (j <- logitResults.indices) {
       val lp = lpArray(j)
       logitResults(j) = DenseVector(1.0 +: lp.features.toArray) dot bDense

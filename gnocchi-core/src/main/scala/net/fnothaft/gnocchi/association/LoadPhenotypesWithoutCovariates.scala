@@ -47,7 +47,6 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
     } else {
       labels = header.split(" ").zipWithIndex
     }
-    //    val labels = header.split("\t").zipWithIndex
 
     assert(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
@@ -65,7 +64,6 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
     // construct the phenotypes dataset, filtering out all samples that don't have the phenotype or one of the covariates
     val data = getAndFilterPhenotypes(oneTwo, phenotypes, header, primaryPhenoIndex, sc)
 
-    // """Should be able to store the data in a more readable format as well."""
     return data
   }
 
@@ -75,7 +73,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
                                               primaryPhenoIndex: Int,
                                               sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
 
-    // !!! NEED TO ASSERT THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
+    // TODO: NEED TO ASSERT THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
 
     // initialize sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
@@ -84,7 +82,6 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
     // split up the header for making the phenotype label later
     var splitHeader = header.split("\t")
     val headerTabDelimited = splitHeader.length != 1
-    //    println("HeaderTab = " + headerTabDelimited)
     if (!headerTabDelimited) {
       splitHeader = header.split(" ")
     }

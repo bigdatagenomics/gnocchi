@@ -64,7 +64,6 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     Each of the members of the quartet should have roughly the same R^2 value, although the shapes of the graph are different shapes.
     Target R^2 values verified values produced here https://rstudio-pubs-static.s3.amazonaws.com/52381_36ec82827e4b476fb968d9143aec7c4f.html.  
     */
-
   test("The rsquared for Anscombe I should be within .001 of expected results 0.6665") {
 
     //load Anscombe1 into an observations variable
@@ -284,8 +283,6 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     // check that the rsquared value is correct (correct is 0.2949)
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.2954)
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] >= 0.2944)
-
-    println(regressionResult.statistics("weights").asInstanceOf[Array[Double]].toList)
 
     // check that the p-value for Brain is correct (expectedPVal ~= 0.000855632)
     val expectedLogPVal = -3.06771
