@@ -1,0 +1,12 @@
+FID IID age gender race pheno
+sample1 sample1 51 F 3 0.67669361
+sample2 sample2 60 F 3 -0.070581074
+sample3 sample3 74 M 3 0.152288344
+sample4 sample4 34 F 3 0.158362492
+sample5 sample5 39 F 3 -0.397940009
+sample6 sample6 58 F 3 0.580924976
+sample7 sample7 79 M 3 0.113943352
+sample8 sample8 85 F 3 0.227886705
+sample9 sample9 42 F 3 -9
+sample10 sample10 45 F 3 -0.22184875
+sample11 sample11 35 M 3 0.59102938
