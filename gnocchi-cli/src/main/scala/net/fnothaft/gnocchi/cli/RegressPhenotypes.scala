@@ -168,9 +168,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .select($"sampleId")
     val samples = mindDF.collect().map(_(0))
     // TODO: Resolve with "IN" sql command once spark2.0 is integrated
-    val filteredSamplesGenotypeStates = genoStatesWithNames.filter($"sampleId".isin(samples: _*))
+    val sampleFiltered = genoStatesWithNames.filter($"sampleId".isin(samples: _*))
 
-    val genoFilterDF = genoStatesWithNames
+    val genoFilterDF = sampleFiltered
       .groupBy($"contig")
       .agg(sum($"missingGenotypes").as("missCount"),
         (count($"sampleId") * lit(2)).as("total"),
@@ -178,7 +178,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .filter(($"missCount" / $"total") <= lit(args.geno) && (lit(1) - $"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
       .select($"contig")
     val contigs = genoFilterDF.collect().map(_(0))
-    val filteredGenotypeStates = filteredSamplesGenotypeStates.filter($"contig".isin(contigs: _*))
+    val filteredGenotypeStates = sampleFiltered.filter($"contig".isin(contigs: _*))
 
     filteredGenotypeStates.as[GenotypeState]
   }
