@@ -175,7 +175,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .agg(sum($"missingGenotypes").as("missCount"),
         (count($"sampleId") * lit(2)).as("total"),
         sum(when($"genotypeState" === lit(-9), 0).otherwise($"genotypeState")).as("alleleCount"))
-      .filter(($"missCount" / $"total") <= lit(args.geno) && ($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
+      .filter(($"missCount" / $"total") <= lit(args.geno) && (lit(1) - $"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
       .select($"contig")
     val contigs = genoFilterDF.collect().map(_(0))
     val filteredGenotypeStates = filteredSamplesGenotypeStates.filter($"contig".isin(contigs: _*))
