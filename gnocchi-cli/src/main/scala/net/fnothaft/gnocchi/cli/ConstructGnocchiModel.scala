@@ -79,8 +79,6 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     // save the model
     SaveGnocchiModel(model, args.saveTo)
 
-    //    model
-
   }
 
   def buildModel[T](genotypeStates: RDD[GenotypeState],

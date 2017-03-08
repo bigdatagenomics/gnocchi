@@ -65,8 +65,6 @@ trait LogisticSiteRegression extends SiteRegression {
       xixiT(i) = xiVector * xiVector.t
     }
 
-    ///// Solve the LogisticRegression using Newton-Raphson algorithm (ESL p. 120) /////
-
     // initialize parameters
     val dampener = DenseMatrix.eye[Double](observationLength + 1)
     var iter = 0
@@ -87,24 +85,16 @@ trait LogisticSiteRegression extends SiteRegression {
         val logitArray = logit(data, beta)
 
         // calculate the hessian and score
-
         hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
         var score = DenseVector.zeros[Double](observationLength + 1)
         for (i <- observations.indices) {
-          //          println(hessian)
-          //          println("\n")
-          //          println("inside: " + logitArray(i))
-          //          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
           hessian += -xixiT(i) * pi * (1.0 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
 
         // compute the update and check convergence
-        //        println(hessian)
         update = -inv(hessian) * score
-        //        println(update)
-        //        println("\n")
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
@@ -114,7 +104,6 @@ trait LogisticSiteRegression extends SiteRegression {
           beta(j) += update(j)
         }
 
-        //        println("LOG_REG - b: " + beta.toList)
         if (beta.exists(_.isNaN)) {
           println("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
@@ -132,15 +121,6 @@ trait LogisticSiteRegression extends SiteRegression {
 
     // calculate the standard error for the genotypic predictor
     var matrixSingular = false
-
-    // pack up the information into an Association object
-    //    val variant = new Variant()
-    //    val contig = new Contig()
-    //    contig.setContigName(locus.referenceName)
-    //    variant.setContig(contig)
-    //    variant.setStart(locus.start)
-    //    variant.setEnd(locus.end)
-    //    variant.setAlternateAllele(altAllele)
 
     var toRet = new Association(null, null, -9.0, null)
     try {
@@ -177,7 +157,6 @@ trait LogisticSiteRegression extends SiteRegression {
         "xixit" -> xixiT(0),
         "prob" -> pi,
         "rSquared" -> 0.0)
-      //        "logitArray" -> logitArray(0))
 
       toRet = Association(variant, phenotype, logWaldTests(1), statistics)
     } catch {
@@ -207,11 +186,7 @@ trait LogisticSiteRegression extends SiteRegression {
     //    println("b: " + b.toList)
     for (j <- logitResults.indices) {
       val lp = lpArray(j)
-      //      println("lp.features: " + lp.features.toArray.toList)
-      //      println("b: " + b.toList)
-      //      println("bdense: " + bDense.toArray.toList)
       logitResults(j) = DenseVector(1.0 +: lp.features.toArray) dot bDense
-      //      println("logit: " + logitResults(j))
     }
     logitResults
   }

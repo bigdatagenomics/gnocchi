@@ -17,7 +17,7 @@ package net.fnothaft.gnocchi.gnocchiModel
 
 import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
+import org.scalatest._
 import net.fnothaft.gnocchi.models.Association
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
@@ -115,7 +115,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     assert(incrementalVariantModel.numSamples == observations.length, s"NumSamples incorrect: $incrementalVariantModel.numSamples vs $observations.length")
   }
 
-  sparkTest("[NOT IMPLEMENTED YET] Build logistic gnocchi model, update, and check results.") {
+  ignore("[NOT IMPLEMENTED YET] Build logistic gnocchi model, update, and check results.") {
 
     // break data up into initial and update
 
@@ -133,7 +133,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
 
   }
 
-  sparkTest("[NOT IMPLEMENTED YET] Load logistic gnocchi model, update, and check results.") {
+  ignore("[NOT IMPLEMENTED YET] Load logistic gnocchi model, update, and check results.") {
 
     // break data up into initial and update
 

@@ -17,7 +17,8 @@ import java.io.File
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import java.nio.file.{ Files, Paths }
 
-import net.fnothaft.gnocchi.models.{ AdditiveLogisticGnocchiModel, AdditiveLinearGnocchiModel, VariantModel }
+import net.fnothaft.gnocchi.models.{ AdditiveLinearGnocchiModel, AdditiveLogisticGnocchiModel, VariantModel }
+import org.scalatest.Ignore
 
 class GnocchiModelSuite extends GnocchiFunSuite {
 
@@ -28,20 +29,17 @@ class GnocchiModelSuite extends GnocchiFunSuite {
   val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
   val covarFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
   val modelPath = "src/test/resources/testData/GnocchiModel"
-  //  val modelDestination = Files.createTempDirectory("").toAbsolutePath.toString + "/" + modelPath
   val baseDir = new File(".").getAbsolutePath
-
-  //  val modelDestination = "File://" + baseDir + modelPath
   val modelDestination = baseDir + "src/test/resources/testData/GnocchiModel"
 
-  sparkTest("Test GnocchiModel save method") {
+  ignore("Test GnocchiModel save method") {
     val gm = new AdditiveLinearGnocchiModel
     SaveGnocchiModel(gm, modelDestination)
     assert(Files.exists(Paths.get(modelDestination)), "File doesn't exist")
   }
 
   // Construct the GnocchiModel, save, and check that the saved model exists and has the right information inside.
-  sparkTest("Test GnocchiModel construction, saving, loading: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
+  ignore("Test GnocchiModel construction, saving, loading: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
     /* 
      Uniform White Noise for Covar 1 (pheno4): 
       0.8404
@@ -79,7 +77,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
 
   }
 
-  sparkTest("GnocchiModel check numSamples for construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
+  ignore("GnocchiModel check numSamples for construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
     val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
 
     // create GM on subset of the data
@@ -116,7 +114,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     assert(ogNumSamples === 5, "Incorrect number of samples in original model before update.")
   }
 
-  sparkTest("GnocchiModel loading saved model, making predictions, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
+  ignore("GnocchiModel loading saved model, making predictions, and re-saving: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
     //    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
     //    // build original model
     //    val fullRecomputeCliCall = s"../bin/gnocchi-submit ConstructGnocchiModel $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -saveModelTo $modelDestination -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
@@ -133,7 +131,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     assert(false)
   }
 
-  sparkTest("GnocchiModel loading saved model, evaluating model on new data, and re-saving") {
+  ignore("GnocchiModel loading saved model, evaluating model on new data, and re-saving") {
     // build original model
     //    val tmp = Files.createTempDirectory("").toAbsolutePath.toString + "/"
     //    // build original model
@@ -158,8 +156,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     assert(false) // TODO: finish implementing predict and evaluate functionality
 
   }
-
-  sparkTest("GnocchiModel check results of construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
+  ignore("GnocchiModel check results of construction, saving, loading, updating, re-saving, re-loading: 5 snps, 5 + 5 samples, 1 phenotype, 2 random noise covars") {
     //    // create GM on subset of the data
     //    val genoFilePath =
     //    val phenoFilePath =
@@ -189,15 +186,16 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     assert(false)
 
   }
-  sparkTest("GnocchiModel ensuring that endpoint phenotype is same when updating, or testing.") {
+
+  ignore("GnocchiModel ensuring that endpoint phenotype is same when updating, or testing.") {
     assert(false)
   }
 
-  sparkTest("GnocchiModel ensuring that number and names of covariates is same when updating or testing.") {
+  ignore("GnocchiModel ensuring that number and names of covariates is same when updating or testing.") {
     assert(false)
   }
 
-  sparkTest("GnocchiModel ensuring that type of model in update or test call is same as the model being loaded.") {
+  ignore("GnocchiModel ensuring that type of model in update or test call is same as the model being loaded.") {
     assert(false)
   }
 

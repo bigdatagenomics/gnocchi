@@ -142,12 +142,8 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     }
 
     RegressPhenotypes(cliArgs).logResults(assocs, sc)
-    //Assert that the rsquared is in the right threshold. 
-    //    assert(regressionResult(0).statistics("rSquared") == 0.7681191628941112, "rSquared = " + regressionResult(0).statistics("rSquared"))
     assert(regressionResult(0).statistics("rSquared") == 0.833277921795612, "rSquared = " + regressionResult(0).statistics("rSquared"))
 
   }
 
 }
-// genoFilePath 
-// ./bin/gnocchi-submit regressPhenotypes gnocchi-cli/target/test-classes/5snps10samples.vcf gnocchi-cli/target/test-classes/10samples5Phenotypes2covars.txt ADDITIVE_LINEAR TestDataResults -saveAsText -phenoName pheno1 -covar -covarNames pheno4,pheno5 -overwriteParquet

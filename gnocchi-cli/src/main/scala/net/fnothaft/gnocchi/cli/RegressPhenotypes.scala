@@ -95,9 +95,6 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
-  //
-  //  @Args4jOption(required = false, name = "-mapFile", usage = "Path to PLINK MAP file from which to get Varinat IDs.")
-  //  var mapFile: String = null
 
 }
 
@@ -106,7 +103,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
     val a = args.oneTwo
-    //    println(s"\n\n\n\n\n\n oneTwo: $a \n\n\n\n\n\n\n\n")
 
     // Load in genotype data
     val genotypeStates = loadGenotypes(sc)
@@ -122,6 +118,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
   }
 
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
+
     // set up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
@@ -133,14 +130,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     val vcfPath = args.genotypes
     val posAndIds = GetVariantIds(sc, vcfPath)
-    //    if (args.getIds) {
-    //      val mapPath = args.mapFile
-    //      val oldName = new File(args.genotypes).getAbsolutePath.split("/").reverse(0)
-    //      val newVCFPath = new File(args.genotypes).getAbsolutePath.split("/").reverse.drop(1).reverse.mkString("/") + "withIds_" + oldName
-    //      val outpath = newVCFPath
-    //      GetVariantIds(sc, vcfPath)
-    //      vcfPath = outpath
-    //    }
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!parquetFiles.getAbsoluteFile.exists) {
@@ -152,72 +141,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       Vcf2ADAM(cmdLine).run(sc)
     }
 
-    // Check for the genotypes file first.
-    // val genoFile = new File(args.genotypes)
-    // assert(genoFile.exists, "Path to genotypes VCF file is incorrect or the file is missing.")
-    //    val absAssociationsPath = args.associations
-    //    val hdfs = FileSystem.get(sc.hadoopConfiguration)
-    //    val parquetInputDestination = absAssociationsPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
-    //    val parquetPath = new Path(parquetInputDestination)
-    //    val genoPath = new Path(args.genotypes)
-    //    if (!hdfs.exists(genoPath)) {
-    //      throw new FileNotFoundException(s"Could not find filesystem for ${args.genotypes} with Hadoop configuration ${sc.hadoopConfiguration}")
-    //    }
-    //
-    //    // val absAssociationPath = new Path(args.associations)
-    //    // val fs =
-    //    //   Option(absAssociationPath.getFileSystem(sc.hadoopConfiguration))
-    //    //     .getOrElse(throw new FileNotFoundException(
-    //    //       s"Couldn't find filesystem for ${absAssociationPath.toUri} with Hadoop configuration ${sc.hadoopConfiguration}"))
-    //    // var parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetFiles/"
-    //    // val parquetFiles = new File(parquetInputDestination)
-    //
-    //    // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
-    //    if (!hdfs.exists(parquetPath)) {
-    //      val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
-    //      Vcf2ADAM(cmdLine).run(sc)
-    //    } else if (args.overwrite) {
-    //      hdfs.delete(parquetPath, true)
-    //      //      FileUtils.deleteDirectory(parquetFiles)
-    //      val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
-    //      Vcf2ADAM(cmdLine).run(sc)
-    //    }
-
-    // // println(args.associations)
-    // val absAssociationPath = args.associations //new File(args.associations) //.getAbsolutePath()
-    // println(absAssociationPath)
-    // // println(absAssociationPath)
-    // // var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
-    // var parquetInputDestination = absAssociationPath + "/parquetFiles/"
-    // println(parquetInputDestination)
-    // // println(parquetInputDestination)
-    // // parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
-    // // println(parquetInputDestination)
-    // val parquetFiles = new File(parquetInputDestination)
-    // println(parquetInputDestination)
-    // println(parquetFiles.exists)
-    // println(parquetFiles.getAbsoluteFile)
-    // println(parquetFiles.getAbsoluteFile.exists)
-
-    // println("Genotypes? ")
-    // val a = new File(args.genotypes)
-    // println(a.exists)
-
-    // /* Check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet
-    //  using vcf2adam.
-    // */
-    // // if (!parquetFiles.getAbsoluteFile().exists) {
-    // if (!parquetFiles.exists) {
-    //   val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
-    //   Vcf2ADAM(cmdLine).run(sc)
-    //   println(parquetFiles.getAbsoluteFile().exists)
-    // } else if (args.overwrite) {
-    //   FileUtils.deleteDirectory(parquetFiles)
-    //   val cmdLine: Array[String] = Array[String](args.genotypes, parquetInputDestination)
-    //   Vcf2ADAM(cmdLine).run(sc)
-    // }
-    //    val parquetInputDestination = args.genotypes
-    // read in parquet files
     import sqlContext.implicits._
     //    val genotypes = sqlContext.read.parquet(parquetInputDestination)
     val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
@@ -233,7 +156,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       genotypeStates("sampleId"),
       genotypeStates("genotypeState"),
       genotypeStates("missingGenotypes"))
-    println(genoStatesWithNames.take(10).toList)
 
     /*
     For now, just going to use PLINK's Filtering functionality to create already-filtered vcfs from the BED.
@@ -241,17 +163,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       - To do the filtering, create a genotypeState matrix and calculate which SNPs and Samples need to be filtered out.
       - Then go back into the Dataset of GenotypeStates and filter out those GenotypeStates.
     */
-
-    // convert to genotypestatematrix dataframe
-    //
-    // .as[GenotypeState]
-
-    // apply filters: MAF, genotyping rate; (throw out SNPs with low MAF or genotyping rate)
-    // genotypeStates.registerTempTable("genotypes")
-    // val filteredGenotypeStates = sqlContext.sql("SELECT * FROM genotypes WHERE ")
-
-    // apply filters: missingness; (throw out samples missing too many SNPs)
-    // val finalGenotypeStates =
 
     // mind filter
     genoStatesWithNames.registerTempTable("genotypeStates")
@@ -303,7 +214,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
       case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
     }
-    //    associations.take(100).foreach(assoc => println(assoc))
     sqlContext.createDataset(associations)
   }
 
@@ -316,15 +226,10 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       FileUtils.deleteDirectory(associationsFile)
     }
     if (args.saveAsText) {
-      // sorting by pvalue
-      //      associations.rdd.keyBy(_.logPValue).sortBy(_._1).map(r => "%s, %s, %s"
-      //        .format(r._2.variant.getContig.getContigName,
-      //          r._2.variant.getStart, Math.pow(10, r._2.logPValue).toString))
-      //        .saveAsTextFile(args.associations)
-      // sorting by genotype weight
-      associations.rdd.keyBy(_.statistics("weights").asInstanceOf[Array[Double]](1)).sortBy(_._1).map(r => "%s, %s, %s, %s"
+       // sorting by pvalue
+      associations.rdd.keyBy(_.logPValue).sortBy(_._1).map(r => "%s, %s, %s"
         .format(r._2.variant.getContig.getContigName,
-          r._2.variant.getStart, r._2.statistics("weights").asInstanceOf[Array[Double]](1).toString, Math.pow(10, r._2.logPValue).toString))
+          r._2.variant.getStart, Math.pow(10, r._2.logPValue).toString))
         .saveAsTextFile(args.associations)
     } else {
       associations.toDF.write.parquet(args.associations)
