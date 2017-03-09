@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/bigdatagenomics/gnocchi/badge.svg?branch=master)](https://coveralls.io/github/bigdatagenomics/gnocchi?branch=master)
 
 Genome-Wide Association Studies using the [ADAM](https://github.com/bigdatagenomics/adam) genomics analysis platform.
-This is work-in-progress. Currently, we support Additive Linear and Dominant Linear models (for continuous outcome variables), and Additive Logistic and Dominant Logistic models (for binary [0,1] or [1,2] outcome variables). Each can be run with or without inclusion of phenotypic covarieats.
+This is work-in-progress. Currently, we support Additive Linear and Dominant Linear models (for continuous outcome variables), and Additive Logistic and Dominant Logistic models (for binary [0,1] or [1,2] outcome variables). Each can be run with or without phenotypic covariates.
 
 # Build
 
