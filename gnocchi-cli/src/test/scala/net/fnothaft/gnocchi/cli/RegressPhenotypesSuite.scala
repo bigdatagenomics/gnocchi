@@ -23,7 +23,7 @@ import java.nio.file.Files
 class RegressPhenotypesSuite extends GnocchiFunSuite {
 
   val path = "src/test/resources/testData/Association"
-  val destination = Files.createTempDirectory("").toAbsolutePath.toString + "/" + path
+  val destination = Files.createTempDirectory("").toAbsolutePath.toString + "/Association"
 
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
@@ -70,7 +70,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   }
 
   sparkTest("Test full pipeline: 1 snp, 10 samples, 1 phenotype, no covars") {
-    // import AssociationEncoder._
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("1snp10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples1Phenotype.txt").getFile
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet"

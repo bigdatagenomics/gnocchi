@@ -18,7 +18,7 @@
   <modules>
     <module>gnocchi-core</module>
     <module>gnocchi-cli</module>
-    <module>Gnocchi-test</module>
+    <!--<module>Gnocchi-test</module>-->
   </modules>
 
   <licenses>

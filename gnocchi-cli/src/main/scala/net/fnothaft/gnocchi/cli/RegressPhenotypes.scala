@@ -226,7 +226,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       FileUtils.deleteDirectory(associationsFile)
     }
     if (args.saveAsText) {
-       // sorting by pvalue
+      // sorting by pvalue
       associations.rdd.keyBy(_.logPValue).sortBy(_._1).map(r => "%s, %s, %s"
         .format(r._2.variant.getContig.getContigName,
           r._2.variant.getStart, Math.pow(10, r._2.logPValue).toString))

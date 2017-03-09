@@ -98,8 +98,8 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     val nonIncrementalAccuracy = numCorrectNonIncre.toDouble / numTotalNonIncre
 
     // Assert that the accuracy is close to what we get from using QR method.
-//    println("non incremental: " + nonIncrementalAccuracy + "\n Weights: " + nonincremental.weights.toList)
-//    println("incremental: " + incrementalAccuracy + "\n Weights: " + incrementalVariantModel.weights.toList)
+    //    println("non incremental: " + nonIncrementalAccuracy + "\n Weights: " + nonincremental.weights.toList)
+    //    println("incremental: " + incrementalAccuracy + "\n Weights: " + incrementalVariantModel.weights.toList)
 
     assert(incrementalAccuracy < nonIncrementalAccuracy + .1 && incrementalAccuracy > nonIncrementalAccuracy - .1, "Accuracies do not match up.")
 
