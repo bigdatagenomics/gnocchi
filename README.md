@@ -2,12 +2,12 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/bigdatagenomics/gnocchi/badge.svg?branch=master)](https://coveralls.io/github/bigdatagenomics/gnocchi?branch=master)
 
-Genotype-phenotype analysis using the [ADAM](https://github.com/bigdatagenomics/adam) genomics analysis platform.
-This is work-in-progress. Currently, we implement a simple case/control analysis using a Chi squared test.
+Genome-Wide Association Studies using the [ADAM](https://github.com/bigdatagenomics/adam) genomics analysis platform.
+This is work-in-progress. Currently, we support Additive Linear and Dominant Linear models (for continuous outcome variables), and Additive Logistic and Dominant Logistic models (for binary [0,1] or [1,2] outcome variables). Each can be run with or without phenotypic covariates.
 
 # Build
 
-To build, install [Maven](http://maven.apache.org). Then run:
+To build, install [Maven](http://maven.apache.org). Then (once in the gnocchi directory) run:
 
 ```
 mvn package
@@ -29,19 +29,19 @@ installation root directory. Then, you can run `gnocchi` via `./bin/gnocchi-subm
 We include test data. You can run with the test data by running:
 
 ```
-./bin/gnocchi-submit regressPhenotypes testData/sample.vcf testData/samplePhenotypes.csv testData/associations -saveAsText
+./bin/gnocchi-submit regressPhenotypes testData/5snps10samples.vcf testData/10samples5Phenotypes2covars.txt ADDITIVE_LINEAR testData/associations -saveAsText -phenoName pheno1 -covar -covarFile testData/10samples5Phenotypes2covars.txt -covarNames pheno4,pheno5
 ```
 
 ## Phenotype Input
 
-We accept phenotype inputs in a CSV format:
+We accept phenotype and covariate inputs in CSV (tab delimited) format:
 
 ```
-Sample,Phenotype,Has Phenotype
-mySample,a phenotype,true
+SampleID	pheno1	pheno2
+mySample	pheno1_value	pheno2_value
 ```
 
-The `has phenotype` column is binary true/false. See the test data for more descriptions.
+Note: phenotypes and covariates must be numerical. For nominal scale data (i.e. categorical data), binarize. For ordinal scale data, convert to integers. 
 
 # License
 

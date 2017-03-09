@@ -27,7 +27,8 @@ object GnocchiMain {
     FillIn,
     ReduceDimensions,
     RegressPhenotypes,
-    EvaluateModel)
+    ConstructGnocchiModel,
+    UpdateGnocchiModel)
 
   private def printCommands() {
     println("\n")

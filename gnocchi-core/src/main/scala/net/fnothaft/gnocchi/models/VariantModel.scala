@@ -20,7 +20,7 @@ package net.fnothaft.gnocchi.models
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
-trait VariantModel {
+trait VariantModel extends Serializable {
   var variantID: String
   var variant: Variant
   var phenotype: String
@@ -42,6 +42,10 @@ trait VariantModel {
     this
   }
 
+  def setAssociation(assoc: Association): this.type = {
+    association = assoc
+    this
+  }
   def setPhenotype(pheno: String): this.type = {
     phenotype = pheno
     this

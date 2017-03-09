@@ -51,14 +51,17 @@ trait GnocchiModel extends Serializable {
 
     // convert genotypes and phenotypes into observations
     val data = PairSamplesWithPhenotypes(rdd, phenotypes)
+    // data is RDD[((Variant, String), Iterable[(String, (GenotypeState,Phenotype[Array[Double]]))])]
     val newData = data.map(kvv => {
-      val (varStr, genPhen) = kvv
+      val (varStr, genPhenItr) = kvv
       val (variant, phenoName) = varStr
-      val obs = genPhen.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]].map(gp => {
+      //.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]]
+      val obs = genPhenItr.map(gp => {
         val (str, (gs, pheno)) = gp
-        val ob = (clipOrKeepState(gs), Array(pheno.value)).asInstanceOf[(Double, Array[Double])]
+        val ob = (clipOrKeepState(gs), pheno.value)
         ob
-      })
+      }).toArray
+      (variant, obs)
     }).asInstanceOf[RDD[(Variant, Array[(Double, Array[Double])])]]
 
     // combine the new sample observations with the old ones for the qr variants.
@@ -80,7 +83,13 @@ trait GnocchiModel extends Serializable {
     })
 
     // group new data with correct VariantModel
-    val vmAndDataRDD = sc.parallelize(variantModels).join(newData)
+    val variantModels = sc.parallelize(this.variantModels)
+    // TODO: for some reason the variant models below are just filled with null
+    println("variantModels: " + variantModels.take(5).toList)
+    println("data: " + data.take(5).toList)
+    val vmAndDataRDD = variantModels.join(newData)
+    println("Size of this.variantModels = " + variantModels.count)
+    println("Size of vmAndDataRDD = " + vmAndDataRDD.count)
 
     // map an update call to all variants
     val updatedVMRdd = vmAndDataRDD.map(kvv => {
@@ -88,6 +97,7 @@ trait GnocchiModel extends Serializable {
       model.update(data, new ReferenceRegion(variant.getContig.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, model.phenotype)
       (variant, model)
     })
+    println("Size of updatedVMRdd = " + updatedVMRdd.count)
 
     // pair up the QR factorization and incrementalUpdate versions of the selected variantModels
     val qrAssocRDD = qrRDD.map(elem => {
@@ -104,9 +114,15 @@ trait GnocchiModel extends Serializable {
       Math.abs(increValue - qrValue) / qrValue > HBDThreshold
     }).map(_._1).collect.toList
 
-    flaggedVariants = variantsToFlag
-    variantModels = updatedVMRdd.collect.toList
-    qrVariantModels = qrRDD.collect.toList
+    this.numSamples = updatedVMRdd.map(vVm => {
+      val (variant, variantModel) = vVm
+      (variantModel.variantID, variantModel.numSamples)
+    }).collect.toList
+    println(updatedVMRdd.collect.toList)
+
+    this.flaggedVariants = variantsToFlag
+    this.variantModels = updatedVMRdd.collect.toList
+    this.qrVariantModels = qrRDD.collect.toList
   }
 
   def clipOrKeepState(gs: GenotypeState): Double
@@ -126,7 +142,7 @@ trait GnocchiModel extends Serializable {
     })
     val models = sc.parallelize(variantModels)
     val modelsAndData = models.join(newData)
-    modelsAndData.map(vmd => {
+    val predictions = modelsAndData.map(vmd => {
       val (variant, md) = vmd
       val variantModel = md._1
       val obs = md._2 //[Array[(Double, Array[Double])]]

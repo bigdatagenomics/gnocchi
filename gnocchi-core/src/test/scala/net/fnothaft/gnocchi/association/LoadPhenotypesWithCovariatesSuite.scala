@@ -62,9 +62,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     val header = "SampleId\tpheno1\tpheno2\tpheno3\tpheno4\tpheno5"
     val covarHeader = header
     val p1 = LoadPhenotypesWithCovariates.getAndFilterPhenotypes(true, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
-    println(p1)
     val res = p1.take(2)
-    println(res.toList)
     assert(res(1).sampleId === "Sample1")
     assert(res(1).phenotype === "pheno3,pheno1,pheno2,pheno5")
     assert(res(1).value === Array(0.0, 1.0, 2.0, 5.0))
@@ -90,7 +88,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     assert(p1.first().value === Array(12.0, 13.0, 14.0), "Phenotype value was incorrect")
   }
 
-  sparkTest("Read in a 2-line file; call with phenoName typo") {
+  ignore("Read in a 2-line file; call with phenoName typo") {
     /*
     make sure there is an error thrown if the phenoName doesn't match
     */
@@ -101,7 +99,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     // assert(throwsError, "AssertionError should be thrown if user inputs a pheno name that doesn't match anything in the header.")
   }
 
-  sparkTest("Read in a 2-line file; call with covarNames typo") {
+  ignore("Read in a 2-line file; call with covarNames typo") {
     /*
     make sure there is an error thrown if one of the covarNames doesn't match
     */

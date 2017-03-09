@@ -26,6 +26,13 @@ import org.bdgenomics.formats.avro.Variant
 /* trait for building a GnocchiModel that has an additive, logistic VariantModel at each site (via QR factorization). */
 trait BuildAdditiveLogistic extends BuildGnocchiModel {
 
+  def apply[T](genotypeStates: RDD[GenotypeState],
+               phenotypes: RDD[Phenotype[T]],
+               sc: SparkContext): (GnocchiModel, RDD[Association]) = {
+    val assocs = fit(genotypeStates, phenotypes)
+    (extractModel(assocs, sc), assocs)
+  }
+
   def fit[T](rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
     AdditiveLogisticAssociation(rdd, phenotypes)
@@ -34,11 +41,12 @@ trait BuildAdditiveLogistic extends BuildGnocchiModel {
   def extractModel(assocs: RDD[Association], sc: SparkContext): GnocchiModel = {
     //code for packaging up the association object elements into a GnocchiModel
     val gm = new AdditiveLogisticGnocchiModel
+    println(" \n\n\n Associations \n\n\n")
+    println(assocs.collect.toList)
     gm.variantModels = assocs.map(assoc => {
       val model = BuildAdditiveLogisticVariantModel.extractVariantModel(assoc)
       (model.variant, model)
     }).collect.toList
-    val model = new AdditiveLogisticGnocchiModel
     //TODO: make setters for the GnocchiModel fields and set the values in here.
     //    var variantModels: RDD[(Variant, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
     //    gm.qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])]// the variant model and the observations that the model must be trained on
@@ -47,5 +55,5 @@ trait BuildAdditiveLogistic extends BuildGnocchiModel {
 }
 
 object BuildAdditiveLogisticGnocchiModel extends BuildAdditiveLogistic {
-  val regressionName = "Additive Logistic Regression with SGD"
+  val regressionName = "Additive Logistic Regression with Incremental Update"
 }

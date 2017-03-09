@@ -111,7 +111,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
                                               covarIndices: Array[Int],
                                               sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
 
-    // !!! NEED TO ASSERT THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
+    // TODO: NEED TO REQUIRE THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
 
     // initialize sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
@@ -120,28 +120,20 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     // split up the header for making the phenotype label later
     var splitHeader = header.split("\t")
     val headerTabDelimited = splitHeader.length != 1
-    //    println("HeaderTab = " + headerTabDelimited)
     if (!headerTabDelimited) {
       splitHeader = header.split(" ")
     }
     var splitCovarHeader = covarHeader.split("\t")
     val covarTabDelimited = splitCovarHeader.length != 1
-    //    println("covarTab = " + covarTabDelimited)
     if (!covarTabDelimited) {
       splitCovarHeader = covarHeader.split(" ")
     }
     val fullHeader = splitHeader ++ splitCovarHeader
     val numInPheno = splitHeader.length
-    //    println("numInPheno: " + numInPheno)
-    //    println("covarIndices: " + covarIndices.toList)
-    //    println("\n\n\n\n covarIndices = " + covarIndices.toList + "\n\n\n\n\n")
     val mergedIndices = covarIndices.map(elem => { elem + numInPheno })
 
     // construct the RDD of Phenotype objects from the data in the textfile
-    //    println("\n\n\n\n primary Pheno Index = " + primaryPhenoIndex + "\n\n\n\n\n")
     val indices = Array(primaryPhenoIndex) ++ mergedIndices
-    //    println(" \n\n\n\n\n\n indices: " + indices.toList + "\n\n\n\n\n ")
-    //    println("indices: " + indices.toList)
     var covarData = covars.filter(line => line != covarHeader)
       .map(line => line.split(" ")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     if (covarTabDelimited) {
@@ -157,43 +149,21 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         // split the line by column
         .map(line => line.split("\t")).keyBy(splitLine => splitLine(0)).filter(_._1 != "")
     }
-    //    covarData.take(10).map(d => {
-    //      println("sampleId: " + d._1)
-    //      println("covars: " + d._2.toList)
-    //    })
-    //    data.take(10).map(d => {
-    //      println("sampleId: " + d._1)
-    //      println("data: " + d._2.toList)
-    //    })
-    val dataToPrint = data.take(5).toList
-    println(dataToPrint)
-    // merge the phenos and covariates into same RDD row
-
-    // TODO: took out the cogroup here. Need to fix.
-
     val joinedData = data.cogroup(covarData).map(pair => {
-      val (sampleId, (phenos, covariates)) = pair
-      val phenoArray = phenos.toArray
-      val covarArray = covariates.toArray
-      //      println(phenoArray.length)
-      //      println(covarArray.length)
-      val toret = phenoArray(0) ++ covarArray(0)
-      //      println(toret.length)
-      //      println(toret)
+      val (sampleId, (phenosIterable, covariatesIterable)) = pair
+      val phenoArray = phenosIterable.toList.head
+      val covarArray = covariatesIterable.toList.head
+      val toret = phenoArray ++ covarArray
       toret
     })
+
     // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
 
     val finalData = joinedData.filter(p => {
-      //      println("p: " + p.toList)
-      //      println("plength = " + p.length)
       if (p.length > 2) {
 
         var keep = true
         for (valueIndex <- indices) {
-          //          println("index = " + valueIndex)
-          //          println(p.toList)
-          //          println("here: " + p(valueIndex).toDouble)
           if (isMissing(p(valueIndex))) {
             keep = false
           }
@@ -204,9 +174,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       }
     }).map(p => {
       if (oneTwo) {
-        println("oneTwo flagged")
         val toRet = p.slice(0, primaryPhenoIndex) ++ List((p(primaryPhenoIndex).toDouble - 1).toString) ++ p.slice(primaryPhenoIndex + 1, p.length)
-        println("toRet: " + toRet.toList)
         toRet
       } else {
         p
@@ -218,8 +186,6 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         p(0), // sampleID string
         for (i <- indices) yield p(i).toDouble) // phenotype values
         .asInstanceOf[Phenotype[Array[Double]]])
-    //    println("\n\n\n\n\n\n\n\n" + fullHeader.toList + "\n\n\n\n\n\n")
-    //    println("\n\n\n\n\n\n\n\n" + indices.toList + "\n\n\n\n\n")
     // unpersist the textfile
     phenotypes.unpersist()
     covars.unpersist()

@@ -23,5 +23,7 @@ case class Association(variant: Variant,
                        phenotype: String,
                        logPValue: Double,
                        var statistics: Map[String, Any]) {
+
+  implicit val myObjEncoder = org.apache.spark.sql.Encoders.kryo[Association]
 }
 

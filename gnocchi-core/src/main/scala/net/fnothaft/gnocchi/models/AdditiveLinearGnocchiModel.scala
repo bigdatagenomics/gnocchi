@@ -21,7 +21,7 @@ import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLinearVariantModel
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
-class AdditiveLinearGnocchiModel extends GnocchiModel with Additive {
+class AdditiveLinearGnocchiModel extends Serializable with GnocchiModel with Additive {
 
   var numSamples = List(("Empty List", 0)) //(VariantID, NumSamples)
   var numVariants = 1
