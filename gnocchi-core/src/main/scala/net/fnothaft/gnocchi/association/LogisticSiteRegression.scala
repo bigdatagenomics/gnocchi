@@ -67,10 +67,7 @@ trait LogisticSiteRegression extends SiteRegression {
       xixiT(i) = xiVector * xiVector.t
     }
 
-    ///// Solve the LogisticRegression using Newton-Raphson algorithm (ESL p. 120) /////
-
     // initialize parameters
-    val dampener = DenseMatrix.eye[Double](observationLength + 1)
     var iter = 0
     val maxIter = 1000
     val tolerance = 1e-6
@@ -89,24 +86,16 @@ trait LogisticSiteRegression extends SiteRegression {
         val logitArray = logit(data, beta)
 
         // calculate the hessian and score
-
         hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
         var score = DenseVector.zeros[Double](observationLength + 1)
         for (i <- observations.indices) {
-          //          println(hessian)
-          //          println("\n")
-          //          println("inside: " + logitArray(i))
-          //          pi = Math.exp(logitArray(i)) / (1 + Math.exp(logitArray(i)))
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
           hessian += -xixiT(i) * pi * (1.0 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
 
         // compute the update and check convergence
-        //        println(hessian)
         update = -inv(hessian) * score
-        //        println(update)
-        //        println("\n")
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
@@ -116,15 +105,14 @@ trait LogisticSiteRegression extends SiteRegression {
           beta(j) += update(j)
         }
 
-        //        println("LOG_REG - b: " + beta.toList)
         if (beta.exists(_.isNaN)) {
+          // TODO: Log this instead of printing it
           println("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
         }
       } catch {
         case error: breeze.linalg.MatrixSingularException => {
           singular = true
-          //          println("inside while loop: " + hessian)
         }
       }
       iter += 1
@@ -134,15 +122,6 @@ trait LogisticSiteRegression extends SiteRegression {
 
     // calculate the standard error for the genotypic predictor
     var matrixSingular = false
-
-    // pack up the information into an Association object
-    //    val variant = new Variant()
-    //    val contig = new Contig()
-    //    contig.setContigName(locus.referenceName)
-    //    variant.setContig(contig)
-    //    variant.setStart(locus.start)
-    //    variant.setEnd(locus.end)
-    //    variant.setAlternateAllele(altAllele)
 
     var toRet = new Association(null, null, -9.0, null)
     try {
@@ -162,7 +141,6 @@ trait LogisticSiteRegression extends SiteRegression {
 
       // calculate wald test statistics
       val waldTests = 1d - probs
-      //      println("WaldTest: " + waldTests(1))
 
       // calculate the log of the p-value for the genetic component
       val logWaldTests = waldTests.map(t => {
@@ -177,8 +155,8 @@ trait LogisticSiteRegression extends SiteRegression {
         "fisherInfo" -> fisherInfo,
         "XiVectors" -> xiVectors(0),
         "xixit" -> xixiT(0),
-        "prob" -> pi)
-      //        "logitArray" -> logitArray(0))
+        "prob" -> pi,
+        "rSquared" -> 0.0)
 
       toRet = Association(variant, phenotype, logWaldTests(1), statistics)
     } catch {
@@ -186,8 +164,17 @@ trait LogisticSiteRegression extends SiteRegression {
     }
     if (matrixSingular) {
       val statistics = Map()
-      toRet = Association(variant, phenotype, 0.0, Map())
-      println("in wald test: " + hessian)
+      toRet = Association(variant, phenotype, 0.0, Map(
+        "numSamples" -> 0,
+        "weights" -> beta,
+        "intercept" -> 0.0,
+        "'P Values' aka Wald Tests" -> 0.0,
+        "log of wald tests" -> 0.0,
+        "fisherInfo" -> 0.0,
+        "XiVectors" -> xiVectors(0),
+        "xixit" -> xixiT(0),
+        "prob" -> pi,
+        "rSquared" -> 0.0))
     }
     toRet
   }
@@ -195,14 +182,9 @@ trait LogisticSiteRegression extends SiteRegression {
   def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val logitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
-    //    println("b: " + b.toList)
     for (j <- logitResults.indices) {
       val lp = lpArray(j)
-      //      println("lp.features: " + lp.features.toArray.toList)
-      //      println("b: " + b.toList)
-      //      println("bdense: " + bDense.toArray.toList)
       logitResults(j) = DenseVector(1.0 +: lp.features.toArray) dot bDense
-      //      println("logit: " + logitResults(j))
     }
     logitResults
   }

@@ -19,7 +19,7 @@ package net.fnothaft.gnocchi.gnocchiModel
 
 import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
+import org.scalatest._
 import net.fnothaft.gnocchi.models.Association
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
@@ -81,7 +81,6 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     var numTotalIncre = incrementalPredictions.length
     for (result <- incrementalPredictions) {
       val (id, (actual, pred)) = result
-      println("Incremental actual, pred: " + actual + " " + pred)
       if (actual == pred) {
         numCorrectIncre += 1
       }
@@ -92,7 +91,6 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     var numTotalNonIncre = nonIncrementalPredictions.length
     for (result <- nonIncrementalPredictions) {
       val (id, (actual, pred)) = result
-      println("nonIncremental actual, pred: " + actual + " " + pred)
       if (actual == pred) {
         numCorrectNonIncre += 1
       }
@@ -102,8 +100,8 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     val nonIncrementalAccuracy = numCorrectNonIncre.toDouble / numTotalNonIncre
 
     // Assert that the accuracy is close to what we get from using QR method.
-    println("non incremental: " + nonIncrementalAccuracy + "\n Weights: " + nonincremental.weights.toList)
-    println("incremental: " + incrementalAccuracy + "\n Weights: " + incrementalVariantModel.weights.toList)
+    //    println("non incremental: " + nonIncrementalAccuracy + "\n Weights: " + nonincremental.weights.toList)
+    //    println("incremental: " + incrementalAccuracy + "\n Weights: " + incrementalVariantModel.weights.toList)
 
     assert(incrementalAccuracy < nonIncrementalAccuracy + .1 && incrementalAccuracy > nonIncrementalAccuracy - .1, "Accuracies do not match up.")
 
@@ -117,7 +115,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     assert(incrementalVariantModel.numSamples == observations.length, s"NumSamples incorrect: $incrementalVariantModel.numSamples vs $observations.length")
   }
 
-  sparkTest("[NOT IMPLEMENTED YET] Build logistic gnocchi model, update, and check results.") {
+  ignore("[NOT IMPLEMENTED YET] Build logistic gnocchi model, update, and check results.") {
 
     // break data up into initial and update
 
@@ -135,7 +133,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
 
   }
 
-  sparkTest("[NOT IMPLEMENTED YET] Load logistic gnocchi model, update, and check results.") {
+  ignore("[NOT IMPLEMENTED YET] Load logistic gnocchi model, update, and check results.") {
 
     // break data up into initial and update
 

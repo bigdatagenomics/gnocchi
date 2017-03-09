@@ -26,6 +26,13 @@ import org.apache.spark.mllib.classification.{ SVMModel, SVMWithSGD }
 /* trait for building a GnocchiModel that has an additive, linear VariantModel at each site (via QR factorization). */
 trait BuildAdditiveLinear extends BuildGnocchiModel {
 
+  //  def apply[T](genotypeStates: RDD[GenotypeState],
+  //               phenotypes: RDD[Phenotype[T]],
+  //               sc: SparkContext): (GnocchiModel, RDD[Association]) = {
+  //    val assocs = fit(genotypeStates, phenotypes)
+  //    (extractModel(assocs, sc), assocs)
+  //  }
+
   /* uses QR factorization to compute an additive linear association at each variant*/
   def fit[T](rdd: RDD[GenotypeState],
              phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
@@ -34,12 +41,11 @@ trait BuildAdditiveLinear extends BuildGnocchiModel {
 
   def extractModel(assocs: RDD[Association], sc: SparkContext): GnocchiModel = {
     //code for packaging up the association object elements into a GnocchiModel
-    val gm = new AdditiveLogisticGnocchiModel
+    val gm = new AdditiveLinearGnocchiModel
     gm.variantModels = assocs.map(assoc => {
-      val model = BuildAdditiveLogisticVariantModel.extractVariantModel(assoc)
+      val model = BuildAdditiveLinearVariantModel.extractVariantModel(assoc)
       (model.variant, model)
     }).collect.toList
-    val model = new AdditiveLogisticGnocchiModel
     //TODO: make setters for the GnocchiModel fields and set the values in here.
     //    var variantModels: RDD[(Variant, VariantModel)] //RDD[VariantModel.variantId, VariantModel[T]]
     //    gm.qrVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])]// the variant model and the observations that the model must be trained on
@@ -48,5 +54,5 @@ trait BuildAdditiveLinear extends BuildGnocchiModel {
 }
 
 object BuildAdditiveLinearGnocchiModel extends BuildAdditiveLinear {
-  val regressionName = "Additive Linear Regression with SGD"
+  val regressionName = "Additive Linear Regression with Incremental Update"
 }

@@ -25,7 +25,7 @@ import java.nio.file.Files
 class RegressPhenotypesSuite extends GnocchiFunSuite {
 
   val path = "src/test/resources/testData/Association"
-  val destination = Files.createTempDirectory("").toAbsolutePath.toString + "/" + path
+  val destination = Files.createTempDirectory("").toAbsolutePath.toString + "/Association"
 
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
@@ -72,7 +72,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   }
 
   sparkTest("Test full pipeline: 1 snp, 10 samples, 1 phenotype, no covars") {
-    // import AssociationEncoder._
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("1snp10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples1Phenotype.txt").getFile
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet"
@@ -84,6 +83,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult(0).statistics("rSquared") == 1.0, "rSquared = " + regressionResult(0).statistics("rSquared"))
   }
+
   sparkTest("Test full pipeline: 1 snp, 10 samples, 12 samples in phenotype file (10 matches) 1 phenotype, no covar") {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("1snp10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("12samples1Phenotype.txt").getFile
@@ -126,8 +126,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("5snps10samples.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
     val covarFilePath = ClassLoader.getSystemClassLoader.getResource("10samples5Phenotypes2covars.txt").getFile
-    println(genoFilePath)
-    // val destination = "~/Users/Taner/desktop/associations"
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -covar -covarFile $covarFilePath -covarNames pheno4,pheno5 -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
@@ -135,20 +133,9 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val assocs = RegressPhenotypes(cliArgs).performAnalysis(genotypeStates, phenotypes, sc)
     val regressionResult = assocs.collect()
 
-    for (result <- regressionResult) {
-      println("SNP Name: " + result.variant.getContig.getContigName)
-      println("SNP Locus: " + result.variant.getStart + "-" + result.variant.getEnd)
-      println("Phenotypes: " + result.phenotype)
-      println("logPValue: " + result.logPValue)
-    }
-
     RegressPhenotypes(cliArgs).logResults(assocs, sc)
-    //Assert that the rsquared is in the right threshold. 
-    //    assert(regressionResult(0).statistics("rSquared") == 0.7681191628941112, "rSquared = " + regressionResult(0).statistics("rSquared"))
     assert(regressionResult(0).statistics("rSquared") == 0.833277921795612, "rSquared = " + regressionResult(0).statistics("rSquared"))
 
   }
 
 }
-// genoFilePath 
-// ./bin/gnocchi-submit regressPhenotypes gnocchi-cli/target/test-classes/5snps10samples.vcf gnocchi-cli/target/test-classes/10samples5Phenotypes2covars.txt ADDITIVE_LINEAR TestDataResults -saveAsText -phenoName pheno1 -covar -covarNames pheno4,pheno5 -overwriteParquet

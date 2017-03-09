@@ -25,27 +25,6 @@ trait Phenotype[T] extends Product {
   def toDouble: Array[Double]
 }
 
-// case class IntPhenotype(phenotype: String,
-//                         sampleId: String,
-//                         value: Int) extends Phenotype[Int] {
-
-//   def toDouble: Double = value.toDouble
-// }
-
-// case class DoublePhenotype(phenotype: String,
-//                            sampleId: String,
-//                            value: Double) extends Phenotype[Double] {
-
-//   def toDouble: Double = value
-// }
-
-// case class BooleanPhenotype(phenotype: String,
-//                             sampleId: String,
-//                             value: Boolean) extends Phenotype[Boolean] {
-
-//   def toDouble: Double = if (value) 1.0 else 0.0
-// }
-
 /* Note: for the below classes, the array stored in value actually has all of the phenotypes, with the first being the on that is 
   being regressed and the rest are the values of the covariates. The string that is stored in phenotype is actually a line that contains 
   the names of all the phenotypes, separated by spaces (again, the first is the phenotype being regressed and the rest are covariates)

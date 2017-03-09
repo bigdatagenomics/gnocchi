@@ -58,7 +58,7 @@ class ConstructGnocchiModelArgs extends RegressPhenotypesArgs {
 class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) extends BDGSparkCommand[ConstructGnocchiModelArgs] {
   override val companion = ConstructGnocchiModel
 
-  override def run(sc: SparkContext) {
+  override def run(sc: SparkContext): Unit = {
 
     // Load in genotype data filtering out any SNPs not provided in command line
     val genotypeStates = loadGenotypes(sc)
@@ -75,6 +75,7 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     // save the associations
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
+    implicit val associationEncoder = org.apache.spark.sql.Encoders.kryo[Association]
     regPheno.logResults(assocs.toDS, sc)
 
     // save the model
@@ -85,8 +86,10 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
   def buildModel[T](genotypeStates: RDD[GenotypeState],
                     phenotypes: RDD[Phenotype[T]],
                     sc: SparkContext): (GnocchiModel, RDD[Association]) = {
-    val (model, assocs) = args.associationType match {
-      //      case "ADDITIVE_LINEAR"   => BuildAdditiveLinearGnocchiModel(genotypeStates, phenotypes, sc)
+
+    // TODO: finish the other build methods (commented out below)
+    val (model, assocs): (GnocchiModel, RDD[Association]) = args.associationType match {
+      case "ADDITIVE_LINEAR"   => BuildAdditiveLinearGnocchiModel(genotypeStates, phenotypes, sc)
       case "ADDITIVE_LOGISTIC" => BuildAdditiveLogisticGnocchiModel(genotypeStates, phenotypes, sc)
       //      case "DOMINANT_LINEAR"   => BuildDominantLinearGnocchiModel(genotypeStates, phenotypes, sc)
       //      case "DOMINANT_LOGISTIC" => BuildDominantLogisticGnocchiModel
