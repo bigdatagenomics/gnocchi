@@ -79,7 +79,6 @@ class LinearGnocchiModelSuite extends GnocchiFunSuite {
     var numTotalIncre = incrementalPredictions.length
     for (result <- incrementalPredictions) {
       val (id, (actual, pred)) = result
-      println("Incremental actual, pred: " + actual + " " + pred)
       if (actual == pred) {
         numCorrectIncre += 1
       }
