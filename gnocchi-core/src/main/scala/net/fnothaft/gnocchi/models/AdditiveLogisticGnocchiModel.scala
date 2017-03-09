@@ -1,9 +1,11 @@
 /**
- * Copyright 2016 Taner Dagdelen
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to Big Data Genomics (BDG) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The BDG licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,7 +22,7 @@ import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
-case class AdditiveLogisticGnocchiModel extends Serializable with GnocchiModel with Additive {
+case class AdditiveLogisticGnocchiModel() extends Serializable with GnocchiModel with Additive {
 
   var numSamples = List(("Empty List", 0)) //(VariantID, NumSamples)
   var numVariants = 1

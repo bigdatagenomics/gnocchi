@@ -1,5 +1,7 @@
 # gnocchi
 
+[![Coverage Status](https://coveralls.io/repos/github/bigdatagenomics/gnocchi/badge.svg?branch=master)](https://coveralls.io/github/bigdatagenomics/gnocchi?branch=master)
+
 Genotype-phenotype analysis using the [ADAM](https://github.com/bigdatagenomics/adam) genomics analysis platform.
 This is work-in-progress. Currently, we implement a simple case/control analysis using a Chi squared test.
 
