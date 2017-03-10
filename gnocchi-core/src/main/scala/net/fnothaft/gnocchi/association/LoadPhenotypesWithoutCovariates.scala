@@ -50,7 +50,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
       labels = header.split(" ").zipWithIndex
     }
 
-    assert(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
+    require(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
     // get the index of the phenotype to be regressed
     var primaryPhenoIndex = -1
@@ -61,7 +61,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
         primaryPhenoIndex = labelpair._2 // this should give you an option, and then you check to see if the option exists. 
       }
     }
-    assert(phenoMatch, "The phenoName given doesn't match any of the phenotypes specified in the header of the phenotypes textfile.")
+    require(phenoMatch, "The phenoName given doesn't match any of the phenotypes specified in the header of the phenotypes textfile.")
 
     // construct the phenotypes dataset, filtering out all samples that don't have the phenotype or one of the covariates
     val data = getAndFilterPhenotypes(oneTwo, phenotypes, header, primaryPhenoIndex, sc)

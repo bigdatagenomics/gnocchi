@@ -38,7 +38,7 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
 
   sparkTest("Test file format") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("BadFormatting.txt").getFile
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       val p1 = LoadPhenotypesWithoutCovariates(false, filepath, "pheno3", sc)
     }
   }
@@ -56,7 +56,7 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
     make sure there is an error thrown if the phenoName doesn't match
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       val p1 = LoadPhenotypesWithoutCovariates(false, filepath, "pheno", sc)
     }
   }

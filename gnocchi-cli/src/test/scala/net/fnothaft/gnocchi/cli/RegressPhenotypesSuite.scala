@@ -29,7 +29,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
 
   sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       val p1 = LoadPhenotypesWithCovariates(false, filepath, filepath, "pheno2", "pheno2,pheno4", sc)
     }
   }
@@ -40,7 +40,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val baseDir = new File(".").getAbsolutePath()
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -overwriteParquet -oneTwo"
     val cliArgs = cliCall.split(" ").drop(2)
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       RegressPhenotypes(cliArgs).run(sc)
     }
   }
@@ -50,7 +50,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
     val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -phenoName pheno2 -covar -overwriteParquet"
     val cliArgs = cliCall.split(" ").drop(2)
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       RegressPhenotypes(cliArgs).run(sc)
     }
   }

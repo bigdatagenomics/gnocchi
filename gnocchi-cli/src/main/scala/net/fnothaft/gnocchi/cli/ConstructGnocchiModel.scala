@@ -92,12 +92,13 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
       case "ADDITIVE_LINEAR"   => BuildAdditiveLinearGnocchiModel(genotypeStates, phenotypes, sc)
       case "ADDITIVE_LOGISTIC" => BuildAdditiveLogisticGnocchiModel(genotypeStates, phenotypes, sc)
       //      case "DOMINANT_LINEAR"   => BuildDominantLinearGnocchiModel(genotypeStates, phenotypes, sc)
-      //      case "DOMINANT_LOGISTIC" => BuildDominantLogisticGnocchiModel
+      //      case "DOMINANT_LOGISTIC" => BuildDominantLogisticGnocchiModel(genotypeStates, phenotypes, sc)
     }
     (model, assocs)
   }
 
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
+
     // set up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
@@ -110,7 +111,7 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     val vcfPath = args.genotypes
     val posAndIds = GetVariantIds(sc, vcfPath)
 
-    // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
+    // checks for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!parquetFiles.getAbsoluteFile.exists) {
       val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
       Vcf2ADAM(cmdLine).run(sc)
@@ -121,7 +122,7 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     }
 
     val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
-    // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
+    // transforms the parquet-formatted genotypes into a dataFrame of GenotypeStates and converts to Dataset.
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
     val genoStatesWithNames = genotypeStates.select(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
@@ -136,7 +137,6 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
 
     // mind filter
     genoStatesWithNames.registerTempTable("genotypeStates")
-
     val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
     var filteredGenotypeStates = genoStatesWithNames.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
     println("Pre-filtered GenotypeStates: " + filteredGenotypeStates.take(5).toList)

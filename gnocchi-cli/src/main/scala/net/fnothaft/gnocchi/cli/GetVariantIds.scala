@@ -30,19 +30,5 @@ object GetVariantIds {
       val pos = info(3)
       ((chrom, pos), variantId)
     })
-    //    val vcfLines = sc.textFile(vcfPath)
-    //    val vcfPos = vcfLines.map(line => {
-    //      val info = line.split("\t")
-    //      val variantId = info(2)
-    //      val pos = info(1)
-    //      val chrom = info(0)
-    //      ((chrom, pos), info)
-    //    })
-    //    val editedVCF = idsAndPos.cogroup(vcfPos)
-    //      .map(variant => {
-    //        val ((chrom, pos), (variantId, vcfLine)) = variant
-    //        vcfLine.toList.head.slice(0, 2) + variantId.toList.head + vcfLine.toList.head.slice(3, vcfLine.toList.head.length)
-    //      })
-    //    editedVCF.saveAsTextFile(outPath)
   }
 }

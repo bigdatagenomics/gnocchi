@@ -53,7 +53,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     } else {
       covarLabels = covarHeader.split(" ").zipWithIndex
     }
-    assert(covarLabels.length >= 2, "Covars file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being covar values. A header with column labels must also be present. ")
+    require(covarLabels.length >= 2, "Covars file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being covar values. A header with column labels must also be present. ")
     val len = header.split("\t").length
     var labels = Array(("", 0))
     if (len >= 2) {
@@ -62,7 +62,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       labels = header.split(" ").zipWithIndex
     }
 
-    assert(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
+    require(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
     // extract covarNames
     val covariates = covarNames.split(",")
@@ -76,7 +76,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
         primaryPhenoIndex = labelpair._2 // this should give you an option, and then you check to see if the option exists. 
       }
     }
-    assert(phenoMatch, "The phenoName given doesn't match any of the phenotypes specified in the header.")
+    require(phenoMatch, "The phenoName given doesn't match any of the phenotypes specified in the header.")
 
     // get the indices of the covariates
     val covarIndices = new Array[Int](covariates.length)
@@ -84,7 +84,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     for (covar <- covariates) {
       var hasMatch = false
       if (covar == phenoName) {
-        assert(false, "One or more of the covariates has the same name as phenoName.")
+        require(false, "One or more of the covariates has the same name as phenoName.")
       }
       for (labelpair <- covarLabels) {
         if (labelpair._1 == covar) {
@@ -93,7 +93,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
           i = i + 1
         }
       }
-      assert(hasMatch, "One or more of the names from covarNames doesn't match a column title in the header of the phenotype file.")
+      require(hasMatch, "One or more of the names from covarNames doesn't match a column title in the header of the phenotype file.")
     }
 
     // construct the phenotypes RDD, filtering out all samples that don't have the phenotype or one of the covariates
