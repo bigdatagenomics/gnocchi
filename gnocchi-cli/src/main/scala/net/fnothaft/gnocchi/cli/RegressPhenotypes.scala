@@ -192,11 +192,12 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .groupBy($"contig")
       .agg(sum($"missingGenotypes").as("missCount"),
         (count($"sampleId") * lit(2)).as("total"),
-        sum(when($"genotypeState" === lit(-9), 0).otherwise($"genotypeState")).as("alleleCount"))
+        sum($"genotypeState").as("alleleCount"))
       .filter(($"missCount" / $"total") <= lit(args.geno) && (lit(1) - $"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
       .select($"contig")
     val contigs = genoFilterDF.collect().map(_(0))
     val filteredGenotypeStates = sampleFiltered.filter($"contig".isin(contigs: _*))
+    // Remove all datapoints where both alleles are missing
     val finalGenotypeStates = filteredGenotypeStates.filter($"missingGenotypes" !== lit(2))
 
     finalGenotypeStates.as[GenotypeState]
