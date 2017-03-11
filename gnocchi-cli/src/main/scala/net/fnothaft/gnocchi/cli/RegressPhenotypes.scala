@@ -197,8 +197,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .select($"contig")
     val contigs = genoFilterDF.collect().map(_(0))
     val filteredGenotypeStates = sampleFiltered.filter($"contig".isin(contigs: _*))
+    val finalGenotypeStates = filteredGenotypeStates.filter($"missingGenotypes" !== lit(2))
 
-    filteredGenotypeStates.as[GenotypeState]
+    finalGenotypeStates.as[GenotypeState]
   }
 
   /**
