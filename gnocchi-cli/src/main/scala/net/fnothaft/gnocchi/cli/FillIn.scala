@@ -17,22 +17,11 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.File
-import net.fnothaft.gnocchi._
 import net.fnothaft.gnocchi.imputation.FillGenotypes
-import org.apache.hadoop.mapreduce.Job
-import org.apache.spark.SparkContext._
 import org.apache.spark.SparkContext
-import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.adam.rdd.ADAMContext._
-import org.bdgenomics.adam.rdd.BroadcastRegionJoin
-import org.bdgenomics.formats.avro._
-import org.bdgenomics.utils.misc.HadoopUtil
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
-import org.apache.parquet.avro.AvroReadSupport
-import org.apache.parquet.hadoop.ParquetInputFormat
-import org.apache.parquet.hadoop.util.ContextUtil
 
 object FillIn extends BDGCommandCompanion {
   val commandName = "fillIn"

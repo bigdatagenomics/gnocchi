@@ -117,12 +117,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @return A dataset of GenotypeState objects.
    */
   def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
-
     // sets up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
 
-    /* Checks for existance of ADAM-formatted parquet files in output directory
-      * Creates them if none exist. */
+    /*
+     * Checks for existance of ADAM-formatted parquet files in output directory
+     * Creates them if none exist.
+     */
     val absAssociationPath = new File(args.associations).getAbsolutePath
     val parquetInputDestination = absAssociationPath.split("/").reverse.drop(1)
       .reverse.mkString("/") + "/parquetInputFiles/"
@@ -174,8 +175,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @return An RDD of Phenotype objects.
    */
   def loadPhenotypes(sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
-
-    /**
+    /*
      * Throws IllegalArgumentException if includeCovariates given but no covariates specified
      * or if any of the covariates specified are the phenotype specified in
      * -phenoName
@@ -208,7 +208,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
   def performAnalysis(genotypeStates: Dataset[GenotypeState],
                       phenotypes: RDD[Phenotype[Array[Double]]],
                       sc: SparkContext): Dataset[Association] = {
-
     // sets up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     val contextOption = Option(sc)
@@ -224,14 +223,15 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
     }
 
-    /* creates dataset of Association objects instead of leaving as RDD in order
-     * to make it easy to convert to DataFrame and write to parquet in logResults */
+    /*
+     * creates dataset of Association objects instead of leaving as RDD in order
+     * to make it easy to convert to DataFrame and write to parquet in logResults
+     */
     sqlContext.createDataset(associations)
   }
 
   def logResults(associations: Dataset[Association],
                  sc: SparkContext) = {
-
     // deletes files in output destination if they exist
     val associationsFile = new File(args.associations)
     if (associationsFile.exists) {
@@ -240,13 +240,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // enables saving as parquet or human readable text files
     if (args.saveAsText) {
-      /**
-       * sorts results by p-value so that the most significant variants
-       * are on the first partition. Outputs only the variant name, its
-       * chromosomal position, and its p-value.
-       */
-      associations.rdd.keyBy(_.logPValue).sortBy(_._1).map(r => "%s, %s, %s"
-        .format(r._2.variant.getContig.getContigName,
+      associations.rdd.keyBy(_.logPValue)
+        .sortBy(_._1)
+        .map(r => "%s, %s, %s".format(r._2.variant.getContig.getContigName,
           r._2.variant.getStart, Math.pow(10, r._2.logPValue).toString))
         .saveAsTextFile(args.associations)
     } else {

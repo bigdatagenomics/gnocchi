@@ -60,11 +60,10 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
 
   override def run(sc: SparkContext): Unit = {
 
-    // Load in genotype data filtering out any SNPs not provided in command line
-    val genotypeStates = loadGenotypes(sc)
-
     // instantiate regressPhenotypes obj
     val regPheno = new RegressPhenotypes(args)
+
+    val genotypeStates = regPheno.loadGenotypes(sc)
 
     // Load in phenotype data
     val phenotypes = regPheno.loadPhenotypes(sc)
@@ -97,56 +96,4 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     (model, assocs)
   }
 
-  def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
-
-    // set up sqlContext
-    val sqlContext = SQLContext.getOrCreate(sc)
-    import sqlContext.implicits._
-
-    val absAssociationPath = new File(args.associations).getAbsolutePath
-    var parquetInputDestination = absAssociationPath.split("/").reverse.drop(1).reverse.mkString("/")
-    parquetInputDestination = parquetInputDestination + "/parquetInputFiles/"
-    val parquetFiles = new File(parquetInputDestination)
-
-    val vcfPath = args.genotypes
-    val posAndIds = GetVariantIds(sc, vcfPath)
-
-    // checks for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
-    if (!parquetFiles.getAbsoluteFile.exists) {
-      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
-      Vcf2ADAM(cmdLine).run(sc)
-    } else if (args.overwrite) {
-      FileUtils.deleteDirectory(parquetFiles)
-      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
-      Vcf2ADAM(cmdLine).run(sc)
-    }
-
-    val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
-    // transforms the parquet-formatted genotypes into a dataFrame of GenotypeStates and converts to Dataset.
-    val genotypeStates = sqlContext
-      .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-    val genoStatesWithNames = genotypeStates.select(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
-      genotypeStates("start"),
-      genotypeStates("end"),
-      genotypeStates("ref"),
-      genotypeStates("alt"),
-      genotypeStates("sampleId"),
-      genotypeStates("genotypeState"),
-      genotypeStates("missingGenotypes"))
-    println(genoStatesWithNames.take(10).toList)
-
-    // mind filter
-    genoStatesWithNames.registerTempTable("genotypeStates")
-    val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
-    var filteredGenotypeStates = genoStatesWithNames.filter($"sampleId".isin(mindDF.collect().map(r => r(0)): _*))
-    println("Pre-filtered GenotypeStates: " + filteredGenotypeStates.take(5).toList)
-    if (args.snps != null) {
-      // Filter out only specified snps
-      // TODO: Clean this
-      val snps = args.snps.split(',')
-      filteredGenotypeStates = filteredGenotypeStates.filter(filteredGenotypeStates("contig").isin(snps: _*))
-    }
-    println("Post-filtered GenotypeStates: " + filteredGenotypeStates.take(5).toList)
-    filteredGenotypeStates.as[GenotypeState]
-  }
 }
