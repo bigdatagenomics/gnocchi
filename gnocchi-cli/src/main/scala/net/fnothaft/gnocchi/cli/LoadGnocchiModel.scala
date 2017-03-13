@@ -21,8 +21,11 @@ import java.io.{ FileInputStream, ObjectInputStream }
 
 import net.fnothaft.gnocchi.models.GnocchiModel
 
+/**
+  * Loads a GnocchiModel from disk
+  */
 object LoadGnocchiModel {
-
+//TODO: change loading to Spark Serialization
   def apply(readFrom: String): GnocchiModel = {
     val fis = new FileInputStream(readFrom)
     val ois = new ObjectInputStream(fis)

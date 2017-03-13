@@ -17,25 +17,14 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.File
-
-import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.gnocchiModel._
-import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
-import org.bdgenomics.adam.cli.Vcf2ADAM
-import org.apache.commons.io.FileUtils
+import org.kohsuke.args4j.{Option => Args4jOption}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.functions._
-//import net.fnothaft.gnocchi.association.Ensembler TODO: pull in the ensembler code or predict won't work.
 import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticGnocchiModel
-
-import scala.collection.mutable.ListBuffer
 
 object ConstructGnocchiModel extends BDGCommandCompanion {
   val commandName = "ConstructGnocchiModel"
@@ -60,28 +49,38 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
 
   override def run(sc: SparkContext): Unit = {
 
-    // instantiate regressPhenotypes obj
     val regPheno = new RegressPhenotypes(args)
 
     val genotypeStates = regPheno.loadGenotypes(sc)
 
-    // Load in phenotype data
     val phenotypes = regPheno.loadPhenotypes(sc)
 
-    // build model
-    val (model, assocs): (GnocchiModel, RDD[Association]) = buildModel[Array[Double]](genotypeStates.rdd, phenotypes, sc)
+    val (model, associationObjects): (GnocchiModel, RDD[Association]) = buildModel[Array[Double]](genotypeStates.rdd, phenotypes, sc)
 
-    // save the associations
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
     implicit val associationEncoder = org.apache.spark.sql.Encoders.kryo[Association]
-    regPheno.logResults(assocs.toDS, sc)
+    regPheno.logResults(associationObjects.toDS, sc)
 
-    // save the model
     SaveGnocchiModel(model, args.saveTo)
 
   }
 
+  /**
+    * Returns a GnocchiModel object which contains individual VariantModel
+    * objects, each built from the input data for that variant. Also returns
+    * an RDD of Association objects, the output from a non-incremental
+    * RegressPhenotypes run on the genotypes and phenotypes provided
+    * in the command line call.
+    *
+    * @param genotypeStates: An RDD of GenotypeState objects, the input
+    *                      genotype data.
+    * @param phenotypes: An RDD of Phenotype objects, each of which contains
+    *                  primary phenotype as well as covariate input data for
+    *                  a sample.
+    * @return Tuple containing a built GnocchiModel and the Association objects
+    *         produced by each regression.
+    */
   def buildModel[T](genotypeStates: RDD[GenotypeState],
                     phenotypes: RDD[Phenotype[T]],
                     sc: SparkContext): (GnocchiModel, RDD[Association]) = {
