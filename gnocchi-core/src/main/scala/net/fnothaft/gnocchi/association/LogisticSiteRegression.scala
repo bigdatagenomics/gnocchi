@@ -29,55 +29,56 @@ import org.bdgenomics.formats.avro.{ Contig, Variant }
 trait LogisticSiteRegression extends SiteRegression {
 
   /**
-   * This method will perform logistic regression on a single site.
+   * Implementation of RegressSite method from SiteRegression trait. Performs logistic regression on a single site.
+   * A site in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object and a
+   * [[net.fnothaft.gnocchi.models.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this context
+   * have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
    *
-   * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
-   * @param variant The variant that is being regressed.
-   * @param phenotype    The name of the phenotype being regressed.
-   * @return The Association object that results from the linear regression
+   * Solves the regression through Newton-Raphson method. 
+   *
+   * @param observations Array of tuples. The first element is a coded genotype taken from
+   *                     [[net.fnothaft.gnocchi.models.GenotypeState]]. The second is an array of phenotype values
+   *                     taken from [[net.fnothaft.gnocchi.models.Phenotype]] objects. All genotypes are of the same
+   *                     site and therefore reference the same contig value i.e. all have the same CHROM_POS_ALT
+   *                     identifier. Array of phenotypes has primary phenotype first then covariates.
+   * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
+   * @param phenotype [[net.fnothaft.gnocchi.models.Phenotype.phenotype]], The name of the phenotype being regressed.
+   * @return [[net.fnothaft.gnocchi.models.Association]] object containing statistic result for Logistic Regression.
    */
-
   def regressSite(observations: Array[(Double, Array[Double])],
                   variant: Variant,
                   phenotype: String): Association = {
 
-    // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
-    val observationLength = observations(0)._2.length
+    /* Setting up logistic regression references */
+    val phenotypesLength = observations(0)._2.length
     val numObservations = observations.length
     val lp = new Array[LabeledPoint](numObservations)
     val xixiT = new Array[DenseMatrix[Double]](numObservations)
     val xiVectors = new Array[DenseVector[Double]](numObservations)
 
-    // iterate over observations, copying correct elements into sample array and filling the x matrix.
-    // the first element of each sample in x is the coded genotype and the rest are the covariates.
-    var features = new Array[Double](observationLength)
     for (i <- observations.indices) {
-      // rearrange variables into label and features
-      features = new Array[Double](observationLength)
+      val features = new Array[Double](phenotypesLength)
       features(0) = observations(i)._1.toDouble
-      observations(i)._2.slice(1, observationLength).copyToArray(features, 1)
+      observations(i)._2.slice(1, phenotypesLength).copyToArray(features, 1)
       val label = observations(i)._2(0)
 
-      // pack up info into LabeledPoint object
       lp(i) = new LabeledPoint(label, new org.apache.spark.mllib.linalg.DenseVector(features))
 
-      // compute xi*xi.t for hessian matrix
       val xiVector = DenseVector(1.0 +: features)
       xiVectors(i) = xiVector
       xixiT(i) = xiVector * xiVector.t
     }
 
-    // initialize parameters
     var iter = 0
     val maxIter = 1000
     val tolerance = 1e-6
     var singular = false
     var convergence = false
     var update: DenseVector[Double] = DenseVector[Double]()
-    val beta = Array.fill[Double](observationLength + 1)(0.0)
+    val beta = Array.fill[Double](phenotypesLength + 1)(0.0)
     val data = lp
     var pi = 0.0
-    var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
+    var hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
 
     // optimize using Newton-Raphson
     while ((iter < maxIter) && !convergence && !singular) {
@@ -86,8 +87,8 @@ trait LogisticSiteRegression extends SiteRegression {
         val logitArray = logit(data, beta)
 
         // calculate the hessian and score
-        hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
-        var score = DenseVector.zeros[Double](observationLength + 1)
+        hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
+        var score = DenseVector.zeros[Double](phenotypesLength + 1)
         for (i <- observations.indices) {
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
           hessian += -xixiT(i) * pi * (1.0 - pi)

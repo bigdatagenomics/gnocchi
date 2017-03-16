@@ -25,11 +25,13 @@ trait Phenotype[T] extends Product {
   def toDouble: Array[Double]
 }
 
-/* Note: for the below classes, the array stored in value actually has all of the phenotypes, with the first being the on that is 
-  being regressed and the rest are the values of the covariates. The string that is stored in phenotype is actually a line that contains 
-  the names of all the phenotypes, separated by spaces (again, the first is the phenotype being regressed and the rest are covariates)
-*/
-
+/**
+ * Implementation of [[Phenotype]] that formalizes multiple regression with covariates.
+ *
+ * @param phenotype Line that contains the names of all the phenotypes (primary and covariates), separated by spaces
+ * @param sampleId Individual's sample id
+ * @param value Array of all phenotypes being used. First item is primary phenotype, the rest are covariates
+ */
 case class MultipleRegressionDoublePhenotype(phenotype: String,
                                              sampleId: String,
                                              value: Array[Double]) extends Phenotype[Array[Double]] {

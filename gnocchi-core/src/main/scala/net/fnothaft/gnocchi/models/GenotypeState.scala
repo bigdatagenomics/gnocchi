@@ -20,6 +20,24 @@ package net.fnothaft.gnocchi.models
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 
+/**
+ * Genotype model that stores all relevant genotype data.
+ *
+ * @todo add validation for ploidy being two and only single ref and alt values
+ *
+ * @param contig identifier for genotype, VCFtoAdam initially sets this to be only the chromosome value, but in
+ *               RegressPhenotypes.loadGenotypes() the contig identifier is changed to the form, CHROM_POS_ALT, which
+ *               uniquely categorizes a single base
+ * @param start start position of the contig
+ * @param end end position of the contig
+ * @param ref reference value at the contig location
+ * @param alt alternate value at the contig location. Currently genotype state response is 1 when the genotype
+ *            matches the alt value.
+ * @param sampleId Patient Id
+ * @param genotypeState Sum of matching responses against reference genome. Currently only logically supports values of
+ *                      0, 1 or 2, meaning ploidy is 2 and there is only one ref value and one alt value.
+ * @param missingGenotypes Number of genotypes that are marked as missing
+ */
 case class GenotypeState(contig: String,
                          start: Long,
                          end: Long,
