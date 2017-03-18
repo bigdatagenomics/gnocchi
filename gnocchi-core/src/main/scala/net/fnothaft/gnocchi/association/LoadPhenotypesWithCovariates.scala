@@ -22,38 +22,39 @@ import net.fnothaft.gnocchi.models._
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, Row, SQLContext }
+import org.bdgenomics.utils.misc.Logging
 /*
 Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.
 */
 
-private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
+private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with Logging {
 
+  /**
+   *  Loads a phenotype dataset from a file
+   *
+   * @param oneTwo Phenotype response classification encoded as 1 null response, 2 positive response
+   * @param file File path to phenotype file
+   * @param covarFile file path to covariates file
+   * @param phenoName name of the primary phenotype
+   * @param covarNames name of the covariates to include
+   * @param sc spark context
+   * @return RDD of [[Phenotype]] objects
+   */
   def apply[T](oneTwo: Boolean,
                file: String,
                covarFile: String,
                phenoName: String,
                covarNames: String,
                sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
-    println("Loading phenotypes from %s.".format(file))
-
-    // get the relevant parts of the phenotypes file and put into a DF
+    logInfo("Loading phenotypes from %s.".format(file))
     val phenotypes = sc.textFile(file).persist()
-    val covars = sc.textFile(covarFile).persist()
-    println("Loading covars form %s.".format(covarFile))
 
-    // separate header and data
+    logInfo("Loading covars form %s.".format(covarFile))
+    val covars = sc.textFile(covarFile).persist()
+
     val header = phenotypes.first()
     val covarHeader = covars.first()
 
-    // get label indices
-    val covarLen = covarHeader.split("\t").length
-    var covarLabels = Array(("", 0))
-    if (covarLen >= 2) {
-      covarLabels = covarHeader.split("\t").zipWithIndex
-    } else {
-      covarLabels = covarHeader.split(" ").zipWithIndex
-    }
-    require(covarLabels.length >= 2, "Covars file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being covar values. A header with column labels must also be present. ")
     val len = header.split("\t").length
     var labels = Array(("", 0))
     if (len >= 2) {
@@ -62,41 +63,35 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       labels = header.split(" ").zipWithIndex
     }
 
-    require(labels.length >= 2, "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
+    require(labels.length >= 2,
+      "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some " +
+        "form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
 
-    // extract covarNames
+    val covarLen = covarHeader.split("\t").length
+    var covarLabels = Array(("", 0))
+    if (covarLen >= 2) {
+      covarLabels = covarHeader.split("\t").zipWithIndex
+    } else {
+      covarLabels = covarHeader.split(" ").zipWithIndex
+    }
+
+    require(covarLabels.length >= 2,
+      "Covars file must have a minimum of 2 tab delimited columns. The first being some " +
+        "form of sampleID, the rest being covar values. A header with column labels must also be present. ")
+
     val covariates = covarNames.split(",")
+    require(!covariates.contains(phenoName), "One or more of the covariates has the same name as phenoName.")
 
-    // get the index of the phenotype to be regressed
-    var primaryPhenoIndex = -1
-    var phenoMatch = false
-    for (labelpair <- labels) {
-      if (labelpair._1 == phenoName) {
-        phenoMatch = true
-        primaryPhenoIndex = labelpair._2 // this should give you an option, and then you check to see if the option exists. 
-      }
-    }
-    require(phenoMatch, "The phenoName given doesn't match any of the phenotypes specified in the header.")
+    val primaryPhenoIndex = labels.map(item => item._1).indexOf(phenoName)
+    require(primaryPhenoIndex != -1, "The phenoName given doesn't match any of the phenotypes specified in the header.")
 
-    // get the indices of the covariates
+    val indices = covarLabels.filter(item => covariates.contains(item._1)).map(x => x._2)
+    require(indices.length == covariates.length,
+      "One or more of the names from covarNames doesn't match a column title in the header of the phenotype file.")
+
     val covarIndices = new Array[Int](covariates.length)
-    var i = 0
-    for (covar <- covariates) {
-      var hasMatch = false
-      if (covar == phenoName) {
-        require(false, "One or more of the covariates has the same name as phenoName.")
-      }
-      for (labelpair <- covarLabels) {
-        if (labelpair._1 == covar) {
-          hasMatch = true
-          covarIndices(i) = labelpair._2
-          i = i + 1
-        }
-      }
-      require(hasMatch, "One or more of the names from covarNames doesn't match a column title in the header of the phenotype file.")
-    }
+    indices.copyToArray(covarIndices)
 
-    // construct the phenotypes RDD, filtering out all samples that don't have the phenotype or one of the covariates
     val data = getAndFilterPhenotypes(oneTwo, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
 
     return data
@@ -111,7 +106,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
                                               covarIndices: Array[Int],
                                               sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
 
-    // TODO: NEED TO REQUIRE THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
+    // TODO: NEED TO REQUIRE THAT ALL THE PHENOTYPES BE REPRESENTED BY NUMBERS.
 
     // initialize sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)

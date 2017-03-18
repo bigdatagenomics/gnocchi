@@ -25,16 +25,19 @@ import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.utils.misc.Logging
 
-trait LogisticSiteRegression extends SiteRegression {
+trait LogisticSiteRegression extends SiteRegression with Logging {
 
   /**
+   * Returns Association object with solution to logistic regression.
+   *
    * Implementation of RegressSite method from SiteRegression trait. Performs logistic regression on a single site.
    * A site in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object and a
    * [[net.fnothaft.gnocchi.models.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this context
    * have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
    *
-   * Solves the regression through Newton-Raphson method. 
+   * Solves the regression through Newton-Raphson method, then uses the solution to generate p-value.
    *
    * @param observations Array of tuples. The first element is a coded genotype taken from
    *                     [[net.fnothaft.gnocchi.models.GenotypeState]]. The second is an array of phenotype values
@@ -74,41 +77,35 @@ trait LogisticSiteRegression extends SiteRegression {
     val tolerance = 1e-6
     var singular = false
     var convergence = false
-    var update: DenseVector[Double] = DenseVector[Double]()
     val beta = Array.fill[Double](phenotypesLength + 1)(0.0)
+    var hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
     val data = lp
     var pi = 0.0
-    var hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
 
-    // optimize using Newton-Raphson
+    /* Use Newton-Raphson to solve logistic regression */
     while ((iter < maxIter) && !convergence && !singular) {
       try {
-        // calculate the logit for each xi
-        val logitArray = logit(data, beta)
-
-        // calculate the hessian and score
+        val logitArray = applyWeights(data, beta)
+        val score = DenseVector.zeros[Double](phenotypesLength + 1)
         hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
-        var score = DenseVector.zeros[Double](phenotypesLength + 1)
+
         for (i <- observations.indices) {
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
           hessian += -xixiT(i) * pi * (1.0 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
 
-        // compute the update and check convergence
-        update = -inv(hessian) * score
+        val update = -inv(hessian) * score
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
 
-        // compute new weights
         for (j <- beta.indices) {
           beta(j) += update(j)
         }
 
         if (beta.exists(_.isNaN)) {
-          // TODO: Log this instead of printing it
-          println("LOG_REG - Broke on iteration: " + iter)
+          logError("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
         }
       } catch {
@@ -119,9 +116,7 @@ trait LogisticSiteRegression extends SiteRegression {
       iter += 1
     }
 
-    /// CALCULATE WALD STATISTIC "P Value" ///
-
-    // calculate the standard error for the genotypic predictor
+    /* Use Hessian and weights to calculate the Wald Statistic, or p-value */
     var matrixSingular = false
 
     var toRet = new Association(null, null, -9.0, null)
@@ -130,23 +125,15 @@ trait LogisticSiteRegression extends SiteRegression {
       val fishInv = inv(fisherInfo)
       val standardErrors = sqrt(abs(diag(fishInv)))
 
-      // calculate Wald z-scores
       val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
       val zScoresSquared = zScores :* zScores
 
-      // calculate cumulative probs
-      val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
-      val probs = zScoresSquared.map(zi => {
-        chiDist.cumulativeProbability(zi)
-      })
+      val chiDist = new ChiSquaredDistribution(1)
+      val probs = zScoresSquared.map(zi => chiDist.cumulativeProbability(zi))
 
-      // calculate wald test statistics
       val waldTests = 1d - probs
 
-      // calculate the log of the p-value for the genetic component
-      val logWaldTests = waldTests.map(t => {
-        log10(t)
-      })
+      val logWaldTests = waldTests.map(t => log10(t))
 
       val statistics = Map("numSamples" -> numObservations,
         "weights" -> beta,
@@ -180,7 +167,14 @@ trait LogisticSiteRegression extends SiteRegression {
     toRet
   }
 
-  def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
+  /**
+   * Apply the weights to data
+   *
+   * @param lpArray Labeled point array that contains training data
+   * @param b Weights vector
+   * @return result of multiplying the training data be the weights
+   */
+  def applyWeights(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val logitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
     for (j <- logitResults.indices) {

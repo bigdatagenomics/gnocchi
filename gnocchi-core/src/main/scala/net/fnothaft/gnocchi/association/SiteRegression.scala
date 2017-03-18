@@ -49,29 +49,28 @@ trait SiteRegression extends Serializable {
 
     /* Individuals with the same contigs (pairing of chromosome, end position, alt value) will be grouped together */
     val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
-        val (_, genoPheno) = keyGenoPheno
-        val (gs, pheno) = genoPheno
-        val variant = new Variant()
-        val contig = new Contig()
+      val (_, genoPheno) = keyGenoPheno
+      val (gs, pheno) = genoPheno
+      val variant = new Variant()
+      val contig = new Contig()
 
-        contig.setContigName(gs.contig)
-        variant.setContig(contig)
-        variant.setStart(gs.start)
-        variant.setEnd(gs.end)
-        variant.setAlternateAllele(gs.alt)
-        ((variant, pheno.phenotype), genoPheno)
-      })
+      contig.setContigName(gs.contig)
+      variant.setContig(contig)
+      variant.setStart(gs.start)
+      variant.setEnd(gs.end)
+      variant.setAlternateAllele(gs.alt)
+      ((variant, pheno.phenotype), genoPheno)
+    })
       .groupByKey()
 
     keyedGenoPheno.map(site => {
-        val ((variant, pheno), observations) = site
-        val formattedObvs = observations.map(p => {
-          val (genotypeState, phenotype) = p
-          (clipOrKeepState(genotypeState), phenotype.toDouble)
-        }).toArray
-        regressSite(formattedObvs, variant, pheno)
-      }
-    )
+      val ((variant, pheno), observations) = site
+      val formattedObvs = observations.map(p => {
+        val (genotypeState, phenotype) = p
+        (clipOrKeepState(genotypeState), phenotype.toDouble)
+      }).toArray
+      regressSite(formattedObvs, variant, pheno)
+    })
   }
 
   /**
