@@ -37,7 +37,6 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with L
    * @param covarFile file path to covariates file
    * @param phenoName name of the primary phenotype
    * @param covarNames name of the covariates to include
-   * @param sc spark context
    * @return RDD of [[Phenotype]] objects
    */
   def apply[T](oneTwo: Boolean,
@@ -92,9 +91,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with L
     val covarIndices = new Array[Int](covariates.length)
     indices.copyToArray(covarIndices)
 
-    val data = getAndFilterPhenotypes(oneTwo, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
-
-    return data
+    getAndFilterPhenotypes(oneTwo, phenotypes, covars, header, covarHeader, primaryPhenoIndex, covarIndices, sc)
   }
 
   private[gnocchi] def getAndFilterPhenotypes(oneTwo: Boolean,
