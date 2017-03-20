@@ -127,32 +127,53 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetInputFiles/"
     val parquetFiles = new Path(parquetInputDestination)
 
-    val vcfPath = args.genotypes
+    val inputPath = new Path(args.genotypes)
+    val vcfPaths: Array[(Path, String)] = if (fs.getFileStatus(inputPath).isDirectory) {
+      val vcfFSArray = fs.listStatus(inputPath)
+      vcfFSArray.map(status => {
+        val path = status.getPath
+        val fname = path.toString.split("/").last
+        (path, parquetInputDestination + "/" + fname)
+      }
+    } else {
+      val fname = inputPath.toString.split("/").last
+      Array((inputPath, parquetInputDestination + "/" + fname))
+    }
 
     // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
     if (!fs.exists(parquetFiles)) {
-      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
-      Vcf2ADAM(cmdLine).run(sc)
+      vcfPaths.foreach(pair => {
+        val (origPath, destStr) = pair
+        val cmdLine: Array[String] = Array[String](origPath.toString, destStr)
+        Vcf2ADAM(cmdLine).run(sc)
+      })
     } else if (args.overwrite) {
       fs.delete(parquetFiles, true)
-      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
-      Vcf2ADAM(cmdLine).run(sc)
+      vcfPaths.foreach(pair => {
+        val (origPath, destStr) = pair
+        val cmdLine: Array[String] = Array[String](origPath.toString, destStr)
+        Vcf2ADAM(cmdLine).run(sc)
+      })
     }
 
     // read in parquet files
     import sqlContext.implicits._
-    val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
-    val genotypeStates = sqlContext
-      .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-    val genoStatesWithNames = genotypeStates.select(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
-      genotypeStates("start"),
-      genotypeStates("end"),
-      genotypeStates("ref"),
-      genotypeStates("alt"),
-      genotypeStates("sampleId"),
-      genotypeStates("genotypeState"),
-      genotypeStates("missingGenotypes"))
-    println(genoStatesWithNames.take(10).toList)
+
+    val genoStatesWithNames = vcfPaths.map(pair => {
+      val (_, destStr) = pair
+      val genotypes = sqlContext.read.format("parquet").load(destStr)
+      // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
+      val genotypeStates = sqlContext.toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
+      val genoStatesWithNames = genotypeStates.select(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
+        genotypeStates("start"),
+        genotypeStates("end"),
+        genotypeStates("ref"),
+        genotypeStates("alt"),
+        genotypeStates("sampleId"),
+        genotypeStates("genotypeState"),
+        genotypeStates("missingGenotypes"))
+      genoStatesWithNames
+    }).reduce(_ unionAll _)
 
     // mind filter
     genoStatesWithNames.registerTempTable("genotypeStates")
