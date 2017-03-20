@@ -24,14 +24,11 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 import org.bdgenomics.utils.misc.Logging
 
-/*
-Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.
-*/
 
 private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable with Logging {
 
   /**
-   * Loads [[Phenotype]] objects from a text file
+   * Loads [[Phenotype]] objects from a text file of phenotypes
    *
    * @param oneTwo Phenotype response classification encoded as 1 null response, 2 positive response
    * @param file File path to phenotype file
@@ -65,63 +62,54 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
     getAndFilterPhenotypes(oneTwo, phenotypes, header, primaryPhenoIndex, sc)
   }
 
+  /**
+   * Loads in and filters the phenotype values from the specified file.
+   *
+   * @param oneTwo if True, binary phenotypes are encoded as 1 negative response, 2 positive response
+   * @param phenotypes RDD of the phenotype file read from HDFS, stored as strings
+   * @param header phenotype file header string
+   * @param primaryPhenoIndex index into the phenotype rows for the primary phenotype
+   * @param sc spark context
+   * @return RDD of [[Phenotype]] objects that contain the phenotypes from the specified file
+   */
   private[gnocchi] def getAndFilterPhenotypes(oneTwo: Boolean,
                                               phenotypes: RDD[String],
                                               header: String,
                                               primaryPhenoIndex: Int,
                                               sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
 
-    // TODO: NEED TO ASSERT THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
+    // TODO: NEED TO ASSERT THAT ALL THE PHENOTYPES BE REPRESENTED BY NUMBERS.
 
-    // initialize sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
-    // split up the header for making the phenotype label later
     var splitHeader = header.split("\t")
     val headerTabDelimited = splitHeader.length != 1
     if (!headerTabDelimited) {
       splitHeader = header.split(" ")
     }
 
-    // construct the RDD of Phenotype objects from the data in the textfile
     val indices = Array(primaryPhenoIndex)
-    val data = phenotypes.filter(line => line != header)
-      // split the line by column
-      .map(line => line.split("\t"))
-      // filter out empty lines and samples missing the phenotype being regressed. Missing values denoted by -9.0
-      .filter(p => {
-        if (p.length > 1) {
-          var keep = true
-          for (valueIndex <- indices) {
-            if (isMissing(p(valueIndex))) {
-              keep = false
-            }
-          }
-          keep
-        } else {
-          false
-        }
-      }).map(p => {
-        if (oneTwo) {
-          p.slice(0, primaryPhenoIndex) ++ List((p(primaryPhenoIndex).toDouble - 1).toString) ++ p.slice(primaryPhenoIndex + 1, p.length)
-        } else {
-          p
-        }
-      })
-      // construct a phenotype object from the data in the sample
-      .map(p => new MultipleRegressionDoublePhenotype(
-        (for (i <- indices) yield splitHeader(i)).mkString(","), // phenotype labels string
-        p(0), // sampleID string
-        for (i <- indices) yield p(i).toDouble) // phenotype values
-        .asInstanceOf[Phenotype[Array[Double]]])
 
-    // unpersist the textfile
+    val data = phenotypes.map(line => if (headerTabDelimited) line.split("\t") else line.split(" "))
+      .filter(p => p.length > 1)
+      .filter(p => !p.exists(item => isMissing(item)))
+      .map(p => if (oneTwo) p.updated(primaryPhenoIndex, (p(primaryPhenoIndex).toDouble - 1).toString) else p)
+      .map(p => MultipleRegressionDoublePhenotype(
+        indices.map(i => splitHeader(i)).mkString(","), p(0), indices.map(i => p(i).toDouble)))
+      .map(_.asInstanceOf[Phenotype[Array[Double]]])
+
     phenotypes.unpersist()
 
-    return data
+    data
   }
 
+  /**
+   * Checks if a phenotype value matches the missing value string
+   *
+   * @param value value to check
+   * @return true if the value matches the missing value string, false else
+   */
   private[gnocchi] def isMissing(value: String): Boolean = {
     try {
       value.toDouble == -9.0
