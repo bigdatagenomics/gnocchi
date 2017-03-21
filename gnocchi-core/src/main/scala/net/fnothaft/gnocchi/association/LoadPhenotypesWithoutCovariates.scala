@@ -32,7 +32,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
   def apply[T](oneTwo: Boolean,
                file: String,
                phenoName: String,
-               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
+               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype] = {
     println("Loading phenotypes from %s.".format(file))
 
     // get the relevant parts of the phenotypes file and put into a DF
@@ -73,7 +73,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
                                               phenotypes: RDD[String],
                                               header: String,
                                               primaryPhenoIndex: Int,
-                                              sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
+                                              sc: SparkContext): RDD[Phenotype] = {
 
     // TODO: NEED TO ASSERT THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
 
@@ -114,11 +114,11 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable {
         }
       })
       // construct a phenotype object from the data in the sample
-      .map(p => new MultipleRegressionDoublePhenotype(
+      .map(p => new Phenotype(
         (for (i <- indices) yield splitHeader(i)).mkString(","), // phenotype labels string
         p(0), // sampleID string
         for (i <- indices) yield p(i).toDouble) // phenotype values
-        .asInstanceOf[Phenotype[Array[Double]]])
+        .asInstanceOf[Phenotype])
 
     // unpersist the textfile
     phenotypes.unpersist()

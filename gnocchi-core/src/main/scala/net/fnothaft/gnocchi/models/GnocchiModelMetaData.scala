@@ -17,7 +17,12 @@
  */
 package net.fnothaft.gnocchi.models
 
-case class Similarity(from: String,
-                      to: String,
-                      similarity: Double) {
+class GnocchiModelMetaData(val numSamples: Int,
+                           val haplotypeBlockErrorThreshold: Double,
+                           val modelType: String,
+                           val variables: String,
+                           val flaggedVariantModels: List[String],
+                           val phenotype: String) extends Serializable {
+
+
 }

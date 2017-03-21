@@ -20,6 +20,7 @@ package net.fnothaft.gnocchi.association
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.commons.math3.linear.SingularMatrixException
+
 import scala.math.log10
 import org.apache.commons.math3.distribution.TDistribution
 import org.bdgenomics.formats.avro.Variant
@@ -48,13 +49,16 @@ trait LinearSiteRegression extends SiteRegression {
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
     var sample = new Array[Double](observationLength)
+    var runningSum = 0.0
     for (i <- 0 until numObservations) {
       sample = new Array[Double](observationLength)
       sample(0) = observations(i)._1.toDouble
+      runningSum += sample(0)
       observations(i)._2.slice(1, observationLength).copyToArray(sample, 1)
       x(i) = sample
       y(i) = observations(i)._2(0)
     }
+    val mean = runningSum / numObservations.toDouble
 
     try {
       // create linear model
@@ -65,6 +69,12 @@ trait LinearSiteRegression extends SiteRegression {
 
       // calculate coefficients
       val beta = ols.estimateRegressionParameters()
+
+      // calculate sum of squared residuals
+      val ssResiduals = ols.calculateResidualSumOfSquares()
+
+      // calculate sum of squared deviations
+      val ssDeviations = sumOfSquaredDeviations(observations, mean)
 
       // calculate Rsquared
       val rSquared = ols.calculateRSquared()
@@ -89,11 +99,23 @@ trait LinearSiteRegression extends SiteRegression {
 
       val statistics = Map("rSquared" -> rSquared,
         "weights" -> beta,
-        "intercept" -> beta(0))
+        "intercept" -> beta(0),
+        "numSamples" -> numObservations,
+        "ssDeviations" -> ssDeviations,
+        "ssResiduals" -> ssResiduals)
       Association(variant, phenotype, logPValue, statistics)
     } catch {
       case _: SingularMatrixException => Association(variant, phenotype, 0.0, Map())
     }
+  }
+
+  def sumOfSquaredDeviations(observations: Array[(Double, Array[Double])], mean: Double): Double = {
+    var sumOfSquaredResiduals = 0.0
+    for (i <- observations.indices) {
+      val squaredDeviation = math.pow(observations(i)._1.toDouble - mean, 2)
+      sumOfSquaredResiduals += squaredDeviation
+    }
+    sumOfSquaredResiduals
   }
 }
 

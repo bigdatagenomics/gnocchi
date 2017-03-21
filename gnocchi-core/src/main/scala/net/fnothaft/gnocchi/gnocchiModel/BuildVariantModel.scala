@@ -17,15 +17,15 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.models.{ Association, GenotypeState, VariantModel }
-import org.bdgenomics.adam.models.ReferenceRegion
+import net.fnothaft.gnocchi.association.{ LinearSiteRegression, LogisticSiteRegression }
+import net.fnothaft.gnocchi.models._
 import org.bdgenomics.formats.avro.Variant
 
 trait BuildVariantModel {
 
-  def apply[T](observations: Array[(Double, Array[Double])],
-               variant: Variant,
-               phenotype: String): VariantModel = {
+  def apply(observations: Array[(Double, Array[Double])],
+            variant: Variant,
+            phenotype: String): VariantModel = {
 
     // call RegressPhenotypes on the data
     val assoc = compute(observations, variant, phenotype)
@@ -66,4 +66,92 @@ trait DominantVariant extends BuildVariantModel {
     if (gs.genotypeState == 0) 0.0 else 1.0
   }
 }
+
+object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSiteRegression with AdditiveVariant {
+
+  def compute(observations: Array[(Double, Array[Double])],
+              variant: Variant,
+              phenotype: String): Association = {
+
+    val clippedObs = arrayClipOrKeepState(observations)
+    val assoc = regressSite(clippedObs, variant, phenotype)
+    assoc
+  }
+
+  def extractVariantModel(assoc: Association): AdditiveLinearVariantModel = {
+
+    val linRegModel: AdditiveLinearVariantModel = new AdditiveLinearVariantModel
+    linRegModel.setNumSamples(assoc.statistics("numSamples").asInstanceOf[Int]) // assoc.numSamples
+      .setVariantId("assoc.variantID")
+      .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+      .setAssociation(assoc)
+      .setHaplotypeBlock("assoc.HaplotypeBlock")
+    linRegModel
+  }
+
+  val regressionName = "Additive Linear Regression"
+}
+
+//object BuildDominantLinearVariantModel extends BuildVariantModel with LinearSiteRegression with DominantVariant {
+//
+//  def compute(observations: Array[(Double, Array[Double])],
+//              locus: ReferenceRegion,
+//              altAllele: String,
+//              phenotype: String): Association = {
+//
+//    val clippedObs = arrayClipOrKeepState(observations)
+//    regressSite(clippedObs, locus, altAllele, phenotype)
+//  }
+//
+//  //  def extractVariantModel(assoc: Association): VariantModel = {
+//  //
+//  //    // code for extracting the VariantModel from the Association
+//  //
+//  //  }
+//  val regressionName = "Dominant Linear Regression"
+//}
+
+object BuildAdditiveLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with AdditiveVariant {
+
+  def compute(observations: Array[(Double, Array[Double])],
+              variant: Variant,
+              phenotype: String): Association = {
+
+    val clippedObs = arrayClipOrKeepState(observations)
+    val assoc = regressSite(clippedObs, variant, phenotype)
+    assoc.statistics = assoc.statistics + ("numSamples" -> observations.length)
+    assoc
+  }
+
+  def extractVariantModel(assoc: Association): AdditiveLogisticVariantModel = {
+
+    val logRegModel = new AdditiveLogisticVariantModel
+    logRegModel.setHaplotypeBlock("assoc.HaploTypeBlock")
+      .setNumSamples(assoc.statistics("numSamples").asInstanceOf[Int]) // assoc.numSamples
+      .setVariantId("assoc.variantID")
+      .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+    logRegModel
+  }
+
+  val regressionName = "Additive Logistic Regression"
+}
+
+//object BuildDominantLogisticVariantModel extends BuildVariantModel with LogisticSiteRegression with DominantVariant {
+//
+//  def compute(observations: Array[(Double, Array[Double])],
+//              locus: ReferenceRegion,
+//              altAllele: String,
+//              phenotype: String): Association = {
+//
+//    val clippedObs = arrayClipOrKeepState(observations)
+//    regressSite(clippedObs, locus, altAllele, phenotype)
+//  }
+//
+//  //  def extractVariantModel(assoc: Association): VariantModel = {
+//  //
+//  //    // code for extracting the VariantModel from the Association
+//  //
+//  //  }
+//  val regressionName = "Dominant Logistic Regression"
+//}
 

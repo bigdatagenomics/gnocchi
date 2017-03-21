@@ -20,16 +20,14 @@ package net.fnothaft.gnocchi.sql
 import net.fnothaft.gnocchi.models.GenotypeState
 import org.apache.spark.sql.{ Column, DataFrame, Dataset, SQLContext }
 import org.apache.spark.sql.functions._
-import org.bdgenomics.adam.rdd.ADAMContext._
-import org.bdgenomics.formats.avro.Genotype
 
 object GnocchiContext {
 
-  implicit def gcFromSqlContext(sqlContext: SQLContext): GnocchiContext =
-    new GnocchiContext(sqlContext)
+  implicit def gcFromSqlContext(sqlContext: SQLContext): GnocchiSqlContext =
+    new GnocchiSqlContext(sqlContext)
 }
 
-class GnocchiContext private[sql] (@transient sqlContext: SQLContext) extends Serializable {
+class GnocchiSqlContext private[sql] (@transient sqlContext: SQLContext) extends Serializable {
 
   import sqlContext.implicits._
 

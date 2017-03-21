@@ -174,7 +174,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @param sc The spark context in which Gnocchi is running.
    * @return An RDD of Phenotype objects.
    */
-  def loadPhenotypes(sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
+  def loadPhenotypes(sc: SparkContext): RDD[Phenotype] = {
     /*
      * Throws IllegalArgumentException if includeCovariates given but no covariates specified
      * or if any of the covariates specified are the phenotype specified in
@@ -206,7 +206,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @return A dataset of GenotypeState objects.
    */
   def performAnalysis(genotypeStates: Dataset[GenotypeState],
-                      phenotypes: RDD[Phenotype[Array[Double]]],
+                      phenotypes: RDD[Phenotype],
                       sc: SparkContext): Dataset[Association] = {
     // sets up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)

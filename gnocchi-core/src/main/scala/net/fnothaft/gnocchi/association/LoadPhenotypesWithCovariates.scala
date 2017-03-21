@@ -33,7 +33,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
                covarFile: String,
                phenoName: String,
                covarNames: String,
-               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
+               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype] = {
     println("Loading phenotypes from %s.".format(file))
 
     // get the relevant parts of the phenotypes file and put into a DF
@@ -83,9 +83,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     var i = 0
     for (covar <- covariates) {
       var hasMatch = false
-      if (covar == phenoName) {
-        require(false, "One or more of the covariates has the same name as phenoName.")
-      }
+      require(covar == phenoName, "One or more of the covariates has the same name as phenoName.")
       for (labelpair <- covarLabels) {
         if (labelpair._1 == covar) {
           hasMatch = true
@@ -109,7 +107,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
                                               covarHeader: String,
                                               primaryPhenoIndex: Int,
                                               covarIndices: Array[Int],
-                                              sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
+                                              sc: SparkContext): RDD[Phenotype] = {
 
     // TODO: NEED TO REQUIRE THAT ALL THE PHENOTPES BE REPRESENTED BY NUMBERS.
 
@@ -181,11 +179,11 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
       }
     })
       // construct a phenotype object from the data in the sample
-      .map(p => new MultipleRegressionDoublePhenotype(
+      .map(p => new Phenotype(
         (for (i <- indices) yield fullHeader(i)).mkString(","), // phenotype labels string
         p(0), // sampleID string
         for (i <- indices) yield p(i).toDouble) // phenotype values
-        .asInstanceOf[Phenotype[Array[Double]]])
+        .asInstanceOf[Phenotype])
     // unpersist the textfile
     phenotypes.unpersist()
     covars.unpersist()

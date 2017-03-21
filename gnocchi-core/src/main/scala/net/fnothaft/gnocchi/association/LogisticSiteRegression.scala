@@ -23,8 +23,7 @@ import breeze.numerics._
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.bdgenomics.adam.models.ReferenceRegion
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.formats.avro.Variant
 
 trait LogisticSiteRegression extends SiteRegression {
 
@@ -128,6 +127,7 @@ trait LogisticSiteRegression extends SiteRegression {
       val fisherInfo = -hessian
       val fishInv = inv(fisherInfo)
       val standardErrors = sqrt(abs(diag(fishInv)))
+      val genoStandardError = standardErrors(1)
 
       // calculate Wald z-scores
       val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
@@ -149,6 +149,7 @@ trait LogisticSiteRegression extends SiteRegression {
 
       val statistics = Map("numSamples" -> numObservations,
         "weights" -> beta,
+        "standardError" -> genoStandardError,
         "intercept" -> beta(0),
         "'P Values' aka Wald Tests" -> waldTests,
         "log of wald tests" -> logWaldTests,

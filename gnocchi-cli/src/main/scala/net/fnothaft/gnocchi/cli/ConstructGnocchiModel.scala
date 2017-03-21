@@ -22,7 +22,7 @@ import net.fnothaft.gnocchi.gnocchiModel._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.bdgenomics.utils.cli._
-import org.kohsuke.args4j.{Option => Args4jOption}
+import org.kohsuke.args4j.{ Option => Args4jOption }
 import org.apache.spark.rdd.RDD
 import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticGnocchiModel
 
@@ -67,20 +67,20 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
   }
 
   /**
-    * Returns a GnocchiModel object which contains individual VariantModel
-    * objects, each built from the input data for that variant. Also returns
-    * an RDD of Association objects, the output from a non-incremental
-    * RegressPhenotypes run on the genotypes and phenotypes provided
-    * in the command line call.
-    *
-    * @param genotypeStates: An RDD of GenotypeState objects, the input
-    *                      genotype data.
-    * @param phenotypes: An RDD of Phenotype objects, each of which contains
-    *                  primary phenotype as well as covariate input data for
-    *                  a sample.
-    * @return Tuple containing a built GnocchiModel and the Association objects
-    *         produced by each regression.
-    */
+   * Returns a GnocchiModel object which contains individual VariantModel
+   * objects, each built from the input data for that variant. Also returns
+   * an RDD of Association objects, the output from a non-incremental
+   * RegressPhenotypes run on the genotypes and phenotypes provided
+   * in the command line call.
+   *
+   * @param genotypeStates: An RDD of GenotypeState objects, the input
+   *                      genotype data.
+   * @param phenotypes: An RDD of Phenotype objects, each of which contains
+   *                  primary phenotype as well as covariate input data for
+   *                  a sample.
+   * @return Tuple containing a built GnocchiModel and the Association objects
+   *         produced by each regression.
+   */
   def buildModel[T](genotypeStates: RDD[GenotypeState],
                     phenotypes: RDD[Phenotype[T]],
                     sc: SparkContext): (GnocchiModel, RDD[Association]) = {

@@ -17,21 +17,13 @@
  */
 package net.fnothaft.gnocchi.models
 
-trait Phenotype[T] extends Product {
-  val phenotype: String
-  val sampleId: String
-  val value: T
-
-  def toDouble: Array[Double]
-}
-
 /* Note: for the below classes, the array stored in value actually has all of the phenotypes, with the first being the on that is 
   being regressed and the rest are the values of the covariates. The string that is stored in phenotype is actually a line that contains 
   the names of all the phenotypes, separated by spaces (again, the first is the phenotype being regressed and the rest are covariates)
 */
 
-case class MultipleRegressionDoublePhenotype(phenotype: String,
-                                             sampleId: String,
-                                             value: Array[Double]) extends Phenotype[Array[Double]] {
+case class Phenotype(phenotype: String,
+                     sampleId: String,
+                     value: Array[Double]) extends Product {
   def toDouble: Array[Double] = value
 }

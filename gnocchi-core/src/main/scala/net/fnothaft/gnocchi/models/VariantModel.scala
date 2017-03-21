@@ -17,97 +17,299 @@
  */
 package net.fnothaft.gnocchi.models
 
+import net.fnothaft.gnocchi.association.{ AdditiveLinearAssociation, AdditiveLogisticAssociation }
+import net.fnothaft.gnocchi.gnocchiModel.{ BuildAdditiveLinearVariantModel, BuildAdditiveLogisticVariantModel }
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 
 trait VariantModel extends Serializable {
-  var variantID: String
-  var variant: Variant
-  var phenotype: String
-  var numSamples: Int
-  var variance: Double
-  var modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
-  var hyperParamValues: Map[String, Double]
-  var weights: Array[Double]
-  var intercept: Double
-  var haplotypeBlock: String
-  var incrementalUpdateValue: Double
-  var QRFactorizationValue: Double
-  var QRFactorizationWeights: Array[Double]
-  var predictions: List[(Array[(String, (Double, Double))], Association)]
-  var association: Association
+  val variantId: String
+  val variant: Variant
+  val numSamples: Int
+  val modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
+  val weights: Array[Double]
+  val pValue: Double
+  val geneticParameterStandardError: Double
+  val haplotypeBlock: String
+  val association: Association
 
-  def setVariantID(id: String): this.type = {
-    variantID = id
-    this
-  }
+  /**
+   * Updates the VariantModel given a new batch of data
+   *
+   * @note observations is an array of tuples with (genotypeState, array of phenotypes)
+   *       where the array of phenotypes has the primary phenotype as the first
+   *       value and covariates following it.
+   * @param observations Array containing data at the particular site for
+   *                     all samples. Format of each element is:
+   *                     (gs, Array(pheno, covar1, ... covarp))
+   *                     where gs is the diploid genotype at that site for the
+   *                     given sample [0, 1, or 2], pheno is the sample's value for
+   *                     the phenotype being regressed on, and covar1-covarp are that
+   *                     sample's values for each covariate.
+   * @param locus Locus of the variant
+   * @param altAllele Alternate allele
+   * @param phenotype Text description of the phenotype and covariates being
+   *                  considered.
+   */
+  protected def update(observations: Array[(Double, Array[Double])],
+             locus: ReferenceRegion,
+             altAllele: String,
+             phenotype: String): VariantModel
 
-  def setAssociation(assoc: Association): this.type = {
-    association = assoc
-    this
-  }
-  def setPhenotype(pheno: String): this.type = {
-    phenotype = pheno
-    this
-  }
+  /**
+   * Updates the weights for the model by averaging the previous weights with the
+   * given weights. The batchWeights should be the result of a regression
+   * run on the new batch.
+   *
+   * @param batchWeights The batch-optimized weights from a run of linearSiteRegression
+   *                     on the site associated with the variantModel.
+   * @return Returns updated weights
+   */
+  private def updateWeights(batchWeights: Array[Double]): Array[Double] = {
 
-  def setNumSamples(num: Int): this.type = {
-    numSamples = num
-    this
-  }
-
-  def setVariance(vari: Double): this.type = {
-    variance = vari
-    this
-  }
-
-  def setHyperParamValues(hyp: Map[String, Double]): this.type = {
-    hyperParamValues = hyp
-    this
-  }
-
-  def setWeights(w: Array[Double]): this.type = {
-    weights = w
-    this
   }
 
-  def setIntercept(inter: Double): this.type = {
-    intercept = inter
-    this
+  /**
+   * Updates numSamples by adding number of samples in batch to the number
+   * of samepls the model has already seen.
+   *
+   * @param batchNumSamples The number of samples in the new batch
+   */
+  def updateNumSamples(batchNumSamples: Int): Unit = {
+
   }
 
-  def setHaplotypeBlock(block: String): this.type = {
-    haplotypeBlock = block
-    this
+}
+
+trait LinearVariantModel extends VariantModel {
+
+  val variantId: String = "Empty Id"
+  val ssDeviations = 0.0
+  val ssResiduals = 0.0
+  val geneticParameterStandardError = 0.0
+  val tStatistic = 0.0
+  val residualDegreesOfFreedom = 0
+  val pValue = 0.0
+  val variant = new Variant
+  val weights = Array[Double]()
+  val haplotypeBlock = "Nonexistent HaplotypeBlock"
+  val numSamples = 0
+  val association = Association(variant, "Empty Phenotype", 0.0, Map())
+
+  /**
+   * Updates the sum of squared deviations from the mean of the genotype at that site
+   * by adding the sum of squared deviations from the batch to the sum of squared
+   * deviations that the model already had.
+   *
+   * @note The mean used in the calculation is the batch mean, not the global mean.
+   *
+   * @param batchSsDeviations The sum of squared deviations of the genotype values
+   *                              from the batch mean.
+   */
+  def updateSsDeviations(batchSsDeviations: Double): Unit = {
+
   }
 
-  def setIncrementalUpdateValue(value: Double): this.type = {
-    incrementalUpdateValue = value
-    this
+  /**
+   * Updates the sum of squared residuals for the model by adding the sum of squared
+   * residuals for the batch to the sum of squared residuals that the model already
+   * had.
+   *
+   * @note The estimated value for the phenotype is estimated based on the batch-
+   *       optimized model, not the global model.
+   *
+   * @param batchSsResiduals The sum of squared residuals for the batch
+   */
+  def updateSsResiduals(batchSsResiduals: Double): Unit = {
+
   }
-  // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
-  // the primary phenotype as the first value and covariates following it.
+
+  /**
+   * Updates the standard error of the genetic parameter based on current values
+   * the VariantModel has in the ssResiduals, siteSSDeviations, and numSamples
+   * parameters.
+   */
+  def updateGeneticParameterStandardError(): Unit = {
+
+  }
+
+  /**
+   * Updates the geneticParameterDegreesOfFreedom for the model using the current
+   * value for numSamples
+   */
+  def updateResidualDegreesOfFreedom(): Unit = {
+
+  }
+
+  /**
+   * Updates the t statistic value for the VariantModel based on the current
+   * values in weights, and geneticParameterStandard
+   */
+  def updateTStatistic(): Unit = {
+
+  }
+
+  /**
+   * Updates the p-value for the VariantModel based on the current values in the
+   * weights and residualDegreesOfFreedom parameters.
+   */
+  def updatePValue(): Unit = {
+
+  }
+
+  /**
+   * Updates the VariantModel object's Association object with the current values
+   * for weights, ssDeviations, ssResiduals, geneticParameterStandardError,
+   * tstatistic, residualDegreesOfFreedom, and pValue
+   */
+  def updateAssociation(): Unit = {
+
+  }
+
+}
+
+case class AdditiveLinearVariantModel extends LinearVariantModel with Serializable {
+
+  val modelType = "Additive Linear Variant Model"
+  val regressionName = "Additive Linear Regression"
+
+  /**
+   * Updates the VariantModel given a new batch of data
+   *
+   * @note observations is an array of tuples with (genotypeState, array of phenotypes)
+   *       where the array of phenotypes has the primary phenotype as the first
+   *       value and covariates following it.
+   * @param observations Array containing data at the particular site for
+   *                     all samples. Format of each element is:
+   *                     (gs, Array(pheno, covar1, ... covarp))
+   *                     where gs is the diploid genotype at that site for the
+   *                     given sample [0, 1, or 2], pheno is the sample's value for
+   *                     the phenotype being regressed on, and covar1-covarp are that
+   *                     sample's values for each covariate.
+   * @param locus Locus of the variant
+   * @param altAllele Alternate allele
+   * @param phenotype Text description of the phenotype and covariates being
+   *                  considered.
+   */
   def update(observations: Array[(Double, Array[Double])],
              locus: ReferenceRegion,
              altAllele: String,
-             phenotype: String): Unit
+             phenotype: String): Unit = {
+    val clippedObs = BuildAdditiveLinearVariantModel.arrayClipOrKeepState(observations)
+    val assoc = AdditiveLinearAssociation.regressSite(clippedObs, variant, phenotype)
+    /*
+     * assumes that the relevant batch statistics are in the statistics dict in
+     * the association object.
+     */
+    if (assoc.statistics.nonEmpty) {
+      updateNumSamples(assoc.statistics("numSamples").asInstanceOf[Int])
+      updateWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+      updateSsDeviations(assoc.statistics("ssDeviations").asInstanceOf[Double])
+      updateSsResiduals(assoc.statistics("ssResiduals").asInstanceOf[Double])
+      updateGeneticParameterStandardError()
+      updateResidualDegreesOfFreedom()
+      updateTStatistic()
+      updatePValue()
+      updateAssociation()
+    }
+  }
+}
 
-  def predict(obs: Array[(Double, Array[Double])]): List[(Array[(String, (Double, Double))], Association)]
+trait LogisticVariantModel extends VariantModel {
 
-  // observations is an array of tuples with (genotypeState, array of phenotypes) where the array of phenotypes has
-  // the primary phenotype as the first value and covariates following it.
-  //  def test(observations: Array[(Double, Array[Double])]): Double = {
-  //    var correct = 0
-  //    var affected = 0
-  //    for (elem <- observations) {
-  //      val (str, (prediction, actual)): (String, (Double, Double)) = elem
-  //      if (prediction == actual) {
-  //        correct += 1
-  //      }
-  //      if (prediction == 1) {
-  //        affected += 1
-  //      }
-  //    }
-  //  }
+  /**
+   * Updates the standard error of the genetic parameter by averaging batch's standard
+   * error of the genetic parameter with the model's current standard error of the
+   * genetic parameter.
+   *
+   * @note Averaging standard errors because unlike in linear regression,
+   *       there is no obvious way to combine intermediate values
+   * @param batchStandardError Standard error of the genetic parameter in the batch of
+   *                           data.
+   */
+  def updateGeneticParameterStandardError(batchStandardError: Double): Double = {
 
+  }
+
+  /**
+   * Updates the Wald statistic (waldStatistic) for the genetic parameter based on the current
+   * values for the GeneticParameterStandardError and weights.
+   */
+  def updateWaldStatistic(GeneticParameterStandardError: Double, weights: Array[Double]): Double = {
+
+  }
+
+  /**
+   * Updates the pValue associated with the VariantModel
+   */
+  def updatePvalue(waldStatistic: Double): Double = {
+
+  }
+
+  /**
+   * Updates the Association object associated with the VariantModel
+   */
+  def updateAssociation(): Association = {
+
+  }
+
+}
+
+case class AdditiveLogisticVariantModel(variantId: String,
+                                        variant: Variant,
+                                        weights: Array[Double],
+                                        geneticParameterStandardError: Double,
+                                        pValue: Double,
+                                        haplotypeBlock: String,
+                                        numSamples: Int,
+                                        modelType: String) extends LogisticVariantModel with Serializable {
+
+//  val variantId = "Empty ID"
+//  val variant = new Variant
+//  val weights = Array[Double]()
+//  val geneticParameterStandardError = 0.0
+//  val pValue = 0.0
+//  val haplotypeBlock = "Nonexistent HaplotypeBlock"
+//  val numSamples = 0
+//  val association = Association(variant, "Empty Phenotype", 0.0, Map())
+//  val modelType = "Additive Logistic Variant Model"
+//  val regressionName = "Additive Logistic Regression"
+
+  /**
+   * Updates the VariantModel given a new batch of data
+   *
+   * @note observations is an array of tuples with (genotypeState, array of phenotypes)
+   *       where the array of phenotypes has the primary phenotype as the first
+   *       value and covariates following it.
+   * @param observations Array containing data at the particular site for
+   *                     all samples. Format of each element is:
+   *                     (gs, Array(pheno, covar1, ... covarp))
+   *                     where gs is the diploid genotype at that site for the
+   *                     given sample [0, 1, or 2], pheno is the sample's value for
+   *                     the phenotype being regressed on, and covar1-covarp are that
+   *                     sample's values for each covariate.
+   * @param locus Locus of the variant
+   * @param altAllele Alternate allele
+   * @param phenotype Text description of the phenotype and covariates being
+   *                  considered.
+   */
+  def update(observations: Array[(Double, Array[Double])],
+             locus: ReferenceRegion,
+             altAllele: String,
+             phenotype: String): AdditiveLogisticVariantModel = {
+
+    val clippedObs = BuildAdditiveLogisticVariantModel.arrayClipOrKeepState(observations)
+    val assoc = AdditiveLogisticAssociation.regressSite(clippedObs, variant, phenotype)
+    if (assoc.statistics.nonEmpty) {
+      updateNumSamples(assoc.statistics("numSamples").asInstanceOf[Int])
+      updateGeneticParameterStandardError(assoc.statistics("standardError").asInstanceOf[Double])
+      updateWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+      updateWaldStatistic()
+      updatePvalue()
+      updateAssociation()
+    }
+    AdditiveLogisticVariantModel(variantId, variant, updatedWeights,
+      updatedGeneticParameterStandardErro, updatedPvalue, haplotypeBlock, updatedNumSamples,
+      modelType)
+  }
 }

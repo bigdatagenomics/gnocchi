@@ -17,7 +17,7 @@
  */
 package net.fnothaft.gnocchi.association
 
-import net.fnothaft.gnocchi.models.{ Association, GenotypeState, MultipleRegressionDoublePhenotype, Phenotype }
+import net.fnothaft.gnocchi.models.{ Association, GenotypeState, Phenotype }
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
@@ -33,7 +33,7 @@ trait SiteRegression extends Serializable {
   regressSite
   */
   final def apply[T](rdd: RDD[GenotypeState],
-                     phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
+                     phenotypes: RDD[Phenotype]): RDD[Association] = {
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))

@@ -24,7 +24,7 @@ import org.bdgenomics.formats.avro.Variant
 object PairSamplesWithPhenotypes {
 
   def apply(rdd: RDD[GenotypeState],
-            phenotypes: RDD[Phenotype[Array[Double]]]): RDD[((Variant, String), Iterable[(String, (GenotypeState, Phenotype[Array[Double]]))])] = {
+            phenotypes: RDD[Phenotype]): RDD[((Variant, String), Iterable[(String, (GenotypeState, Phenotype))])] = {
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
