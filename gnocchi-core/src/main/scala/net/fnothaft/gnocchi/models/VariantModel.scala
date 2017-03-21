@@ -34,7 +34,7 @@ trait VariantModel extends Serializable {
   val association: Association
 
   /**
-   * Updates the VariantModel given a new batch of data
+   * Returns an updated VariantModel given a new batch of data
    *
    * @note observations is an array of tuples with (genotypeState, array of phenotypes)
    *       where the array of phenotypes has the primary phenotype as the first
@@ -57,7 +57,7 @@ trait VariantModel extends Serializable {
              phenotype: String): VariantModel
 
   /**
-   * Updates the weights for the model by averaging the previous weights with the
+   * Returns updated weights for the model by averaging the previous weights with the
    * given weights. The batchWeights should be the result of a regression
    * run on the new batch.
    *
@@ -65,17 +65,17 @@ trait VariantModel extends Serializable {
    *                     on the site associated with the variantModel.
    * @return Returns updated weights
    */
-  private def updateWeights(batchWeights: Array[Double]): Array[Double] = {
+  def updateWeights(batchWeights: Array[Double]): Array[Double] = {
 
   }
 
   /**
-   * Updates numSamples by adding number of samples in batch to the number
+   * Returns updated numSamples by adding number of samples in batch to the number
    * of samepls the model has already seen.
    *
    * @param batchNumSamples The number of samples in the new batch
    */
-  def updateNumSamples(batchNumSamples: Int): Unit = {
+  def updateNumSamples(batchNumSamples: Int): Int = {
 
   }
 
@@ -83,21 +83,21 @@ trait VariantModel extends Serializable {
 
 trait LinearVariantModel extends VariantModel {
 
-  val variantId: String = "Empty Id"
-  val ssDeviations = 0.0
-  val ssResiduals = 0.0
-  val geneticParameterStandardError = 0.0
-  val tStatistic = 0.0
-  val residualDegreesOfFreedom = 0
-  val pValue = 0.0
-  val variant = new Variant
-  val weights = Array[Double]()
-  val haplotypeBlock = "Nonexistent HaplotypeBlock"
-  val numSamples = 0
-  val association = Association(variant, "Empty Phenotype", 0.0, Map())
+  val variantId: String
+  val ssDeviations: Double
+  val ssResiduals: Double
+  val geneticParameterStandardError: Double
+  val tStatistic: Double
+  val residualDegreesOfFreedom: Int
+  val pValue: Double
+  val variant: Variant
+  val weights: Array[Double]
+  val haplotypeBlock: String
+  val numSamples: Int
+  val association: Association
 
   /**
-   * Updates the sum of squared deviations from the mean of the genotype at that site
+   * Returns updated the sum of squared deviations from the mean of the genotype at that site
    * by adding the sum of squared deviations from the batch to the sum of squared
    * deviations that the model already had.
    *
@@ -106,12 +106,12 @@ trait LinearVariantModel extends VariantModel {
    * @param batchSsDeviations The sum of squared deviations of the genotype values
    *                              from the batch mean.
    */
-  def updateSsDeviations(batchSsDeviations: Double): Unit = {
+  protected def updateSsDeviations(batchSsDeviations: Double): Double = {
 
   }
 
   /**
-   * Updates the sum of squared residuals for the model by adding the sum of squared
+   * Returns updated sum of squared residuals for the model by adding the sum of squared
    * residuals for the batch to the sum of squared residuals that the model already
    * had.
    *
@@ -120,55 +120,77 @@ trait LinearVariantModel extends VariantModel {
    *
    * @param batchSsResiduals The sum of squared residuals for the batch
    */
-  def updateSsResiduals(batchSsResiduals: Double): Unit = {
+  protected def updateSsResiduals(batchSsResiduals: Double): Double = {
 
   }
 
   /**
-   * Updates the standard error of the genetic parameter based on current values
-   * the VariantModel has in the ssResiduals, siteSSDeviations, and numSamples
+   * Returns updated standard error of the genetic parameter based on current values
+   * the VariantModel has in the ssResiduals, ssDeviations, and numSamples
    * parameters.
    */
-  def updateGeneticParameterStandardError(): Unit = {
+  protected def updateGeneticParameterStandardError(updatedSsResiduals: Double,
+                                                  updatedSsDeviations: Double,
+                                                  updatedNumSamples: Int): Double = {
 
   }
 
   /**
-   * Updates the geneticParameterDegreesOfFreedom for the model using the current
+   * Returns updated geneticParameterDegreesOfFreedom for the model using the current
    * value for numSamples
    */
-  def updateResidualDegreesOfFreedom(): Unit = {
+  protected def updateResidualDegreesOfFreedom(batchNumSamples: Int): Int = {
 
   }
 
   /**
-   * Updates the t statistic value for the VariantModel based on the current
-   * values in weights, and geneticParameterStandard
+   * Returns updated t statistic value for the VariantModel based on the current
+   * values in weights, and geneticParameterStandardError.
    */
-  def updateTStatistic(): Unit = {
+  protected def updateTStatistic(updatedWeights: Array[Double],
+                               updatedGeneticParameterStandardError:Double): Double = {
 
   }
 
   /**
-   * Updates the p-value for the VariantModel based on the current values in the
-   * weights and residualDegreesOfFreedom parameters.
+   * Returns updated p-value for the VariantModel based on the current values in the
+   * tStatistic and residualDegreesOfFreedom parameters.
    */
-  def updatePValue(): Unit = {
+  protected def updatePValue(updatedTStatistic: Double,
+                           updatedResidualDegreesOfFreedom: Int): Double = {
 
   }
 
   /**
-   * Updates the VariantModel object's Association object with the current values
+   * Returns new Association object with provided values for
    * for weights, ssDeviations, ssResiduals, geneticParameterStandardError,
-   * tstatistic, residualDegreesOfFreedom, and pValue
+   * tstatistic, residualDegreesOfFreedom, and pValue, and current
+    * VariantModel's Association object.
    */
-  def updateAssociation(): Unit = {
+  protected def updateAssociation(updatedWeights: Array[Double],
+                                  updatedSsDeviations: Double,
+                                  updatedSsResiduals: Double,
+                                  updatedGeneticParameterStandardError: Double,
+                                  updatedTStatistic: Double,
+                                  updatedResidualDegreesOfFreedom: Int,
+                                  updatedPValue: Double): Association = {
 
   }
 
 }
 
-case class AdditiveLinearVariantModel extends LinearVariantModel with Serializable {
+case class AdditiveLinearVariantModel(variantId: String,
+                                      ssDeviations: Double,
+                                      ssResiduals: Double,
+                                      geneticParameterStandardError: Double,
+                                      tStatistic: Double,
+                                      residualDegreesOfFreedom: Int,
+                                      pValue: Double,
+                                      variant: Variant,
+                                      weights: Array[Double],
+                                      haplotypeBlock: String,
+                                      numSamples: Int,
+                                      association: Association) extends LinearVariantModel with Serializable {
 
   val modelType = "Additive Linear Variant Model"
   val regressionName = "Additive Linear Regression"
@@ -194,23 +216,38 @@ case class AdditiveLinearVariantModel extends LinearVariantModel with Serializab
   def update(observations: Array[(Double, Array[Double])],
              locus: ReferenceRegion,
              altAllele: String,
-             phenotype: String): Unit = {
+             phenotype: String): VariantModel = {
     val clippedObs = BuildAdditiveLinearVariantModel.arrayClipOrKeepState(observations)
     val assoc = AdditiveLinearAssociation.regressSite(clippedObs, variant, phenotype)
     /*
      * assumes that the relevant batch statistics are in the statistics dict in
      * the association object.
      */
+    val updatedNumSamples = updateNumSamples(assoc.statistics("numSamples").asInstanceOf[Int])
+    val updatedWeights = updateWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+    val updatedSsDeviations = updateSsDeviations(assoc.statistics("ssDeviations").asInstanceOf[Double])
+    val updatedSsResiduals = updateSsResiduals(assoc.statistics("ssResiduals").asInstanceOf[Double])
+    val updatedGeneticParameterStandardError = updateGeneticParameterStandardError(updatedSsResiduals,
+      updatedSsDeviations, updatedNumSamples)
+    val updatedResidualDegreesOfFreedom = updateResidualDegreesOfFreedom(assoc.statistics("numSamples").asInstanceOf[Int])
+    val updatedtStatistic = updateTStatistic(updatedWeights, updatedGeneticParameterStandardError)
+    val updatedPValue = updatePValue(updatedtStatistic, updatedResidualDegreesOfFreedom)
+    val updatedAssociation = updateAssociation(updatedWeights, updatedSsDeviations, updatedSsResiduals,
+      updatedGeneticParameterStandardError, updatedtStatistic, updatedResidualDegreesOfFreedom, updatedPValue)
+
     if (assoc.statistics.nonEmpty) {
-      updateNumSamples(assoc.statistics("numSamples").asInstanceOf[Int])
-      updateWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
-      updateSsDeviations(assoc.statistics("ssDeviations").asInstanceOf[Double])
-      updateSsResiduals(assoc.statistics("ssResiduals").asInstanceOf[Double])
-      updateGeneticParameterStandardError()
-      updateResidualDegreesOfFreedom()
-      updateTStatistic()
-      updatePValue()
-      updateAssociation()
+      AdditiveLinearVariantModel(this.variantId,
+                                     updatedSsDeviations,
+                                     updatedSsResiduals,
+                                     updatedGeneticParameterStandardError,
+                                     updatedtStatistic,
+                                     updatedResidualDegreesOfFreedom,
+                                     updatedPValue,
+                                     this.variant,
+                                     updatedWeights,
+                                     this.haplotypeBlock,
+                                     updatedNumSamples,
+                                     updatedAssociation)
     }
   }
 }
@@ -249,7 +286,10 @@ trait LogisticVariantModel extends VariantModel {
   /**
    * Updates the Association object associated with the VariantModel
    */
-  def updateAssociation(): Association = {
+  def updateAssociation(geneticParameterStandardError: Double,
+                        pValue: Double,
+                        numSamples: Int,
+                        weights: Array[Double]): Association = {
 
   }
 
@@ -264,16 +304,9 @@ case class AdditiveLogisticVariantModel(variantId: String,
                                         numSamples: Int,
                                         modelType: String) extends LogisticVariantModel with Serializable {
 
-//  val variantId = "Empty ID"
-//  val variant = new Variant
-//  val weights = Array[Double]()
-//  val geneticParameterStandardError = 0.0
-//  val pValue = 0.0
-//  val haplotypeBlock = "Nonexistent HaplotypeBlock"
-//  val numSamples = 0
-//  val association = Association(variant, "Empty Phenotype", 0.0, Map())
-//  val modelType = "Additive Logistic Variant Model"
-//  val regressionName = "Additive Logistic Regression"
+
+  val modelType = "Additive Logistic Variant Model"
+  val regressionName = "Additive Logistic Regression"
 
   /**
    * Updates the VariantModel given a new batch of data
@@ -300,16 +333,22 @@ case class AdditiveLogisticVariantModel(variantId: String,
 
     val clippedObs = BuildAdditiveLogisticVariantModel.arrayClipOrKeepState(observations)
     val assoc = AdditiveLogisticAssociation.regressSite(clippedObs, variant, phenotype)
+
+    val updatedNumSamples = updateNumSamples(assoc.statistics("numSamples").asInstanceOf[Int])
+    val updatedGeneticParameterStandardError = updateGeneticParameterStandardError(assoc.statistics("standardError").asInstanceOf[Double])
+    val updatedWeights = updateWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
+    val updatedWaldStatistic = updateWaldStatistic(updatedGeneticParameterStandardError, updatedWeights)
+    val updatedPValue = updatePvalue(updatedWaldStatistic)
+    val updatedAssociation = updateAssociation(updatedGeneticParameterStandardError, updatedPValue, updatedNumSamples, updatedWeights)
     if (assoc.statistics.nonEmpty) {
-      updateNumSamples(assoc.statistics("numSamples").asInstanceOf[Int])
-      updateGeneticParameterStandardError(assoc.statistics("standardError").asInstanceOf[Double])
-      updateWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
-      updateWaldStatistic()
-      updatePvalue()
-      updateAssociation()
+      AdditiveLogisticVariantModel(this.variantId,
+                                   this.variant,
+                                   updatedWeights,
+                                   updatedGeneticParameterStandardError,
+                                   updatedPValue,
+                                   this.haplotypeBlock,
+                                   updatedNumSamples,
+                                   this.modelType )
     }
-    AdditiveLogisticVariantModel(variantId, variant, updatedWeights,
-      updatedGeneticParameterStandardErro, updatedPvalue, haplotypeBlock, updatedNumSamples,
-      modelType)
   }
 }

@@ -80,13 +80,11 @@ object BuildAdditiveLinearVariantModel extends BuildVariantModel with LinearSite
 
   def extractVariantModel(assoc: Association): AdditiveLinearVariantModel = {
 
-    val linRegModel: AdditiveLinearVariantModel = new AdditiveLinearVariantModel
-    linRegModel.setNumSamples(assoc.statistics("numSamples").asInstanceOf[Int]) // assoc.numSamples
-      .setVariantId("assoc.variantID")
-      .setWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
-      .setAssociation(assoc)
-      .setHaplotypeBlock("assoc.HaplotypeBlock")
-    linRegModel
+    val linRegModel: AdditiveLinearVariantModel = new AdditiveLinearVariantModel(assoc.statistics("numSamples").asInstanceOf[Int],
+      "assoc.variantID",
+      assoc.statistics("weights").asInstanceOf[Array[Double]],
+      assoc,
+     "assoc.HaplotypeBlock") // assoc.numSamples
   }
 
   val regressionName = "Additive Linear Regression"
