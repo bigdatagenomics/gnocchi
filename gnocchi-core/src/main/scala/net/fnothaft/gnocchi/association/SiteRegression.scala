@@ -26,51 +26,62 @@ trait SiteRegression extends Serializable {
 
   val regressionName: String
 
+  /**
+   * Known implementations: [[Additive]], [[Dominant]]
+   *
+   * @param gs GenotypeState object to be clipped
+   * @return Formatted GenotypeState object
+   */
   protected def clipOrKeepState(gs: GenotypeState): Double
 
-  /* 
-  Takes in an RDD of GenotypeStates, constructs the proper observations array for each site, and feeds it into 
-  regressSite
-  */
-  final def apply[T](rdd: RDD[GenotypeState],
+  /**
+   * Apply method for SiteRegression. Takes in an RDD of Genotypes and Phenotypes and returns an RDD of
+   * Association objects containing the statistics for each site.
+   *
+   * @param genotypes an rdd of [[net.fnothaft.gnocchi.models.GenotypeState]] objects to be regressed upon
+   * @param phenotypes an rdd of [[net.fnothaft.gnocchi.models.Phenotype]] objects used as observations
+   * @return an rdd of [[net.fnothaft.gnocchi.models.Association]] objects
+   */
+  final def apply[T](genotypes: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
-    rdd.keyBy(_.sampleId)
-      // join together the samples with both genotype and phenotype entry
-      .join(phenotypes.keyBy(_.sampleId))
-      .map(kvv => {
-        // unpack the entry of the joined rdd into id and actual info
-        val (_, p) = kvv
-        // unpack the information into genotype state and pheno
-        val (gs, pheno) = p
-        // extract referenceAllele and phenotype and pack up with p, then group by key
+    val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
 
-        // pack up the information into an Association object
-        val variant = new Variant()
-        val contig = new Contig()
-        contig.setContigName(gs.contig)
-        variant.setContig(contig)
-        variant.setStart(gs.start)
-        variant.setEnd(gs.end)
-        variant.setAlternateAllele(gs.alt)
-        ((variant, pheno.phenotype), p)
-      }).groupByKey()
-      .map(site => {
-        val ((variant, pheno), observations) = site
-        // build array to regress on, and then regress
-        regressSite(observations.map(p => {
-          // unpack p
-          val (genotypeState, phenotype) = p
-          // return genotype and phenotype in the correct form
-          (clipOrKeepState(genotypeState), phenotype.toDouble)
-        }).toArray, variant, pheno)
-      })
+    /* Individuals with the same contigs (pairing of chromosome, end position, alt value) will be grouped together */
+    val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
+      val (_, genoPheno) = keyGenoPheno
+      val (gs, pheno) = genoPheno
+      val variant = new Variant()
+      val contig = new Contig()
+
+      contig.setContigName(gs.contig)
+      variant.setContig(contig)
+      variant.setStart(gs.start)
+      variant.setEnd(gs.end)
+      variant.setAlternateAllele(gs.alt)
+      ((variant, pheno.phenotype), genoPheno)
+    })
+      .groupByKey()
+
+    keyedGenoPheno.map(site => {
+      val ((variant, pheno), observations) = site
+      val formattedObvs = observations.map(p => {
+        val (genotypeState, phenotype) = p
+        (clipOrKeepState(genotypeState), phenotype.toDouble)
+      }).toArray
+      regressSite(formattedObvs, variant, pheno)
+    })
   }
 
   /**
-   * Method to run regression on a site.
+   * Performs regression on a single site. A site in this context is the unique pairing of a
+   * [[org.bdgenomics.formats.avro.Variant]] object and a [[net.fnothaft.gnocchi.models.Phenotype]] name.
    *
-   * Computes the association score of a genotype against a phenotype and
-   * covariates. To be implemented by any class that implements this trait.
+   * @param observations Array of tuples. The first element is a coded genotype taken from
+   *                     [[net.fnothaft.gnocchi.models.GenotypeState]]. The second is an array of observed phenotypes
+   *                     taken from [[net.fnothaft.gnocchi.models.Phenotype]] objects.
+   * @param variant [[org.bdgenomics.formats.avro.Variant]] to be regressed on
+   * @param phenotype Phenotype value, stored as a String
+   * @return [[net.fnothaft.gnocchi.models.Association]] containing statistic for particular site
    */
   protected def regressSite(observations: Array[(Double, Array[Double])],
                             variant: Variant,
@@ -79,6 +90,13 @@ trait SiteRegression extends Serializable {
 
 trait Additive extends SiteRegression {
 
+  /**
+   * Formats a GenotypeState object by converting the state to a double. Uses cumulative weighting of genotype
+   * states which is typical of an Additive model.
+   *
+   * @param gs GenotypeState object to be clipped
+   * @return Formatted GenotypeState object
+   */
   protected def clipOrKeepState(gs: GenotypeState): Double = {
     gs.genotypeState.toDouble
   }
@@ -86,6 +104,12 @@ trait Additive extends SiteRegression {
 
 trait Dominant extends SiteRegression {
 
+  /**
+   * Formats a GenotypeState object by taking any non-zero as positive response, zero response otherwise.
+   *
+   * @param gs GenotypeState object to be clipped
+   * @return Formatted GenotypeState object
+   */
   protected def clipOrKeepState(gs: GenotypeState): Double = {
     if (gs.genotypeState == 0) 0.0 else 1.0
   }

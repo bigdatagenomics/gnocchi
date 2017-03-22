@@ -25,89 +25,87 @@ import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.utils.misc.Logging
 
-trait LogisticSiteRegression extends SiteRegression {
+trait LogisticSiteRegression extends SiteRegression with Logging {
 
   /**
-   * This method will perform logistic regression on a single site.
+   * Returns Association object with solution to logistic regression.
    *
-   * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates. .
-   * @param variant The variant that is being regressed.
-   * @param phenotype    The name of the phenotype being regressed.
-   * @return The Association object that results from the linear regression
+   * Implementation of RegressSite method from SiteRegression trait. Performs logistic regression on a single site.
+   * A site in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object and a
+   * [[net.fnothaft.gnocchi.models.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this context
+   * have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
+   *
+   * Solves the regression through Newton-Raphson method, then uses the solution to generate p-value.
+   *
+   * @param observations Array of tuples. The first element is a coded genotype taken from
+   *                     [[net.fnothaft.gnocchi.models.GenotypeState]]. The second is an array of phenotype values
+   *                     taken from [[net.fnothaft.gnocchi.models.Phenotype]] objects. All genotypes are of the same
+   *                     site and therefore reference the same contig value i.e. all have the same CHROM_POS_ALT
+   *                     identifier. Array of phenotypes has primary phenotype first then covariates.
+   * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
+   * @param phenotype [[net.fnothaft.gnocchi.models.Phenotype.phenotype]], The name of the phenotype being regressed.
+   * @return [[net.fnothaft.gnocchi.models.Association]] object containing statistic result for Logistic Regression.
    */
-
   def regressSite(observations: Array[(Double, Array[Double])],
                   variant: Variant,
                   phenotype: String): Association = {
 
-    // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
-    val observationLength = observations(0)._2.length
+    /* Setting up logistic regression references */
+    val phenotypesLength = observations(0)._2.length
     val numObservations = observations.length
     val lp = new Array[LabeledPoint](numObservations)
     val xixiT = new Array[DenseMatrix[Double]](numObservations)
     val xiVectors = new Array[DenseVector[Double]](numObservations)
 
-    // iterate over observations, copying correct elements into sample array and filling the x matrix.
-    // the first element of each sample in x is the coded genotype and the rest are the covariates.
-    var features = new Array[Double](observationLength)
     for (i <- observations.indices) {
-      // rearrange variables into label and features
-      features = new Array[Double](observationLength)
+      val features = new Array[Double](phenotypesLength)
       features(0) = observations(i)._1.toDouble
-      observations(i)._2.slice(1, observationLength).copyToArray(features, 1)
+      observations(i)._2.slice(1, phenotypesLength).copyToArray(features, 1)
       val label = observations(i)._2(0)
 
-      // pack up info into LabeledPoint object
       lp(i) = new LabeledPoint(label, new org.apache.spark.mllib.linalg.DenseVector(features))
 
-      // compute xi*xi.t for hessian matrix
       val xiVector = DenseVector(1.0 +: features)
       xiVectors(i) = xiVector
       xixiT(i) = xiVector * xiVector.t
     }
 
-    // initialize parameters
     var iter = 0
     val maxIter = 1000
     val tolerance = 1e-6
     var singular = false
     var convergence = false
-    var update: DenseVector[Double] = DenseVector[Double]()
-    val beta = Array.fill[Double](observationLength + 1)(0.0)
+    val beta = Array.fill[Double](phenotypesLength + 1)(0.0)
+    var hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
     val data = lp
     var pi = 0.0
-    var hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
 
-    // optimize using Newton-Raphson
+    /* Use Newton-Raphson to solve logistic regression */
     while ((iter < maxIter) && !convergence && !singular) {
       try {
-        // calculate the logit for each xi
-        val logitArray = logit(data, beta)
+        val logitArray = applyWeights(data, beta)
+        val score = DenseVector.zeros[Double](phenotypesLength + 1)
+        hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
 
-        // calculate the hessian and score
-        hessian = DenseMatrix.zeros[Double](observationLength + 1, observationLength + 1)
-        var score = DenseVector.zeros[Double](observationLength + 1)
         for (i <- observations.indices) {
           pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
           hessian += -xixiT(i) * pi * (1.0 - pi)
           score += xiVectors(i) * (lp(i).label - pi)
         }
 
-        // compute the update and check convergence
-        update = -inv(hessian) * score
+        val update = -inv(hessian) * score
         if (max(abs(update)) <= tolerance) {
           convergence = true
         }
 
-        // compute new weights
         for (j <- beta.indices) {
           beta(j) += update(j)
         }
 
         if (beta.exists(_.isNaN)) {
-          // TODO: Log this instead of printing it
-          println("LOG_REG - Broke on iteration: " + iter)
+          logError("LOG_REG - Broke on iteration: " + iter)
           iter = maxIter
         }
       } catch {
@@ -118,9 +116,7 @@ trait LogisticSiteRegression extends SiteRegression {
       iter += 1
     }
 
-    /// CALCULATE WALD STATISTIC "P Value" ///
-
-    // calculate the standard error for the genotypic predictor
+    /* Use Hessian and weights to calculate the Wald Statistic, or p-value */
     var matrixSingular = false
 
     var toRet = new Association(null, null, -9.0, null)
@@ -129,23 +125,15 @@ trait LogisticSiteRegression extends SiteRegression {
       val fishInv = inv(fisherInfo)
       val standardErrors = sqrt(abs(diag(fishInv)))
 
-      // calculate Wald z-scores
       val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
       val zScoresSquared = zScores :* zScores
 
-      // calculate cumulative probs
-      val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
-      val probs = zScoresSquared.map(zi => {
-        chiDist.cumulativeProbability(zi)
-      })
+      val chiDist = new ChiSquaredDistribution(1)
+      val probs = zScoresSquared.map(zi => chiDist.cumulativeProbability(zi))
 
-      // calculate wald test statistics
       val waldTests = 1d - probs
 
-      // calculate the log of the p-value for the genetic component
-      val logWaldTests = waldTests.map(t => {
-        log10(t)
-      })
+      val logWaldTests = waldTests.map(t => log10(t))
 
       val statistics = Map("numSamples" -> numObservations,
         "weights" -> beta,
@@ -179,7 +167,14 @@ trait LogisticSiteRegression extends SiteRegression {
     toRet
   }
 
-  def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
+  /**
+   * Apply the weights to data
+   *
+   * @param lpArray Labeled point array that contains training data
+   * @param b Weights vector
+   * @return result of multiplying the training data be the weights
+   */
+  def applyWeights(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
     val logitResults = new Array[Double](lpArray.length)
     val bDense = DenseVector(b)
     for (j <- logitResults.indices) {

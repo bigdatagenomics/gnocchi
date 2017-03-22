@@ -21,9 +21,9 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 /**
-  * Extracts variant Id's from a vcf file as a workaround for
-  * the bug causing information loss in vcf2adam
-  */
+ * Extracts variant Id's from a vcf file as a workaround for
+ * the bug causing information loss in vcf2adam
+ */
 object GetVariantIds {
   def apply(sc: SparkContext, vcfPath: String): RDD[((String, String), String)] = {
     val mapLines = sc.textFile(vcfPath)

@@ -27,63 +27,51 @@ import org.bdgenomics.formats.avro.Variant
 trait LinearSiteRegression extends SiteRegression {
 
   /**
-   * This method will perform linear regression on a single site.
-   * @param observations An array containing tuples in which the first element is the coded genotype. The second is an Array[Double] representing the phenotypes, where the first element in the array is the phenotype to regress and the rest are to be treated as covariates.
-   * @param variant The variant that is being regressed.
-   * @param phenotype The name of the phenotype being regressed.
-   * @return The Association object that results from the linear regression
+   * Returns Association object with solution to linear regression.
+   *
+   * Implementation of RegressSite method from SiteRegression trait. Performs linear regression on a single site.
+   * A site in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object and a
+   * [[net.fnothaft.gnocchi.models.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this context
+   * have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
+   *
+   * For calculation of the p-value this uses a t-distribution with N-p-1 degrees of freedom. (N = number of samples,
+   * p = number of regressors i.e. genotype+covariates+intercept).
+   *
+   * @param observations Array of tuples. The first element is a coded genotype taken from
+   *                     [[net.fnothaft.gnocchi.models.GenotypeState]]. The second is an array of phenotype values
+   *                     taken from [[net.fnothaft.gnocchi.models.Phenotype]] objects. All genotypes are of the same
+   *                     site and therefore reference the same contig value i.e. all have the same CHROM_POS_ALT
+   *                     identifier. Array of phenotypes has primary phenotype first then covariates.
+   * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
+   * @param phenotype [[net.fnothaft.gnocchi.models.Phenotype.phenotype]], The name of the phenotype being regressed.
+   * @return [[net.fnothaft.gnocchi.models.Association]] object containing statistic result for Logistic Regression.
    */
-  def regressSite(observations: Array[(Double, Array[Double])],
-                  variant: Variant,
-                  phenotype: String): Association = {
-    // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-    // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
-
-    // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
-    val observationLength = observations(0)._2.length
+  def regressSite(observations: Array[(Double, Array[Double])], variant: Variant, phenotype: String): Association = {
+    val phenotypesLength = observations(0)._2.length
     val numObservations = observations.length
     val x = new Array[Array[Double]](numObservations)
     val y = new Array[Double](numObservations)
 
-    // iterate over observations, copying correct elements into sample array and filling the x matrix.
-    // the first element of each sample in x is the coded genotype and the rest are the covariates.
-    var sample = new Array[Double](observationLength)
+    var sample = new Array[Double](phenotypesLength)
     for (i <- 0 until numObservations) {
-      sample = new Array[Double](observationLength)
+      sample = new Array[Double](phenotypesLength)
       sample(0) = observations(i)._1.toDouble
-      observations(i)._2.slice(1, observationLength).copyToArray(sample, 1)
+      observations(i)._2.slice(1, phenotypesLength).copyToArray(sample, 1)
       x(i) = sample
       y(i) = observations(i)._2(0)
     }
 
     try {
-      // create linear model
       val ols = new OLSMultipleLinearRegression()
-
-      // input sample data
       ols.newSampleData(y, x)
-
-      // calculate coefficients
       val beta = ols.estimateRegressionParameters()
-
-      // calculate Rsquared
       val rSquared = ols.calculateRSquared()
-
-      // compute the regression parameters standard errors
       val standardErrors = ols.estimateRegressionParametersStandardErrors()
-
-      // get standard error for genotype parameter (for p value calculation)
       val genoSE = standardErrors(1)
 
-      // test statistic t for jth parameter is equal to bj/SEbj, the parameter estimate divided by its standard error
       val t = beta(1) / genoSE
 
-      /* calculate p-value and report:
-        Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is
-        a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
-        https://en.wikipedia.org/wiki/T-statistic
-      */
-      val tDist = new TDistribution(numObservations - observationLength - 1)
+      val tDist = new TDistribution(numObservations - phenotypesLength - 1)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
 
