@@ -42,6 +42,7 @@
     <dependency>
       <groupId>net.fnothaft</groupId>
       <artifactId>gnocchi-core_2.10</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.parquet</groupId>

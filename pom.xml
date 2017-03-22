@@ -10,7 +10,7 @@
   </parent>
 
   <groupId>net.fnothaft</groupId>
-  <artifactId>gnocchi-parent</artifactId>
+  <artifactId>gnocchi-parent_2.10</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>gnocchi: Genotype store and query engine</name>
@@ -18,7 +18,6 @@
   <modules>
     <module>gnocchi-core</module>
     <module>gnocchi-cli</module>
-    <module>Gnocchi-test</module>
   </modules>
 
   <licenses>
