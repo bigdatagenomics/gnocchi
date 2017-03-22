@@ -94,7 +94,7 @@ trait GnocchiModel extends Serializable {
     // map an update call to all variants
     val updatedVMRdd = vmAndDataRDD.map(kvv => {
       val (variant, (model, data)) = kvv
-      model.update(data, new ReferenceRegion(variant.getContig.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, model.phenotype)
+      model.update(data, new ReferenceRegion(variant.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, model.phenotype)
       (variant, model)
     })
     println("Size of updatedVMRdd = " + updatedVMRdd.count)
