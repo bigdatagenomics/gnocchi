@@ -24,7 +24,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 import org.bdgenomics.utils.misc.Logging
 
-
 private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with Logging {
 
   /**
@@ -152,8 +151,9 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with L
       phenoArray ++ covarArray
     })
 
-    val finalData = joinedData.filter(p => p.length > 2)
-      .filter(p => !p.exists(item => isMissing(item)))
+    val finalData = joinedData
+      .filter(p => p.length > 2)
+      .filter(p => !indices.exists(index => isMissing(p(index))))
       .map(p => if (oneTwo) p.updated(primaryPhenoIndex, (p(primaryPhenoIndex).toDouble - 1).toString) else p)
       .map(p => MultipleRegressionDoublePhenotype(
         indices.map(index => fullHeader(index)).mkString(","), p(0), indices.map(i => p(i).toDouble)))

@@ -40,7 +40,6 @@ trait SiteRegression extends Serializable {
    *
    * @param genotypes an rdd of [[net.fnothaft.gnocchi.models.GenotypeState]] objects to be regressed upon
    * @param phenotypes an rdd of [[net.fnothaft.gnocchi.models.Phenotype]] objects used as observations
-   * @tparam T
    * @return an rdd of [[net.fnothaft.gnocchi.models.Association]] objects
    */
   final def apply[T](genotypes: RDD[GenotypeState],
