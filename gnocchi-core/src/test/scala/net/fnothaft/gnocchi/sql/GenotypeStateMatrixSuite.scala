@@ -17,8 +17,9 @@
  */
 package net.fnothaft.gnocchi.sql
 
-import net.fnothaft.gnocchi.models.GenotypeState
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import org.scalatest.FunSuite
+
 import scala.collection.JavaConverters._
 
 class GenotypeStateMatrixSuite extends FunSuite {

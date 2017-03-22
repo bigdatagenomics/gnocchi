@@ -18,7 +18,8 @@
 package net.fnothaft.gnocchi.gnocchiModel
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype }
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 
 class GnocchiModelSuite extends GnocchiFunSuite {
 

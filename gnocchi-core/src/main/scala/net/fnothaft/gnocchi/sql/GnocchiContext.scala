@@ -17,8 +17,9 @@
  */
 package net.fnothaft.gnocchi.sql
 
-import net.fnothaft.gnocchi.models.GenotypeState
-import org.apache.spark.sql.{ Column, DataFrame, Dataset, SQLContext }
+import net.fnothaft.gnocchi.rdd.association.Association
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import org.apache.spark.sql.{Column, DataFrame, Dataset, SQLContext}
 import org.apache.spark.sql.functions._
 
 object GnocchiContext {
@@ -67,4 +68,10 @@ class GnocchiSqlContext private[sql] (@transient sqlContext: SQLContext) extends
       genotypeState.as("genotypeState"),
       missingGenotypes.as("missingGenotypes"))
   }
+}
+
+object AuxEncoders {
+  implicit def associationEncoder: org.apache.spark.sql.Encoder[Association] = org.apache.spark.sql.Encoders.kryo[Association]
+  implicit def genotypeStateEncoder: org.apache.spark.sql.Encoder[GenotypeState] = org.apache.spark.sql.Encoders.kryo[GenotypeState]
+
 }

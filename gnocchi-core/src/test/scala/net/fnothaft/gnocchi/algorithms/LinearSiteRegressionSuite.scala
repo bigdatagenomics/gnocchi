@@ -15,9 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.association
+package net.fnothaft.gnocchi.algorithms
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
+import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLinearAssociation
 import org.bdgenomics.formats.avro.Variant
 
 class LinearSiteRegressionSuite extends GnocchiFunSuite {

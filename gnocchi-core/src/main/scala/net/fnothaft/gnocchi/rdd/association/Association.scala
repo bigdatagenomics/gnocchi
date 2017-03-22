@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.models
+package net.fnothaft.gnocchi.rdd.association
 
 import org.bdgenomics.formats.avro.Variant
 

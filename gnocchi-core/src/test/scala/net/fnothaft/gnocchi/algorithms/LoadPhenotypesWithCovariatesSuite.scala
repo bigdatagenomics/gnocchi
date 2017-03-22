@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.association
+package net.fnothaft.gnocchi.algorithms
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.models.{ Phenotype }
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._

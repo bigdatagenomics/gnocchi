@@ -17,12 +17,15 @@
  */
 package net.fnothaft.gnocchi.models
 
-import net.fnothaft.gnocchi.gnocchiModel.{ BuildAdditiveLinearVariantModel, BuildAdditiveLogisticVariantModel }
-import net.fnothaft.gnocchi.transformations.{ Gs2variant, PairSamplesWithPhenotypes }
+import net.fnothaft.gnocchi.gnocchiModel.{BuildAdditiveLinearVariantModel, BuildAdditiveLogisticVariantModel}
+import net.fnothaft.gnocchi.models.variant.VariantModel
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.transformations.{Gs2variant, PairSamplesWithPhenotypes}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.formats.avro.{Contig, Variant}
 
 trait GnocchiModel extends Serializable {
   val metaData: GnocchiModelMetaData
@@ -215,30 +218,11 @@ trait Dominant {
   }
 }
 
-case class AdditiveLinearGnocchiModel(metaData: GnocchiModelMetaData,
-                                      variantModels: RDD[VariantModel],
-                                      comparisonVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])])
-                                      extends GnocchiModel with Additive {
+class GnocchiModelMetaData(val numSamples: Int,
+                           val haplotypeBlockErrorThreshold: Double,
+                           val modelType: String,
+                           val variables: String,
+                           val flaggedVariantModels: List[String],
+                           val phenotype: String) extends Serializable
 
-  // calls the appropriate version of BuildVariantModel
-  def buildVariantModel(varModel: VariantModel,
-                        obs: Array[(Double, Array[Double])]): VariantModel = {
-    val variant = varModel.variant
-    BuildAdditiveLinearVariantModel(obs, variant, metaData.phenotype)
-  }
 
-}
-
-case class AdditiveLogisticGnocchiModel(metaData: GnocchiModelMetaData,
-                                        variantModels: RDD[VariantModel],
-                                        comparisonVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])])
-                                        extends GnocchiModel with Additive {
-
-  // calls the appropriate version of BuildVariantModel
-  def buildVariantModel(varModel: VariantModel,
-                        obs: Array[(Double, Array[Double])]): VariantModel = {
-    val variant = varModel.variant
-    BuildAdditiveLogisticVariantModel(obs, variant, metaData.phenotype)
-  }
-
-}

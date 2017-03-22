@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.association
+package net.fnothaft.gnocchi.algorithms
 
 import htsjdk.samtools.ValidationStringency
 import net.fnothaft.gnocchi.models._
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Dataset, Row, SQLContext }
+import org.apache.spark.sql.{Dataset, Row, SQLContext}
 
 /*
 Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.

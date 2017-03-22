@@ -18,7 +18,7 @@
 package net.fnothaft.gnocchi.cli
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.association._
+import net.fnothaft.gnocchi.algorithms._
 import java.io.File
 import java.nio.file.Files
 

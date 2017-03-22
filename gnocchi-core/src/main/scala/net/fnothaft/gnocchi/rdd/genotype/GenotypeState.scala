@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.models
+package net.fnothaft.gnocchi.rdd.genotype
 
 import org.bdgenomics.adam.models.ReferenceRegion
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.formats.avro.{Contig, Variant}
 
 case class GenotypeState(contig: String,
                          start: Long,

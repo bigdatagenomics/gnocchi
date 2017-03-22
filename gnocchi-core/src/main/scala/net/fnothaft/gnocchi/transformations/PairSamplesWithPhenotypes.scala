@@ -17,7 +17,8 @@
  */
 package net.fnothaft.gnocchi.transformations
 
-import net.fnothaft.gnocchi.models.{ GenotypeState, Phenotype }
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.Variant
 

@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.association
+package net.fnothaft.gnocchi.algorithms.siteregression
 
-import breeze.numerics.log10
 import breeze.linalg._
-import breeze.numerics._
-import net.fnothaft.gnocchi.models.Association
+import breeze.numerics.{log10, _}
+import net.fnothaft.gnocchi.algorithms.Dominant
+import net.fnothaft.gnocchi.rdd.association.Association
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.formats.avro.Variant

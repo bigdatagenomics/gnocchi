@@ -15,10 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.association
+package net.fnothaft.gnocchi.algorithms
 
 import breeze.linalg.DenseVector
 import net.fnothaft.gnocchi.GnocchiFunSuite
+import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticAssociation
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
 

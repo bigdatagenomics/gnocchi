@@ -17,8 +17,8 @@
  */
 package net.fnothaft.gnocchi.transformations
 
-import net.fnothaft.gnocchi.models.GenotypeState
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import org.bdgenomics.formats.avro.{Contig, Variant}
 
 object Gs2variant {
 

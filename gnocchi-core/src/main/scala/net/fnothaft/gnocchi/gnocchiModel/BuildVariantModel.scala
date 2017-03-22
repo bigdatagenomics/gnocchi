@@ -17,8 +17,13 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.association.{ LinearSiteRegression, LogisticSiteRegression }
+import net.fnothaft.gnocchi.algorithms.siteregression.{LinearSiteRegression, LogisticSiteRegression}
 import net.fnothaft.gnocchi.models._
+import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
+import net.fnothaft.gnocchi.models.variant.VariantModel
+import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.rdd.association.Association
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import org.bdgenomics.formats.avro.Variant
 
 trait BuildVariantModel {

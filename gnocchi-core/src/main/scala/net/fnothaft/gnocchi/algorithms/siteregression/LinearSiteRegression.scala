@@ -15,15 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.association
+package net.fnothaft.gnocchi.algorithms.siteregression
 
-import net.fnothaft.gnocchi.models.Association
-import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
+import net.fnothaft.gnocchi.algorithms.Dominant
+import net.fnothaft.gnocchi.rdd.association.Association
+import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
+import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
+import org.bdgenomics.formats.avro.Variant
 
 import scala.math.log10
-import org.apache.commons.math3.distribution.TDistribution
-import org.bdgenomics.formats.avro.Variant
 
 trait LinearSiteRegression extends SiteRegression {
 

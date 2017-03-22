@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.association
+package net.fnothaft.gnocchi.algorithms.siteregression
 
-import net.fnothaft.gnocchi.models.{ Association, GenotypeState, Phenotype }
+import net.fnothaft.gnocchi.rdd.association.Association
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.rdd.RDD
-import org.bdgenomics.adam.models.ReferenceRegion
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.formats.avro.{Contig, Variant}
 
 trait SiteRegression extends Serializable {
 

@@ -17,8 +17,14 @@
  */
 package net.fnothaft.gnocchi.gnocchiModel
 
-import net.fnothaft.gnocchi.association.{ AdditiveLinearAssociation, AdditiveLogisticAssociation, DominantLinearAssociation, DominantLogisticAssociation }
+import net.fnothaft.gnocchi.algorithms.siteregression.{AdditiveLinearAssociation, AdditiveLogisticAssociation, DominantLinearAssociation, DominantLogisticAssociation}
+import net.fnothaft.gnocchi.algorithms.{DominantLinearAssociation, DominantLogisticAssociation}
 import net.fnothaft.gnocchi.models._
+import net.fnothaft.gnocchi.models.linear.AdditiveLinearGnocchiModel
+import net.fnothaft.gnocchi.models.logistic.AdditiveLogisticGnocchiModel
+import net.fnothaft.gnocchi.rdd.association.Association
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
