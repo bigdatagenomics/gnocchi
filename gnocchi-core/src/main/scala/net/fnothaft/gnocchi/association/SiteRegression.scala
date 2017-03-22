@@ -51,10 +51,7 @@ trait SiteRegression extends Serializable {
       val (_, genoPheno) = keyGenoPheno
       val (gs, pheno) = genoPheno
       val variant = new Variant()
-      val contig = new Contig()
-
-      contig.setContigName(gs.contig)
-      variant.setContig(contig)
+      variant.setContigName(gs.contig)
       variant.setStart(gs.start)
       variant.setEnd(gs.end)
       variant.setAlternateAllele(gs.alt)

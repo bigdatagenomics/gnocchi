@@ -53,9 +53,7 @@ case class GenotypeState(contig: String,
 
   def variant: Variant = {
     Variant.newBuilder()
-      .setContig(Contig.newBuilder()
-        .setContigName(contig)
-        .build())
+      .setContigName(contig)
       .setStart(start)
       .setEnd(end)
       .setReferenceAllele(ref)
