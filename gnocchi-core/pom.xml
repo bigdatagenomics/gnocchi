@@ -77,13 +77,13 @@
     </dependency>
     <dependency>
       <groupId>org.bdgenomics.adam</groupId>
-      <artifactId>adam-core_${scala.version.prefix}</artifactId>
+      <artifactId>adam-core-spark2_${scala.version.prefix}</artifactId>
       <!--<version>0.21.0</version>-->
       <version>${adam.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bdgenomics.adam</groupId>
-      <artifactId>adam-core_${scala.version.prefix}</artifactId>
+      <artifactId>adam-core-spark2_${scala.version.prefix}</artifactId>
       <version>${adam.version}</version>
       <!--<version>0.21.0</version>-->
       <type>test-jar</type>
