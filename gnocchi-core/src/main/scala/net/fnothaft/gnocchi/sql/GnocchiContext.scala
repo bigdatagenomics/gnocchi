@@ -60,7 +60,7 @@ class GnocchiContext private[sql] (@transient sqlContext: SQLContext) extends Se
       c
     }).reduce(_ + _)
 
-    filteredGtFrame.select(filteredGtFrame("variant.contigName").as("contig"),
+    filteredGtFrame.select(filteredGtFrame("variant.contigName").as("contigName"),
       filteredGtFrame("variant.start").as("start"),
       filteredGtFrame("variant.end").as("end"),
       filteredGtFrame("variant.referenceAllele").as("ref"),

@@ -24,7 +24,7 @@ object Gs2variant {
 
   def apply(gs: GenotypeState): Variant = {
     val variant = new Variant()
-    variant.setContigName(gs.contig)
+    variant.setContigName(gs.contigName)
     variant.setStart(gs.start)
     variant.setEnd(gs.end)
     variant.setAlternateAllele(gs.alt)
