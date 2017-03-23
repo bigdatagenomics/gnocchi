@@ -32,6 +32,8 @@ import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.functions.{ concat, lit }
 import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
 import org.apache.hadoop.fs.{ FileSystem, Path }
+import org.apache.spark.sql.functions.{ concat, lit, sum, count, struct, explode, collect_list }
+import net.fnothaft.gnocchi.models.{ Phenotype, Association, AuxEncoders }
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -147,42 +149,36 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-    val genoStatesWithNames = genotypeStates.select(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
-      genotypeStates("start"),
-      genotypeStates("end"),
-      genotypeStates("ref"),
-      genotypeStates("alt"),
-      genotypeStates("sampleId"),
-      genotypeStates("genotypeState"),
-      genotypeStates("missingGenotypes"))
-    println(genoStatesWithNames.take(10).toList)
+    val genoStatesWithNames = genotypeStates.select(
+      struct(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
+        genotypeStates("start"),
+        genotypeStates("end"),
+        genotypeStates("ref"),
+        genotypeStates("alt"),
+        genotypeStates("sampleId"),
+        genotypeStates("genotypeState"),
+        genotypeStates("missingGenotypes")).as("gs"))
 
     // mind filter
-    genoStatesWithNames.registerTempTable("genotypeStates")
-
-    //val mindDF = sqlContext.sql("SELECT sampleId FROM genotypeStates GROUP BY sampleId HAVING SUM(missingGenotypes)/(COUNT(sampleId)*2) <= %s".format(args.mind))
-    val mindDF = genoStatesWithNames
-      .groupBy($"sampleId")
-      .agg((sum($"missingGenotypes") / (count($"sampleId") * lit(2))).alias("mind"))
+    val sampleFilteredDF = genoStatesWithNames
+      .groupBy($"gs.sampleId")
+      .agg((sum($"gs.missingGenotypes") / (count($"gs") * lit(2))).alias("mind"),
+        collect_list($"gs").as("gsList"))
       .filter($"mind" <= args.mind)
-      .select($"sampleId")
-    val samples = mindDF.collect().map(_(0))
-    // TODO: Resolve with "IN" sql command once spark2.0 is integrated
-    val sampleFiltered = genoStatesWithNames.filter($"sampleId".isin(samples: _*))
+      .select(explode($"gsList").as("gs"))
 
-    val genoFilterDF = sampleFiltered
-      .groupBy($"contig")
-      .agg(sum($"missingGenotypes").as("missCount"),
-        (count($"sampleId") * lit(2)).as("total"),
-        sum($"genotypeState").as("alleleCount"))
+    val genoFilteredDF = sampleFilteredDF
+      .groupBy($"gs.contig")
+      .agg(sum($"gs.missingGenotypes").as("missCount"),
+        (count($"gs") * lit(2)).as("total"),
+        sum($"gs.genotypeState").as("alleleCount"),
+        collect_list($"gs").as("gsList"))
       .filter(($"missCount" / $"total") <= lit(args.geno))
       .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(args.maf))
       .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
-      .select($"contig")
-    val contigs = genoFilterDF.collect().map(_(0))
-    val filteredGenotypeStates = sampleFiltered.filter($"contig".isin(contigs: _*))
-    // Remove all datapoints where both alleles are missing
-    val finalGenotypeStates = filteredGenotypeStates.filter($"missingGenotypes" !== lit(2))
+      .select(explode($"gs").as("gs"))
+
+    val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" !== lit(2)).select($"gs.*")
 
     finalGenotypeStates.as[GenotypeState]
   }
