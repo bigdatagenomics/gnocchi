@@ -21,6 +21,7 @@ import net.fnothaft.gnocchi.models.{ Association, GenotypeState, MultipleRegress
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
+import scala.collection.JavaConversions._
 
 trait SiteRegression extends Serializable {
 
@@ -51,13 +52,12 @@ trait SiteRegression extends Serializable {
       val (_, genoPheno) = keyGenoPheno
       val (gs, pheno) = genoPheno
       val variant = new Variant()
-      val contig = new Contig()
-
-      contig.setContigName(gs.contig)
-      variant.setContig(contig)
+      variant.setContigName(gs.contigName)
       variant.setStart(gs.start)
       variant.setEnd(gs.end)
       variant.setAlternateAllele(gs.alt)
+      variant.setNames(Seq())
+      variant.setFiltersFailed(Seq())
       ((variant, pheno.phenotype), genoPheno)
     })
       .groupByKey()

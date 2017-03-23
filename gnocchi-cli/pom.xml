@@ -42,6 +42,7 @@
     <dependency>
       <groupId>net.fnothaft</groupId>
       <artifactId>gnocchi-core_2.10</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.parquet</groupId>
@@ -56,8 +57,8 @@
     </dependency>
     <dependency>
         <groupId>org.bdgenomics.adam</groupId>
-        <artifactId>adam-cli_2.10</artifactId>
-        <version>0.19.0</version>
+        <artifactId>adam-cli-spark2_${scala.version.prefix}</artifactId>
+        <version>0.21.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.directory.studio</groupId>
@@ -78,9 +79,9 @@
     </dependency>
     <dependency>
       <groupId>org.bdgenomics.adam</groupId>
-      <artifactId>adam-core_${scala.version.prefix}</artifactId>
+      <artifactId>adam-core-spark2_${scala.version.prefix}</artifactId>
       <version>${adam.version}</version>
-      <!--<version>0.19.0</version>-->
+      <!--<version>0.21.0</version>-->
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>

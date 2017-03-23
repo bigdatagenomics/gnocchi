@@ -142,7 +142,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-    val genoStatesWithNames = genotypeStates.select(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
+    val genoStatesWithNames = genotypeStates.select(concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
       genotypeStates("start"),
       genotypeStates("end"),
       genotypeStates("ref"),
@@ -242,7 +242,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     if (args.saveAsText) {
       associations.rdd.keyBy(_.logPValue)
         .sortBy(_._1)
-        .map(r => "%s, %s, %s".format(r._2.variant.getContig.getContigName,
+        .map(r => "%s, %s, %s".format(r._2.variant.getContigName,
           r._2.variant.getStart, Math.pow(10, r._2.logPValue).toString))
         .saveAsTextFile(args.associations)
     } else {
