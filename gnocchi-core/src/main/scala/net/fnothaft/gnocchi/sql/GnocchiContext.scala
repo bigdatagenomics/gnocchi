@@ -51,16 +51,16 @@ class GnocchiContext private[sql] (@transient sqlContext: SQLContext) extends Se
 
     // generate expression
     val genotypeState = (0 until ploidy).map(i => {
-      val c: Column = when(filteredGtFrame("alleles").getItem(i) === "Ref", 1).otherwise(0)
+      val c: Column = when(filteredGtFrame("alleles").getItem(i) === "REF", 1).otherwise(0)
       c
     }).reduce(_ + _)
 
     val missingGenotypes = (0 until ploidy).map(i => {
-      val c: Column = when(filteredGtFrame("alleles").getItem(i) === "NoCall", 1).otherwise(0)
+      val c: Column = when(filteredGtFrame("alleles").getItem(i) === "NO_CALL", 1).otherwise(0)
       c
     }).reduce(_ + _)
 
-    filteredGtFrame.select(filteredGtFrame("variant.contig.contigName").as("contig"),
+    filteredGtFrame.select(filteredGtFrame("variant.contigName").as("contig"),
       filteredGtFrame("variant.start").as("start"),
       filteredGtFrame("variant.end").as("end"),
       filteredGtFrame("variant.referenceAllele").as("ref"),

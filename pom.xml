@@ -54,10 +54,10 @@
     <hadoop.version>2.7.3</hadoop.version>
     <!-- <hadoop.version>2.6.0-cdh5.8.0</hadoop.version> -->
     <java.version>1.8</java.version>
-    <parquet.version>1.8.1</parquet.version>
-    <scala.version>2.11.4</scala.version>
-    <scala.version.prefix>2.11</scala.version.prefix>
-    <spark.version>2.1.0</spark.version>
+    <parquet.version>1.7.0</parquet.version>
+    <scala.version>2.10.6</scala.version>
+    <scala.version.prefix>2.10</scala.version.prefix>
+    <spark.version>1.6.3</spark.version>
     <!-- Edit the following line to configure the Hadoop (HDFS) version. -->
     <utils.version>0.2.11</utils.version>
     <scoverage.plugin.version>1.1.1</scoverage.plugin.version>
