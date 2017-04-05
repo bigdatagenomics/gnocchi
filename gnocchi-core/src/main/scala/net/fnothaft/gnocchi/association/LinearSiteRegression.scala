@@ -20,8 +20,9 @@ package net.fnothaft.gnocchi.association
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.bdgenomics.adam.models.ReferenceRegion
-import scala.math.{log10, min}
+import scala.math.{ log10, min }
 import org.apache.commons.math3.distribution.TDistribution
+import org.apache.commons.math3.linear.SingularMatrixException
 import org.bdgenomics.formats.avro.Variant
 
 trait LinearSiteRegression extends SiteRegression {
@@ -61,61 +62,27 @@ trait LinearSiteRegression extends SiteRegression {
       y(i) = observations(i)._2(0)
     }
 
-    var associationObject = new Association(null, null, -9.0, null)
-    var matrixSingular = false
     try {
-      // create linear model
       val ols = new OLSMultipleLinearRegression()
-
-      // input sample data
       ols.newSampleData(y, x)
-
-      // calculate coefficients
       val beta = ols.estimateRegressionParameters()
-
-      // calculate Rsquared
       val rSquared = ols.calculateRSquared()
-
-      // compute the regression parameters standard errors
       val standardErrors = ols.estimateRegressionParametersStandardErrors()
-
-      // get standard error for genotype parameter (for p value calculation)
       val genoSE = standardErrors(1)
 
-      // test statistic t for jth parameter is equal to bj/SEbj, the parameter estimate divided by its standard error
       val t = beta(1) / genoSE
 
-      /* calculate p-value and report:
-        Under null hypothesis (i.e. the j'th element of weight vector is 0) the relevant distribution is
-        a t-distribution with N-p-1 degrees of freedom.
-      */
-      val tDist = new TDistribution(numObservations - 1)
-      val pvalue = min((1.0 - tDist.cumulativeProbability(t)), tDist.cumulativeProbability(t))
+      val tDist = new TDistribution(numObservations - phenotypesLength - 1)
+      val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
 
-      // pack up the information into an Association object
-      //    val variant = new Variant()
-      //    val contig = new Contig()
-      //    contig.setContigName(locus.referenceName)
-      //    variant.setContig(contig)
-      //    variant.setStart(locus.start)
-      //    variant.setEnd(locus.end)
-      //    variant.setAlternateAllele(altAllele)
       val statistics = Map("rSquared" -> rSquared,
         "weights" -> beta,
         "intercept" -> beta(0))
-      associationObject = new Association(variant, phenotype, logPValue, statistics)
+      Association(variant, phenotype, logPValue, statistics)
+    } catch {
+      case _: SingularMatrixException => Association(variant, phenotype, 0.0, Map())
     }
-    catch {
-      case error: org.apache.commons.math3.linear.SingularMatrixException => matrixSingular = true
-    }
-    if (matrixSingular) {
-      val statistics = Map()
-      associationObject = Association(variant, phenotype, 0.0, Map())
-      println("Caught a singular matrix error!")
-    }
-
-    return associationObject
   }
 }
 

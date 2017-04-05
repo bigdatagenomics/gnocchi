@@ -150,7 +150,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
     val genoStatesWithNames = genotypeStates.select(
-      struct(concat($"contig", lit("_"), $"end", lit("_"), $"alt") as "contig",
+      struct(concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
         genotypeStates("start"),
         genotypeStates("end"),
         genotypeStates("ref"),
@@ -168,7 +168,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .select(explode($"gsList").as("gs"))
 
     val genoFilteredDF = sampleFilteredDF
-      .groupBy($"gs.contig")
+      .groupBy($"gs.contigName")
       .agg(sum($"gs.missingGenotypes").as("missCount"),
         (count($"gs") * lit(2)).as("total"),
         sum($"gs.genotypeState").as("alleleCount"),
@@ -176,7 +176,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       .filter(($"missCount" / $"total") <= lit(args.geno))
       .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(args.maf))
       .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
-      .select(explode($"gs").as("gs"))
+      .select(explode($"gsList").as("gs"))
 
     val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" !== lit(2)).select($"gs.*")
 
