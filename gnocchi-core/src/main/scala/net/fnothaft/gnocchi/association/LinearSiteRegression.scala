@@ -19,9 +19,10 @@ package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-import org.apache.commons.math3.linear.SingularMatrixException
-import scala.math.log10
+import org.bdgenomics.adam.models.ReferenceRegion
+import scala.math.{ log10, min }
 import org.apache.commons.math3.distribution.TDistribution
+import org.apache.commons.math3.linear.SingularMatrixException
 import org.bdgenomics.formats.avro.Variant
 
 trait LinearSiteRegression extends SiteRegression {

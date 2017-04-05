@@ -99,7 +99,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     assert(regressionResult(0).statistics("rSquared") == 1.0, "rSquared = " + regressionResult(0).statistics("rSquared"))
   }
 
-  sparkTest("Test full pipeline: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
+  ignore("Test full pipeline: 5 snps, 10 samples, 1 phenotype, 2 random noise covars") {
     /* 
      Uniform White Noise for Covar 1 (pheno4): 
       0.8404
