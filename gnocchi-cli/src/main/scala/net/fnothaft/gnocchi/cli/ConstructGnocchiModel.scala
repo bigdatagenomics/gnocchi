@@ -58,9 +58,7 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
     val (model, associationObjects): (GnocchiModel, RDD[Association]) = buildModel[Array[Double]](genotypeStates.rdd, phenotypes, sc)
 
     val sparkSession = SparkSession.builder.getOrCreate()
-
     import sparkSession.implicits._
-
     implicit val associationEncoder = org.apache.spark.sql.Encoders.kryo[Association]
     regPheno.logResults(associationObjects.toDS, sc)
 
