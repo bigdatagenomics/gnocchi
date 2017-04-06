@@ -18,20 +18,20 @@
 package net.fnothaft.gnocchi.sql
 
 import net.fnothaft.gnocchi.models.GenotypeState
-import org.apache.spark.sql.{ Column, DataFrame, Dataset, SQLContext }
+import org.apache.spark.sql.{ Column, DataFrame, Dataset, SparkSession }
 import org.apache.spark.sql.functions._
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.formats.avro.Genotype
 
 object GnocchiContext {
 
-  implicit def gcFromSqlContext(sqlContext: SQLContext): GnocchiContext =
-    new GnocchiContext(sqlContext)
+  implicit def gcFromsparkSession(sparkSession: SparkSession): GnocchiContext =
+    new GnocchiContext(sparkSession)
 }
 
-class GnocchiContext private[sql] (@transient sqlContext: SQLContext) extends Serializable {
+class GnocchiContext private[sql] (@transient val sparkSession: SparkSession) extends Serializable {
 
-  import sqlContext.implicits._
+  import sparkSession.implicits._
 
   def toGenotypeStateDataset(gtFrame: DataFrame, ploidy: Int): Dataset[GenotypeState] = {
     toGenotypeStateDataFrame(gtFrame, ploidy).as[GenotypeState]
@@ -42,7 +42,7 @@ class GnocchiContext private[sql] (@transient sqlContext: SQLContext) extends Se
     val filteredGtFrame = if (sparse) {
       // if we want the sparse representation, we prefilter
       val sparseFilter = (0 until ploidy).map(i => {
-        gtFrame("alleles").getItem(i) !== "Ref"
+        gtFrame("alleles").getItem(i) =!= "Ref"
       }).reduce(_ || _)
       gtFrame.filter(sparseFilter)
     } else {

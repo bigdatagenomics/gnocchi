@@ -21,7 +21,7 @@ import htsjdk.samtools.ValidationStringency
 import net.fnothaft.gnocchi.models._
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Dataset, Row, SQLContext }
+import org.apache.spark.sql.{ Dataset, Row, SparkSession }
 import org.bdgenomics.utils.misc.Logging
 
 private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable with Logging {
@@ -79,8 +79,8 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
 
     // TODO: NEED TO ASSERT THAT ALL THE PHENOTYPES BE REPRESENTED BY NUMBERS.
 
-    val sqlContext = SQLContext.getOrCreate(sc)
-    import sqlContext.implicits._
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
 
     var splitHeader = header.split("\t")
     val headerTabDelimited = splitHeader.length != 1
