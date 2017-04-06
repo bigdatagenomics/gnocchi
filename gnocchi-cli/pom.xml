@@ -58,7 +58,7 @@
     <dependency>
         <groupId>org.bdgenomics.adam</groupId>
         <artifactId>adam-cli-spark2_${scala.version.prefix}</artifactId>
-        <version>0.21.0</version>
+        <version>0.22.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.directory.studio</groupId>
