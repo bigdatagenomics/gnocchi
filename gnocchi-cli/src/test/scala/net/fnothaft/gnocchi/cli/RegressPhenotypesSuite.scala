@@ -136,7 +136,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val regressionResult = assocs.collect()
 
     RegressPhenotypes(cliArgs).logResults(assocs, sc)
-    assert(regressionResult(0).statistics("rSquared") == 0.833277921795612, "rSquared = " + regressionResult(0).statistics("rSquared"))
+    assert(regressionResult(0).statistics("rSquared") == 0.8438315575507651, "rSquared = " + regressionResult(0).statistics("rSquared"))
 
   }
 
