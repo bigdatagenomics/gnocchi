@@ -23,7 +23,6 @@ import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 import org.bdgenomics.utils.misc.Logging
-
 import scala.collection.JavaConversions._
 
 trait SiteRegression extends Serializable with Logging {
@@ -78,7 +77,7 @@ trait SiteRegression extends Serializable with Logging {
       catch {
         case error: SingularMatrixException => {
           validationStringency match {
-            case "STRICT" => throw error
+            case "STRICT" => throw new SingularMatrixException()
             case "LENIENT" => {
               logError("Singular Matrix found in SiteRegression")
               Association(variant, pheno, 0.0, null)

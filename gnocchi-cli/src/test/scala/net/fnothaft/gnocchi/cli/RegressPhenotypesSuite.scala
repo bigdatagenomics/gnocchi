@@ -140,4 +140,23 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
 
   }
 
+  sparkTest("Test that singular matrix exceptions are caught: LENIENT Case") {
+    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("SingularGeno.vcf").getFile
+    val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("SingularPheno.txt").getFile
+    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet -validationStringency LENIENT"
+    val cliArgs = cliCall.split(" ").drop(2)
+    val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
+    val phenotypes = RegressPhenotypes(cliArgs).loadPhenotypes(sc)
+    val regressionResult = RegressPhenotypes(cliArgs).performAnalysis(genotypeStates, phenotypes, sc).collect()
+  }
+
+  sparkTest("Test that singular matrix exceptions are caught: STRICT Case") {
+    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("SingularGeno.vcf").getFile
+    val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("SingularPheno.txt").getFile
+    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet -validationStringency STRICT"
+    val cliArgs = cliCall.split(" ").drop(2)
+    val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
+    val phenotypes = RegressPhenotypes(cliArgs).loadPhenotypes(sc)
+    val regressionResult = RegressPhenotypes(cliArgs).performAnalysis(genotypeStates, phenotypes, sc).collect()
+  }
 }
