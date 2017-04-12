@@ -49,7 +49,7 @@ trait SiteRegression extends Serializable with Logging {
    */
   final def apply[T](genotypes: RDD[GenotypeState],
                      phenotypes: RDD[Phenotype[T]],
-                     validationStringency: String = "LENIENT"): RDD[Association] = {
+                     validationStringency: String = "STRICT"): RDD[Association] = {
     val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
 
     /* Individuals with the same contigs (pairing of chromosome, end position, alt value) will be grouped together */

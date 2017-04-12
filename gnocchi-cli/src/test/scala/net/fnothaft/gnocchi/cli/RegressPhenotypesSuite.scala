@@ -153,7 +153,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   sparkTest("Test that singular matrix exceptions are caught: STRICT Case") {
     val genoFilePath = ClassLoader.getSystemClassLoader.getResource("SingularGeno.vcf").getFile
     val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("SingularPheno.txt").getFile
-    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet -validationStringency STRICT"
+    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno1 -overwriteParquet -validationStringency STRICT -maf 0 -geno 0 -mind 0"
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = RegressPhenotypes(cliArgs).loadGenotypes(sc)
     val phenotypes = RegressPhenotypes(cliArgs).loadPhenotypes(sc)
