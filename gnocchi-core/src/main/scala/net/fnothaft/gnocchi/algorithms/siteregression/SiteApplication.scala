@@ -17,13 +17,14 @@
  */
 package net.fnothaft.gnocchi.algorithms.siteregression
 
+import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.rdd.association.Association
 import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.rdd.RDD
-import org.bdgenomics.formats.avro.{Contig, Variant}
+import org.bdgenomics.formats.avro.{ Contig, Variant }
 
-trait SiteRegression extends Serializable {
+trait SiteApplication[VM <: VariantModel[VM]] extends Serializable {
 
   val regressionName: String
 
@@ -31,10 +32,10 @@ trait SiteRegression extends Serializable {
 
   /* 
   Takes in an RDD of GenotypeStates, constructs the proper observations array for each site, and feeds it into 
-  regressSite
+  applyToSite
   */
-  final def apply[T](rdd: RDD[GenotypeState],
-                     phenotypes: RDD[Phenotype]): RDD[Association] = {
+  final def apply(rdd: RDD[GenotypeState],
+                  phenotypes: RDD[Phenotype]): RDD[Association[VM]] = {
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
@@ -44,7 +45,6 @@ trait SiteRegression extends Serializable {
         // unpack the information into genotype state and pheno
         val (gs, pheno) = p
         // extract referenceAllele and phenotype and pack up with p, then group by key
-
         // pack up the information into an Association object
         val variant = new Variant()
         val contig = new Contig()
@@ -58,7 +58,7 @@ trait SiteRegression extends Serializable {
       .map(site => {
         val ((variant, pheno), observations) = site
         // build array to regress on, and then regress
-        regressSite(observations.map(p => {
+        applyToSite(observations.map(p => {
           // unpack p
           val (genotypeState, phenotype) = p
           // return genotype and phenotype in the correct form
@@ -73,19 +73,19 @@ trait SiteRegression extends Serializable {
    * Computes the association score of a genotype against a phenotype and
    * covariates. To be implemented by any class that implements this trait.
    */
-  protected def regressSite(observations: Array[(Double, Array[Double])],
+  protected def applyToSite(observations: Array[(Double, Array[Double])],
                             variant: Variant,
-                            phenotype: String): Association
+                            phenotype: String): Association[VM]
 }
 
-trait Additive extends SiteRegression {
+trait Additive {
 
   protected def clipOrKeepState(gs: GenotypeState): Double = {
     gs.genotypeState.toDouble
   }
 }
 
-trait Dominant extends SiteRegression {
+trait Dominant {
 
   protected def clipOrKeepState(gs: GenotypeState): Double = {
     if (gs.genotypeState == 0) 0.0 else 1.0

@@ -17,29 +17,22 @@
  */
 package net.fnothaft.gnocchi.models.variant
 
-import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticAssociation
-import net.fnothaft.gnocchi.gnocchiModel.{BuildAdditiveLinearVariantModel, BuildAdditiveLogisticVariantModel}
-import net.fnothaft.gnocchi.rdd.association.Association
-import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.Variant
+import org.apache.spark.SparkContext._
 
-trait VariantModel extends Serializable {
+trait VariantModel[VM <: VariantModel[VM]] {
   val variantId: String
   val variant: Variant
   val numSamples: Int
   val modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
-  val weights: Array[Double]
+  val weights: List[Double] // using a List so that comparison of VariantModels can be done with ==
   val pValue: Double
   val geneticParameterStandardError: Double
-  val haplotypeBlock: String
-  val association: Association
+  val phenotype: String
 
   /**
    * Returns an updated VariantModel given a new batch of data
    *
-   * @note observations is an array of tuples with (genotypeState, array of phenotypes)
-   *       where the array of phenotypes has the primary phenotype as the first
-   *       value and covariates following it.
    * @param observations Array containing data at the particular site for
    *                     all samples. Format of each element is:
    *                     (gs, Array(pheno, covar1, ... covarp))
@@ -47,45 +40,38 @@ trait VariantModel extends Serializable {
    *                     given sample [0, 1, or 2], pheno is the sample's value for
    *                     the phenotype being regressed on, and covar1-covarp are that
    *                     sample's values for each covariate.
-   * @param locus Locus of the variant
-   * @param altAllele Alternate allele
-   * @param phenotype Text description of the phenotype and covariates being
-   *                  considered.
    */
-  protected def update(observations: Array[(Double, Array[Double])],
-             locus: ReferenceRegion,
-             altAllele: String,
-             phenotype: String): VariantModel
+  def update(observations: Array[(Double, Array[Double])]): VM
 
   /**
-   * Returns updated weights for the model by averaging the previous weights with the
-   * given weights. The batchWeights should be the result of a regression
-   * run on the new batch.
+   * Returns updated weights for the model taking a weighted average of the previous
+   * weights with the given weights and number of samples. The batchWeights should
+   * be the result of a regression run on the new batch of data.
    *
    * @param batchWeights The batch-optimized weights from a run of linearSiteRegression
-   *                     on the site associated with the variantModel.
+   *                     or logisticSiteRegression on the site associated with the
+   *                     VariantModel.
+   * @param batchNumSamples Number of samples in the new batch of data
    * @return Returns updated weights
    */
-  def updateWeights(batchWeights: Array[Double]): Array[Double] = {
-
+  def updateWeights(batchWeights: List[Double], batchNumSamples: Int): List[Double] = {
+    val updatedWeights = new Array[Double](weights.length)
+    for (i <- weights.indices) {
+      updatedWeights(i) = (batchWeights(i) * batchNumSamples + weights(i) * numSamples) / (batchNumSamples + numSamples)
+    }
+    updatedWeights.toList
   }
 
   /**
    * Returns updated numSamples by adding number of samples in batch to the number
-   * of samepls the model has already seen.
+   * of samples the model has already seen.
    *
    * @param batchNumSamples The number of samples in the new batch
+   * @return Returns updated number of samples
    */
   def updateNumSamples(batchNumSamples: Int): Int = {
-
+    numSamples + batchNumSamples
   }
 
 }
-
-
-
-
-
-
-
 

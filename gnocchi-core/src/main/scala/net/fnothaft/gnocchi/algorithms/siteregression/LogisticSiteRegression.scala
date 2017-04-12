@@ -18,14 +18,15 @@
 package net.fnothaft.gnocchi.algorithms.siteregression
 
 import breeze.linalg._
-import breeze.numerics.{log10, _}
-import net.fnothaft.gnocchi.algorithms.Dominant
-import net.fnothaft.gnocchi.rdd.association.Association
+import breeze.numerics.{ log10, _ }
+import net.fnothaft.gnocchi.models.variant.VariantModel
+import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.rdd.association.{ AdditiveLogisticAssociation, Association, DominantLogisticAssociation }
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.formats.avro.Variant
 
-trait LogisticSiteRegression extends SiteRegression {
+trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
 
   /**
    * This method will perform logistic regression on a single site.
@@ -36,9 +37,9 @@ trait LogisticSiteRegression extends SiteRegression {
    * @return The Association object that results from the linear regression
    */
 
-  def regressSite(observations: Array[(Double, Array[Double])],
+  def applyToSite(observations: Array[(Double, Array[Double])],
                   variant: Variant,
-                  phenotype: String): Association = {
+                  phenotype: String): Association[VM] = {
 
     // transform the data in to design matrix and y matrix compatible with mllib's logistic regresion
     val observationLength = observations(0)._2.length
@@ -122,20 +123,19 @@ trait LogisticSiteRegression extends SiteRegression {
     // calculate the standard error for the genotypic predictor
     var matrixSingular = false
 
-    var toRet = new Association(null, null, -9.0, null)
     try {
       val fisherInfo = -hessian
       val fishInv = inv(fisherInfo)
       val standardErrors = sqrt(abs(diag(fishInv)))
       val genoStandardError = standardErrors(1)
 
-      // calculate Wald z-scores
+      // calculate Wald statistic for each parameter in the regression model
       val zScores: DenseVector[Double] = DenseVector(beta) :/ standardErrors
-      val zScoresSquared = zScores :* zScores
+      val waldStats = zScores :* zScores
 
       // calculate cumulative probs
       val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
-      val probs = zScoresSquared.map(zi => {
+      val probs = waldStats.map(zi => {
         chiDist.cumulativeProbability(zi)
       })
 
@@ -159,25 +159,41 @@ trait LogisticSiteRegression extends SiteRegression {
         "prob" -> pi,
         "rSquared" -> 0.0)
 
-      toRet = Association(variant, phenotype, logWaldTests(1), statistics)
+      constructAssociation(variant.getContig.getContigName,
+        numObservations,
+        "Logistic",
+        beta,
+        genoStandardError,
+        variant,
+        phenotype,
+        waldTests(1),
+        logWaldTests(1),
+        statistics)
     } catch {
-      case error: breeze.linalg.MatrixSingularException => matrixSingular = true
+      case error: breeze.linalg.MatrixSingularException => {
+        matrixSingular = true
+        constructAssociation(variant.getContig.getContigName,
+          numObservations,
+          "Logistic",
+          beta,
+          1.0,
+          variant,
+          phenotype,
+          0.0,
+          0.0,
+          Map(
+            "numSamples" -> 0,
+            "weights" -> beta,
+            "intercept" -> 0.0,
+            "'P Values' aka Wald Tests" -> 0.0,
+            "log of wald tests" -> 0.0,
+            "fisherInfo" -> 0.0,
+            "XiVectors" -> xiVectors(0),
+            "xixit" -> xixiT(0),
+            "prob" -> pi,
+            "rSquared" -> 0.0))
+      }
     }
-    if (matrixSingular) {
-      val statistics = Map()
-      toRet = Association(variant, phenotype, 0.0, Map(
-        "numSamples" -> 0,
-        "weights" -> beta,
-        "intercept" -> 0.0,
-        "'P Values' aka Wald Tests" -> 0.0,
-        "log of wald tests" -> 0.0,
-        "fisherInfo" -> 0.0,
-        "XiVectors" -> xiVectors(0),
-        "xixit" -> xixiT(0),
-        "prob" -> pi,
-        "rSquared" -> 0.0))
-    }
-    toRet
   }
 
   def logit(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
@@ -203,12 +219,53 @@ trait LogisticSiteRegression extends SiteRegression {
     }
     maxExp + Math.log(sums)
   }
+
+  def constructAssociation(variantId: String,
+                           numSamples: Int,
+                           modelType: String,
+                           weights: Array[Double],
+                           geneticParameterStandardError: Double,
+                           variant: Variant,
+                           phenotype: String,
+                           logPValue: Double,
+                           pValue: Double,
+                           statistics: Map[String, Any]): Association[VM]
 }
 
-object AdditiveLogisticAssociation extends LogisticSiteRegression with Additive {
+object AdditiveLogisticRegression extends AdditiveLogisticRegression {
   val regressionName = "additiveLogisticRegression"
 }
+trait AdditiveLogisticRegression extends LogisticSiteRegression[AdditiveLogisticVariantModel] with Additive {
+  def constructAssociation(variantId: String,
+                           numSamples: Int,
+                           modelType: String,
+                           weights: Array[Double],
+                           geneticParameterStandardError: Double,
+                           variant: Variant,
+                           phenotype: String,
+                           logPValue: Double,
+                           pValue: Double,
+                           statistics: Map[String, Any]): AdditiveLogisticAssociation = {
+    new AdditiveLogisticAssociation(variantId, numSamples, modelType, weights, geneticParameterStandardError,
+      variant, phenotype, logPValue, pValue, statistics)
+  }
+}
 
-object DominantLogisticAssociation extends LogisticSiteRegression with Dominant {
+object DominantLogisticRegression extends AdditiveLogisticRegression {
   val regressionName = "dominantLogisticRegression"
+}
+trait DominantLogisticRegression extends LogisticSiteRegression[AdditiveLogisticVariantModel] with Dominant {
+  def constructAssociation(variantId: String,
+                           numSamples: Int,
+                           modelType: String,
+                           weights: Array[Double],
+                           geneticParameterStandardError: Double,
+                           variant: Variant,
+                           phenotype: String,
+                           logPValue: Double,
+                           pValue: Double,
+                           statistics: Map[String, Any]): DominantLogisticAssociation = {
+    new DominantLogisticAssociation(variantId, numSamples, modelType, weights, geneticParameterStandardError,
+      variant, phenotype, logPValue, pValue, statistics)
+  }
 }

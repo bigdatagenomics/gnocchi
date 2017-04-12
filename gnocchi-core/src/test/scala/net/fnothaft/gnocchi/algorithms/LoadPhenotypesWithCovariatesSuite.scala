@@ -18,10 +18,6 @@
 package net.fnothaft.gnocchi.algorithms
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
 
 class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
 
@@ -75,6 +71,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     }
   }
 
+  //TODO: Fix this
   sparkTest("Read in a 2-line file") {
     /*
     - Read in a 2-line file
@@ -115,6 +112,7 @@ class LoadPhenotypesWithCovariatesSuite extends GnocchiFunSuite {
     */
     val filepath = ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
     val covarpath = ClassLoader.getSystemClassLoader.getResource("MissingPhenotypes.txt").getFile
+    // TODO: Fix this
     val p1 = LoadPhenotypesWithCovariates(false, filepath, covarpath, "pheno2", "pheno3,pheno4", sc)
     // assert that it is the right size
     assert(p1.collect().length === 2)

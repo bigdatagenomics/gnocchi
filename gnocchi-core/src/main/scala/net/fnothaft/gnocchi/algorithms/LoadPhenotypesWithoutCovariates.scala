@@ -22,7 +22,7 @@ import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Dataset, Row, SQLContext}
+import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 
 /*
 Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.

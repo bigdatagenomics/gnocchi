@@ -19,10 +19,10 @@ package net.fnothaft.gnocchi.sql
 
 import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import org.apache.spark.SparkContext._
-import org.apache.spark.mllib.linalg.{Vector, Vectors}
-import org.apache.spark.mllib.linalg.distributed.{MatrixEntry, RowMatrix}
+import org.apache.spark.mllib.linalg.{ Vector, Vectors }
+import org.apache.spark.mllib.linalg.distributed.{ MatrixEntry, RowMatrix }
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Dataset, Row}
+import org.apache.spark.sql.{ Dataset, Row }
 import org.bdgenomics.formats.avro.Variant
 
 object GenotypeStateMatrix extends Serializable {

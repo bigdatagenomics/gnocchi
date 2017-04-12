@@ -1,13 +1,11 @@
 package net.fnothaft.gnocchi.models.variant.linear
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.rdd.association.Association
+import net.fnothaft.gnocchi.rdd.association.{ AdditiveLinearAssociation, Association, DominantLinearAssociation }
+import org.apache.commons.math3.distribution.TDistribution
 import org.bdgenomics.formats.avro.Variant
 
-/**
-  * Created by Taner on 3/21/17.
-  */
-trait LinearVariantModel extends VariantModel {
+trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] {
 
   val variantId: String
   val ssDeviations: Double
@@ -17,90 +15,157 @@ trait LinearVariantModel extends VariantModel {
   val residualDegreesOfFreedom: Int
   val pValue: Double
   val variant: Variant
-  val weights: Array[Double]
-  val haplotypeBlock: String
+  val weights: List[Double]
   val numSamples: Int
-  val association: Association
 
   /**
-   * Returns updated the sum of squared deviations from the mean of the genotype at that site
-   * by adding the sum of squared deviations from the batch to the sum of squared
-   * deviations that the model already had.
+   * Returns updated LinearVariantModel of correct subtype
    *
-   * @note The mean used in the calculation is the batch mean, not the global mean.
+   * @param variantModel Variant model whose parameters are to be used to update
+   *                     existing variant model.
    *
-   * @param batchSsDeviations The sum of squared deviations of the genotype values
-   *                              from the batch mean.
+   * @return Returns updated LinearVariantModel of correct subtype
    */
-  protected def updateSsDeviations(batchSsDeviations: Double): Double = {
+  def mergeWith(variantModel: VM): VM = {
+    val updatedNumSamples = updateNumSamples(variantModel.numSamples)
+    val updatedWeights = updateWeights(variantModel.weights, variantModel.numSamples)
+    val updatedSsDeviations = updateSsDeviations(variantModel.ssDeviations)
+    val updatedSsResiduals = updateSsResiduals(variantModel.ssResiduals)
+    val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(updatedSsResiduals,
+      updatedSsDeviations, updatedNumSamples)
+    val updatedResidualDegreesOfFreedom = updateResidualDegreesOfFreedom(variantModel.numSamples)
+    val updatedtStatistic = calculateTStatistic(updatedWeights, updatedGeneticParameterStandardError)
+    val updatedPValue = calculatePValue(updatedtStatistic, updatedResidualDegreesOfFreedom)
+    constructVariantModel(this.variantId,
+      updatedSsDeviations,
+      updatedSsResiduals,
+      updatedGeneticParameterStandardError,
+      updatedtStatistic,
+      updatedResidualDegreesOfFreedom,
+      updatedPValue,
+      this.variant,
+      updatedWeights,
+      updatedNumSamples)
+    // TODO: implement dominant version of linear model
+    //      case domLin: DominantLinearVariantModel => DominantLinearVariantModel(this.variantId,
+    //        updatedSsDeviations,
+    //        updatedSsResiduals,
+    //        updatedGeneticParameterStandardError,
+    //        updatedtStatistic,
+    //        updatedResidualDegreesOfFreedom,
+    //        updatedPValue,
+    //        this.variant,
+    //        updatedWeights,
+    //        this.haplotypeBlock,
+    //        updatedNumSamples)
+  }
 
+  /**
+   * Returns updated sum of squared deviations from the mean of the genotype at that site
+   * by adding the sum of squared deviations from the batch to the sum of squared
+   * deviations of the existing model.
+   *
+   * @note The mean used in the calculation of the sum of squared deviations in the batch
+   *       is the batch mean, not the global mean, since this enables a cleaner equation
+   *       when approximating genetic parameter standard error in the update.
+   *
+   * @param batchSsDeviations The sum of squared deviations of the genotype values in
+   *                          the batch from the batch mean.
+   */
+  def updateSsDeviations(batchSsDeviations: Double): Double = {
+    ssDeviations + batchSsDeviations
   }
 
   /**
    * Returns updated sum of squared residuals for the model by adding the sum of squared
-   * residuals for the batch to the sum of squared residuals that the model already
-   * had.
+   * residuals for the batch to the sum of squared residuals of the existing model.
    *
    * @note The estimated value for the phenotype is estimated based on the batch-
    *       optimized model, not the global model.
    *
    * @param batchSsResiduals The sum of squared residuals for the batch
    */
-  protected def updateSsResiduals(batchSsResiduals: Double): Double = {
-
+  def updateSsResiduals(batchSsResiduals: Double): Double = {
+    ssResiduals + batchSsResiduals
   }
 
   /**
-   * Returns updated standard error of the genetic parameter based on current values
-   * the VariantModel has in the ssResiduals, ssDeviations, and numSamples
-   * parameters.
+   * Returns updated standard error of the genetic parameter using
+   * updated values for the sum of squared residuals, sum of squared
+   * deviations, and the number of samples.
+   *
+   * @note New standard error calculated based on updated values rather
+   *       than taking an average of the batch standard error and the
+   *       existing standard error (i.e. the method of update for
+   *       the standard error in LogisticVariantModel's) in order to
+   *       produce a closer approximation to the true standard error
+   *       of the genetic parameter for the whole sample.
+   *
+   * @param updatedSsResiduals the result of updatesSsResiduals
+   * @param updatedSsDeviations the result of updateSsDeviations
+   * @param updatedNumSamples the result of updateNumSamples
+   * @return Updated standard error for the genetic parameter in the model
    */
-  protected def updateGeneticParameterStandardError(updatedSsResiduals: Double,
-                                                  updatedSsDeviations: Double,
-                                                  updatedNumSamples: Int): Double = {
-
+  def computeGeneticParameterStandardError(updatedSsResiduals: Double,
+                                           updatedSsDeviations: Double,
+                                           updatedNumSamples: Int): Double = {
+    math.sqrt(((1.0 / (updatedNumSamples - weights.length)) * updatedSsResiduals) / (updatedSsDeviations))
   }
 
   /**
-   * Returns updated geneticParameterDegreesOfFreedom for the model using the current
-   * value for numSamples
+   * Returns updated geneticParameterDegreesOfFreedom for the model by adding
+   * the number of samples in the batch to the existing value for degrees of
+   * freedom in the model.
+   *
+   * @param batchNumSamples Number of samples in the batch used to update
+   *
+   * @return Updated degrees of freedom of the residual
+   *
    */
-  protected def updateResidualDegreesOfFreedom(batchNumSamples: Int): Int = {
-
+  def updateResidualDegreesOfFreedom(batchNumSamples: Int): Int = {
+    residualDegreesOfFreedom + batchNumSamples
   }
 
   /**
-   * Returns updated t statistic value for the VariantModel based on the current
-   * values in weights, and geneticParameterStandardError.
+   * Returns t-statistic by taking the ratio of the weight associated with
+   * the genetic parameter and the provided standard error of the genetic parameter.
+   *
+   * @param weights Array of doubles representing the model weights
+   * @param geneticParameterStandardError Value for standard error of
+   *                                             genetic parameter.
+   * @return T-statistic for genetic parameter
    */
-  protected def updateTStatistic(updatedWeights: Array[Double],
-                               updatedGeneticParameterStandardError:Double): Double = {
-
+  def calculateTStatistic(weights: List[Double],
+                          geneticParameterStandardError: Double): Double = {
+    weights(1) / geneticParameterStandardError
   }
 
   /**
-   * Returns updated p-value for the VariantModel based on the current values in the
-   * tStatistic and residualDegreesOfFreedom parameters.
+   * Returns p-value for linear model given t-statistic and degrees of freedom
+   * of the residual.
+   *
+   * @param tStatistic Value for t-statistic
+   * @param residualDegreesOfFreedom Degrees of freedom to use in t-distribution
+   *
+   * @return P-value, given a t-statistic and degrees of freedom for
+   *         t-distribution
    */
-  protected def updatePValue(updatedTStatistic: Double,
-                           updatedResidualDegreesOfFreedom: Int): Double = {
-
+  def calculatePValue(tStatistic: Double,
+                      residualDegreesOfFreedom: Int): Double = {
+    val tDist = new TDistribution(residualDegreesOfFreedom)
+    val pvalue = 2 * tDist.cumulativeProbability(-math.abs(tStatistic))
+    pvalue
   }
 
-  /**
-   * Returns new Association object with provided values for
-   * for weights, ssDeviations, ssResiduals, geneticParameterStandardError,
-   * tstatistic, residualDegreesOfFreedom, and pValue, and current
-    * VariantModel's Association object.
-   */
-  protected def updateAssociation(updatedWeights: Array[Double],
-                                  updatedSsDeviations: Double,
-                                  updatedSsResiduals: Double,
-                                  updatedGeneticParameterStandardError: Double,
-                                  updatedTStatistic: Double,
-                                  updatedResidualDegreesOfFreedom: Int,
-                                  updatedPValue: Double): Association = {
-
-  }
+  def constructVariantModel(variantID: String,
+                            updatedSsDeviations: Double,
+                            updatedSsResiduals: Double,
+                            updatedGeneticParameterStandardError: Double,
+                            updatedtStatistic: Double,
+                            updatedResidualDegreesOfFreedom: Int,
+                            updatedPValue: Double,
+                            variant: Variant,
+                            updatedWeights: List[Double],
+                            updatedNumSamples: Int): VM
 
 }

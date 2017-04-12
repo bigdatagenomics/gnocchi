@@ -50,7 +50,7 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
     assert(p1.first().value === Array(12.0), "Phenotype value was incorrect")
   }
 
-  ignore("Read in a 2-line file; call with phenoName typo") {
+  sparkTest("Read in a 2-line file; call with phenoName typo") {
     /*
     make sure there is an error thrown if the phenoName doesn't match
     */

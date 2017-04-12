@@ -1,67 +1,68 @@
 package net.fnothaft.gnocchi.models.variant.logistic
 
-import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticAssociation
-import net.fnothaft.gnocchi.gnocchiModel.BuildAdditiveLogisticVariantModel
-import org.bdgenomics.adam.models.ReferenceRegion
+import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticRegression
+import net.fnothaft.gnocchi.rdd.association.AdditiveLogisticAssociation
 import org.bdgenomics.formats.avro.Variant
 
-/**
-  * Created by Taner on 3/21/17.
-  */
 case class AdditiveLogisticVariantModel(variantId: String,
                                         variant: Variant,
-                                        weights: Array[Double],
+                                        weights: List[Double],
                                         geneticParameterStandardError: Double,
                                         pValue: Double,
-                                        haplotypeBlock: String,
                                         numSamples: Int,
-                                        modelType: String) extends LogisticVariantModel with Serializable {
+                                        phenotype: String,
+                                        haplotypeBlock: String = "")
+    extends LogisticVariantModel[AdditiveLogisticVariantModel]
+    with AdditiveLogisticRegression with Serializable {
 
+  val modelType = "Additive Logistic Variant Model"
+  override val regressionName = "Additive Logistic Regression"
 
-                                          val modelType = "Additive Logistic Variant Model"
-                                          val regressionName = "Additive Logistic Regression"
+  /**
+   * Updates the LogisticVariantModel given a new batch of data
+   *
+   * @param observations Array containing data at the particular site for
+   *                     all samples. Format of each element is:
+   *                     (gs, Array(pheno, covar1, ... covarp))
+   *                     where gs is the diploid genotype at that site for the
+   *                     given sample [0, 1, or 2], pheno is the sample's value for
+   *                     the primary phenotype being regressed on, and covar1-covarp
+   *                     are that sample's values for each covariate.
+   */
+  def update(observations: Array[(Double, Array[Double])]): AdditiveLogisticVariantModel = {
+    val batchVariantModel = applyToSite(observations, variant, phenotype)
+      .toVariantModel
+    mergeWith(batchVariantModel)
+  }
+  /**
+   * Returns new Association object with provided values for
+   * for weights, geneticParameterStandardError,
+   * number of samples, and pValue.
+   *
+   * @note using updateAssociation enables enforcement that all of the
+   *       fields required for a LogisticVariantModel are present in the
+   *       new association object.
+   *
+   * @param geneticParameterStandardError Updated standard error of genetic parameter
+   *                                      in regression model
+   * @param pValue Updated P value of the genetic parameter in the regression model
+   * @param numSamples Number of samples in the updated model
+   * @param weights Weights associated with the updated regression model
+   * @return Returns new Association object with updated parameters.
+   */
+  def updateAssociation(geneticParameterStandardError: Double,
+                        pValue: Double,
+                        numSamples: Int,
+                        weights: Array[Double]): AdditiveLogisticAssociation = {
+    AdditiveLogisticAssociation("NoID", 0, "NoModelType", Array(0, 0, 0, 0), 0.0, new Variant(), "NoPheno", 0.0, 0.0, Map())
+  }
 
-                                          /**
-                                           * Updates the VariantModel given a new batch of data
-                                           *
-                                           * @note observations is an array of tuples with (genotypeState, array of phenotypes)
-                                           *       where the array of phenotypes has the primary phenotype as the first
-                                           *       value and covariates following it.
-                                           * @param observations Array containing data at the particular site for
-                                           *                     all samples. Format of each element is:
-                                           *                     (gs, Array(pheno, covar1, ... covarp))
-                                           *                     where gs is the diploid genotype at that site for the
-                                           *                     given sample [0, 1, or 2], pheno is the sample's value for
-                                           *                     the phenotype being regressed on, and covar1-covarp are that
-                                           *                     sample's values for each covariate.
-                                           * @param locus Locus of the variant
-                                           * @param altAllele Alternate allele
-                                           * @param phenotype Text description of the phenotype and covariates being
-                                           *                  considered.
-                                           */
-                                          def update(observations: Array[(Double, Array[Double])],
-                                                     locus: ReferenceRegion,
-                                                     altAllele: String,
-                                                     phenotype: String): AdditiveLogisticVariantModel = {
-
-                                            val clippedObs = BuildAdditiveLogisticVariantModel.arrayClipOrKeepState(observations)
-                                            val assoc = AdditiveLogisticAssociation.regressSite(clippedObs, variant, phenotype)
-
-                                            val updatedNumSamples = updateNumSamples(assoc.statistics("numSamples").asInstanceOf[Int])
-                                            val updatedGeneticParameterStandardError = updateGeneticParameterStandardError(assoc.statistics("standardError").asInstanceOf[Double])
-                                            val updatedWeights = updateWeights(assoc.statistics("weights").asInstanceOf[Array[Double]])
-                                            val updatedWaldStatistic = updateWaldStatistic(updatedGeneticParameterStandardError, updatedWeights)
-                                            val updatedPValue = updatePvalue(updatedWaldStatistic)
-                                            val updatedAssociation = updateAssociation(updatedGeneticParameterStandardError, updatedPValue, updatedNumSamples, updatedWeights)
-                                            if (assoc.statistics.nonEmpty) {
-                                              AdditiveLogisticVariantModel(this.variantId,
-                                                                           this.variant,
-                                                                           updatedWeights,
-                                                                           updatedGeneticParameterStandardError,
-                                                                           updatedPValue,
-                                                                           this.haplotypeBlock,
-                                                                           updatedNumSamples,
-                                                                           this.modelType )
-                                            }
-                                          }
-                                        }
+  def constructVariantModel(variantId: String,
+                            variant: Variant,
+                            updatedGeneticParameterStandardError: Double,
+                            updatedPValue: Double,
+                            updatedWeights: List[Double],
+                            updatedNumSamples: Int): AdditiveLogisticVariantModel = {
+    AdditiveLogisticVariantModel(variantId, variant, updatedWeights, updatedGeneticParameterStandardError, updatedPValue, updatedNumSamples, phenotype)
+  }
+}

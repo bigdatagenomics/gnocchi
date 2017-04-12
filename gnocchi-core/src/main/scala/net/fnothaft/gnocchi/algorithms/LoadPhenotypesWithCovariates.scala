@@ -22,7 +22,7 @@ import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Dataset, Row, SQLContext}
+import org.apache.spark.sql.{ Dataset, Row, SQLContext }
 /*
 Takes in a text file containing phenotypes where the first line of the textfile is a header containing the phenotype lables.
 */
@@ -84,7 +84,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable {
     var i = 0
     for (covar <- covariates) {
       var hasMatch = false
-      require(covar == phenoName, "One or more of the covariates has the same name as phenoName.")
+      require(covar != phenoName, "One or more of the covariates has the same name as phenoName.")
       for (labelpair <- covarLabels) {
         if (labelpair._1 == covar) {
           hasMatch = true

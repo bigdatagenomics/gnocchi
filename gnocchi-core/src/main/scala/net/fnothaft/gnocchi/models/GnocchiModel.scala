@@ -17,21 +17,47 @@
  */
 package net.fnothaft.gnocchi.models
 
-import net.fnothaft.gnocchi.gnocchiModel.{BuildAdditiveLinearVariantModel, BuildAdditiveLogisticVariantModel}
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
-import net.fnothaft.gnocchi.transformations.{Gs2variant, PairSamplesWithPhenotypes}
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.bdgenomics.adam.models.ReferenceRegion
-import org.bdgenomics.formats.avro.{Contig, Variant}
+import org.bdgenomics.formats.avro.Variant
+import org.apache.spark.SparkContext._
 
-trait GnocchiModel extends Serializable {
+import scala.reflect.ClassTag
+
+class GnocchiModelMetaData(val numSamples: Int,
+                           val haplotypeBlockErrorThreshold: Double,
+                           val modelType: String,
+                           val variables: String,
+                           val flaggedVariantModels: List[String],
+                           val phenotype: String) extends Serializable
+
+/**
+ * A trait that wraps an RDD of variant-specific models that are incrementally
+ * updated, an RDD of variant-specific models that are recomputed over entire
+ * sample set (for quality control of incrementally updated models), and
+ * metadata.
+ *
+ * @tparam VM The type of VariantModel in the RDDs of variant-specific models
+ * @tparam GM The type of this GnocchiModel
+ */
+trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
+
+  /**
+   * Metadata for the model
+   */
   val metaData: GnocchiModelMetaData
-  val variantModels: RDD[VariantModel]
-  // the variant model and the observations that the model has been trained on
-  val comparisonVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])]
+
+  /**
+   * The RDD of variant-specific models contained in the model
+   */
+  val variantModels: RDD[VM]
+
+  /**
+   * The RDD of variant-specific models and accompanying data that
+   * is to be used to check for departure of incrementally updated
+   * models from complete recompute models
+   */
+  val comparisonVariantModels: RDD[(VM, Array[(Double, Array[Double])])]
 
   /**
    * Updates a GnocchiModel with new batch of data by updating all the
@@ -46,90 +72,117 @@ trait GnocchiModel extends Serializable {
    *       difference in the weight associated with the
    *       genotype parameter in the full re-compute models and that
    *       of the incrementally updated models is greater than
-   *       metaData.HBDThreshold, then all variants for each haplotype
+   *       metaData.haplotypeBlockErrorThreshold, then all variants for that haplotype
    *       block are flagged for re-compute.
-   * @param rdd RDD of GenotypeState objects from new batch of data.
-   * @param phenotypes RDD of Phenotype objects from new batch of data.
-   * @param sc SparkContext in which Gnocchi is running.
+   * @param newObservations RDD of tuples containing genotype and phenotype data for each
+   *                        variant. Format is (variant, array) where array is an Array of
+   *                        tuples containing gentoype and phenotype data where the first
+   *                        element of the tuple is the genotype state [0, 1, 2]. The
+   *                        second element is an array of phenotype values, the frist
+   *                        element corresponding to the primary phenotype being
+   *                        regressed on, and the remainder corresponding to the covariates.
    */
-  def update(rdd: RDD[GenotypeState],
-             phenotypes: RDD[Phenotype],
-             sc: SparkContext): Unit = {
+  def update[CT](newObservations: RDD[(Variant, Array[(Double, Array[Double])])])(implicit ct: ClassTag[VM]): GM = {
 
-    val newData = generateObservations(rdd, phenotypes)
+    val updatedVariantModels = updateVariantModels(newObservations)
 
-    // Combine the new sample observations with the old observations in comparison VariantModel RDD
-    val joinedComparisonData = joinComparisonData(comparisonVariantModels, newData)
+    val updatedComparisonVariantModels = updateComparisonVariantModels(newObservations)
+
+    val newFlaggedVariantModels = compareModels(updatedVariantModels, updatedComparisonVariantModels)
+
+    // TODO: Get rid of this! Having an action here will cause staging inefficiencies.
+    val numAdditionalSamples = newObservations.take(1).head.asInstanceOf[(Variant, Array[(Double, Array[Double])])]
+      ._2.length
+
+    val updatedMetaData = updateMetaData(numAdditionalSamples, newFlaggedVariantModels)
+
+    constructGnocchiModel(updatedMetaData, updatedVariantModels,
+      updatedComparisonVariantModels)
+
+  }
+
+  /**
+   * Incrementally updates variant models using new batch of data
+   *
+   * @param newObservations RDD of variants and thier associated genotype and phenotype
+   *                        data to be used to updated the model for each variant
+   * @return Returns an RDD of incrementally updated VariantModels
+   */
+  def updateVariantModels(newObservations: RDD[(Variant, Array[(Double, Array[Double])])])(implicit ct: ClassTag[VM]): RDD[VM] = {
+    // join new data with correct VariantModel
+    val vmAndDataRDD = variantModels.keyBy(_.variant).join(newObservations)
+
+    // update all variants with new data
+    vmAndDataRDD.map(kvv => {
+      val (variant, (model, data)) = kvv
+      val updatedModel = model.update(data)
+      updatedModel
+    })
+  }
+
+  /**
+   * Returns VariantModels created from full recompute over all data for each variant
+   * as well as array containing all phenotype and genotype data for that variant.
+   *
+   * @param newObservations New data to be added to existing data for recompute
+   * @return RDD of VariantModels and associated genotype and phenotype data
+   */
+  def updateComparisonVariantModels(newObservations: RDD[(Variant, Array[(Double, Array[Double])])]): RDD[(VM, Array[(Double, Array[Double])])] = {
+    // Combine the new sample observations with the old observations
+    val joinedComparisonData = mergeObservations(comparisonVariantModels, newObservations)
 
     // compute the regressions for the comparison VariantModels
     val updatedComparisonVariantModels = joinedComparisonData.map(kv => {
       val (varModel, obs) = kv
-      (buildVariantModel(varModel, obs), obs)
+      (regress(obs, varModel.variant, varModel.phenotype), obs)
     })
+    updatedComparisonVariantModels
+  }
 
-    // join new data with correct VariantModel
-    val variantModels = this.variantModels
-    val variantsAndModels = variantModels.keyBy(_.variant)
-    val vmAndDataRDD = variantsAndModels.join(newData)
-
-    // update all variants with new data
-    val updatedVMRdd = vmAndDataRDD.map(kvv => {
-      val (variant, (model, data)) = kvv
-      model.update(data, new ReferenceRegion(variant.getContig.getContigName, variant.getStart, variant.getEnd), variant.getAlternateAllele, metaData.phenotype)
-      (variant, model)
-    })
-    println("Size of updatedVMRdd = " + updatedVMRdd.count)
-
+  /**
+   * Compares incrementally updated and full-recompute models store in the GnocchiModel in
+   * order to flag variants for which the pValue differs more than
+   * haplotypeBlockErrorThreshold between the incrementally-updated
+   * and full-recompute models.
+   *
+   * @param variantModels RDD of variant models
+   * @param comparisonVariantModels RDD of full-recompute variant models and their
+   *                                associated data
+   * @return Returns a list of flagged variants.
+   */
+  def compareModels[CT](variantModels: RDD[VM],
+                        comparisonVariantModels: RDD[(VM, Array[(Double, Array[Double])])])(implicit ct: ClassTag[VM]): List[String] = {
     // pair up the QR factorization and incrementalUpdate versions of the selected variantModels
-    val comparisonModels = updatedComparisonVariantModels.map(elem => {
+    val comparisonModels = comparisonVariantModels.map(elem => {
       val (varModel, obs) = elem
       varModel
     })
-    val incrementalVsComparison = updatedVMRdd.join(comparisonModels.keyBy(_.variant))
+    val incrementalVsComparison = variantModels.keyBy(_.variant)
+      .join(comparisonModels.keyBy(_.variant))
 
-    // TODO: compare incremental and comparison models to flag discordant variant models.
-
-    // update metaData
-    val updatedMetaData = updateMetaData(numAdditionalSamples, newFlaggedVariantModels)
-  }
-
-  /**
-    * Generates an RDD of observations that can be used to create or update VariantModels.
-    *
-    * @param genotypes RDD of GenotypeState objects
-    * @param phenotypes RDD of Pheontype objects
-    * @return Returns an RDD of arrays of observations (genotype + phenotype), keyed by variant
-    */
-  def generateObservations(genotypes: RDD[GenotypeState],
-                           phenotypes: RDD[Phenotype]): RDD[(Variant, Array[(Double, Array[Double])])] = {
-    // convert genotypes and phenotypes into observations
-    val data = PairSamplesWithPhenotypes(genotypes, phenotypes)
-    // data is RDD[((Variant, String), Iterable[(String, (GenotypeState,Phenotype))])]
-    data.map(kvv => {
-      val (varStr, genPhenItr) = kvv
-      val (variant, phenoName) = varStr
-      //.asInstanceOf[Array[(String, (GenotypeState, Phenotype[Array[Double]]))]]
-      val obs = genPhenItr.map(gp => {
-        val (str, (gs, pheno)) = gp
-        val ob = (clipOrKeepState(gs), pheno.value)
-        ob
-      }).toArray
-      (variant, obs)
+    val comparisons = incrementalVsComparison.map(elem => {
+      val (variant, (variantModel, comparisonVariantModel)) = elem
+      (variantModel.variantId,
+        math.abs(variantModel.pValue - comparisonVariantModel.pValue))
     })
+    comparisons.filter(elem => {
+      val (variantId, pValueDifference) = elem
+      pValueDifference >= metaData.haplotypeBlockErrorThreshold
+    }).map(p => p._1).collect.toList
   }
 
   /**
-    * Combines old data stored with comparison VariantModels, and the new data for update.
-    *
-    * @param comparisonVariantModels RDD of globally optimized VariantModels with data
-    * @param newData New data to be joined with already stored data for globally optimized
-    *                VariantModels
-    *
-    * @return same RDD as comparisonVariantModels, except the data stored with the VariantModels
-    *         contains both the old data and the data for update. 
-    */
-  def joinComparisonData(comparisonVariantModels: RDD[(VariantModel, Array[(Double, Array[Double])])],
-                         newData: RDD[(Variant, Array[(Double, Array[Double])])]): RDD[(Variant, Array[(Double, Array[Double])])] = {
+   * Combines old data stored with comparison VariantModels, and the new data for update.
+   *
+   * @param comparisonVariantModels RDD of globally optimized VariantModels with data
+   * @param newData New data to be joined with already stored data for globally optimized
+   *                VariantModels
+   *
+   * @return same RDD as comparisonVariantModels, except the data stored with the VariantModels
+   *         contains both the old data and the data for update.
+   */
+  def mergeObservations(comparisonVariantModels: RDD[(VM, Array[(Double, Array[Double])])],
+                        newData: RDD[(Variant, Array[(Double, Array[Double])])]): RDD[(VM, Array[(Double, Array[Double])])] = {
     val compModels = comparisonVariantModels.map(kv => {
       val (varModel, obs) = kv
       (varModel.variant, (varModel, obs))
@@ -138,18 +191,18 @@ trait GnocchiModel extends Serializable {
       .map(kvv => {
         val (variant, (oldData, newData)) = kvv
         val (varModel, obs) = oldData
-        val observs = (obs.toList ::: newData.toList).asInstanceOf[Array[(Double, Array[Double])]]
-        (varModel, observs): (VariantModel, Array[(Double, Array[Double])])
+        val observs = (obs.toList ::: newData.toList).toArray
+        (varModel, observs): (VM, Array[(Double, Array[Double])])
       })
   }
 
   /**
-    * Returns new GnocchiModelMetaData object with all fields copied except
-    * numSamples and flaggedVariantModels updated.
-    *
-    * @param numAdditionalSamples Number of samples in update data
-    * @param newFlaggedVariantModels VariantModels flagged after update
-    */
+   * Returns new GnocchiModelMetaData object with all fields copied except
+   * numSamples and flaggedVariantModels updated.
+   *
+   * @param numAdditionalSamples Number of samples in update data
+   * @param newFlaggedVariantModels VariantModels flagged after update
+   */
   def updateMetaData(numAdditionalSamples: Int, newFlaggedVariantModels: List[String]): GnocchiModelMetaData = {
     val numSamples = this.metaData.numSamples + numAdditionalSamples
     new GnocchiModelMetaData(numSamples,
@@ -161,68 +214,42 @@ trait GnocchiModel extends Serializable {
   }
 
   /**
-    * Returns all the VariantModel objects associated with the given haplotype block
-    * in the variantModels RDD.
-    *
-    * @param haplotypeBlockId Id of the haplotype block from which to pull
-    *                         variant models from the variantModels RDD
-    * @return RDD of the VariantModel objects from the variantModels RDD
-    *         which are associated with the provided haplotype
-    *         block in the GnocchiModel
-    */
-  def getVariantsFromHaplotypeBlock(haplotypeBlockId: String): RDD[VariantModel] = {
-    variantModels.filter(_.haplotypeBlock == haplotypeBlockId)
-  }
+   * Returns GnocchiModel of same subtype as the calling GnocchiModel
+   *
+   * @param metaData Metadata for the new GnocchiModel
+   * @param variantModels RDD of variant models for the new GnocchiModel
+   * @param comparisonVariantModels RDD of comparison variant models and
+   *                                accompanying data for the new GnocchiModel
+   * @return Returns a new GnochhiModel with the given parameters and
+   *         of the same subtype as the GnocchiModel which is calling
+   *         constructGnocchiModel
+   */
+  def constructGnocchiModel(metaData: GnocchiModelMetaData,
+                            variantModels: RDD[VM],
+                            comparisonVariantModels: RDD[(VM, Array[(Double, Array[Double])])]): GM
 
   /**
-    * Returns all the VariantModel objects associated with the given haplotype block
-    * in the comparisonVariantModels RDD.
-    *
-    * @param haplotypeBlockId Id of the haplotype block from which to pull
-    *                         variant models from the comparisonVariantModels RDD
-    * @return RDD of the VariantModel objects from the comparisonVariantModels RDD
-    *         which are associated with the provided haplotype
-    *         block in the GnocchiModel
-    */
-  def getComparisonVariantsFromHaplotypeBlock(haplotypeBlockId: String): RDD[VariantModel] = {
-    variantModels.filter(_.haplotypeBlock == haplotypeBlockId)
-  }
-
-  /**
-    * Saves Gnocchi model by saving GnocchiModelMetaData as Java object,
-    * variantModels as parquet, and comparisonVariantModels as parquet.
-    */
+   * Saves Gnocchi model by saving GnocchiModelMetaData as Java object,
+   * variantModels as parquet, and comparisonVariantModels as parquet.
+   */
   def save: Unit = {
 
   }
 
-  def clipOrKeepState(gs: GenotypeState): Double
-
-  // calls the appropriate version of BuildVariantModel
-  def buildVariantModel(varModel: VariantModel,
-                        obs: Array[(Double, Array[Double])]): VariantModel
+  /**
+   * Runs a regression on the data for the given variant and returns
+   * a variant model of correct subtype, based on subtype of GnocchiModel
+   *
+   * @param observations Genotype and phenotype data to be used when creating the
+   *                     VariantModel
+   * @param variant Variant at which the regression is to be run
+   * @param phenotype Description of the phenotype and covariate variables.
+   * @return Returns the VariantModel (of correct subtype, based on subtype
+   *         of the GnocchiModel) which results from the regression
+   */
+  def regress(observations: Array[(Double, Array[Double])],
+              variant: Variant,
+              phenotype: String): VM
 
 }
-
-trait Additive {
-
-  def clipOrKeepState(gs: GenotypeState): Double = {
-    gs.genotypeState.toDouble
-  }
-}
-
-trait Dominant {
-
-  def clipOrKeepState(gs: GenotypeState): Double = {
-    if (gs.genotypeState == 0) 0.0 else 1.0
-  }
-}
-
-class GnocchiModelMetaData(val numSamples: Int,
-                           val haplotypeBlockErrorThreshold: Double,
-                           val modelType: String,
-                           val variables: String,
-                           val flaggedVariantModels: List[String],
-                           val phenotype: String) extends Serializable
-
 
