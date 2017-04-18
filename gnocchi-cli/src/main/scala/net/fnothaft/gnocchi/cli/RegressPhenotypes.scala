@@ -32,7 +32,6 @@ import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.functions.{ concat, lit }
-import net.fnothaft.gnocchi.sql.AuxEncoders
 import net.fnothaft.gnocchi.rdd.association.Association
 import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
