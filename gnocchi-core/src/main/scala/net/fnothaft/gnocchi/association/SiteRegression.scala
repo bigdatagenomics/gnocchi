@@ -18,12 +18,14 @@
 package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.models.{ Association, GenotypeState, MultipleRegressionDoublePhenotype, Phenotype }
+import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.utils.misc.Logging
 import scala.collection.JavaConversions._
 
-trait SiteRegression extends Serializable {
+trait SiteRegression extends Serializable with Logging {
 
   val regressionName: String
 
@@ -41,10 +43,13 @@ trait SiteRegression extends Serializable {
    *
    * @param genotypes an rdd of [[net.fnothaft.gnocchi.models.GenotypeState]] objects to be regressed upon
    * @param phenotypes an rdd of [[net.fnothaft.gnocchi.models.Phenotype]] objects used as observations
+   * @param validationStringency the validation level by which to throw exceptions
+   *
    * @return an rdd of [[net.fnothaft.gnocchi.models.Association]] objects
    */
   final def apply[T](genotypes: RDD[GenotypeState],
-                     phenotypes: RDD[Phenotype[T]]): RDD[Association] = {
+                     phenotypes: RDD[Phenotype[T]],
+                     validationStringency: String = "STRICT"): RDD[Association] = {
     val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
 
     /* Individuals with the same contigs (pairing of chromosome, end position, alt value) will be grouped together */
@@ -68,8 +73,21 @@ trait SiteRegression extends Serializable {
         val (genotypeState, phenotype) = p
         (clipOrKeepState(genotypeState), phenotype.toDouble)
       }).toArray
-      regressSite(formattedObvs, variant, pheno)
+      try { regressSite(formattedObvs, variant, pheno) }
+      catch {
+        case error: SingularMatrixException => {
+          validationStringency match {
+            case "STRICT" => throw new SingularMatrixException()
+            case "LENIENT" => {
+              logError("Singular Matrix found in SiteRegression")
+              Association(variant, pheno, 0.0, null)
+            }
+            case "SILENT" => Association(variant, pheno, 0.0, null)
+          }
+        }
+      }
     })
+      .filter(assoc => assoc.logPValue != 0.0)
   }
 
   /**

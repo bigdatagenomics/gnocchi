@@ -22,12 +22,12 @@ import breeze.linalg._
 import breeze.numerics._
 import net.fnothaft.gnocchi.models.Association
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
+import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
-import org.bdgenomics.utils.misc.Logging
 
-trait LogisticSiteRegression extends SiteRegression with Logging {
+trait LogisticSiteRegression extends SiteRegression {
 
   /**
    * Returns Association object with solution to logistic regression.
@@ -46,6 +46,10 @@ trait LogisticSiteRegression extends SiteRegression with Logging {
    *                     identifier. Array of phenotypes has primary phenotype first then covariates.
    * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
    * @param phenotype [[net.fnothaft.gnocchi.models.Phenotype.phenotype]], The name of the phenotype being regressed.
+   *
+   * @throws [[SingularMatrixException]], repackages any [[breeze.linalg.MatrixSingularException]] into a
+   *        [[SingularMatrixException]] for error handling purposes.
+   *
    * @return [[net.fnothaft.gnocchi.models.Association]] object containing statistic result for Logistic Regression.
    */
   def regressSite(observations: Array[(Double, Array[Double])],
@@ -109,9 +113,7 @@ trait LogisticSiteRegression extends SiteRegression with Logging {
           iter = maxIter
         }
       } catch {
-        case error: breeze.linalg.MatrixSingularException => {
-          singular = true
-        }
+        case _: breeze.linalg.MatrixSingularException => throw new SingularMatrixException()
       }
       iter += 1
     }
@@ -146,25 +148,10 @@ trait LogisticSiteRegression extends SiteRegression with Logging {
         "prob" -> pi,
         "rSquared" -> 0.0)
 
-      toRet = Association(variant, phenotype, logWaldTests(1), statistics)
+      Association(variant, phenotype, logWaldTests(1), statistics)
     } catch {
-      case error: breeze.linalg.MatrixSingularException => matrixSingular = true
+      case _: breeze.linalg.MatrixSingularException => throw new SingularMatrixException()
     }
-    if (matrixSingular) {
-      val statistics = Map()
-      toRet = Association(variant, phenotype, 0.0, Map(
-        "numSamples" -> 0,
-        "weights" -> beta,
-        "intercept" -> 0.0,
-        "'P Values' aka Wald Tests" -> 0.0,
-        "log of wald tests" -> 0.0,
-        "fisherInfo" -> 0.0,
-        "XiVectors" -> xiVectors(0),
-        "xixit" -> xixiT(0),
-        "prob" -> pi,
-        "rSquared" -> 0.0))
-    }
-    toRet
   }
 
   /**

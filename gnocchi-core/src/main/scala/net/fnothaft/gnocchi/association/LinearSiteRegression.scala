@@ -30,10 +30,10 @@ trait LinearSiteRegression extends SiteRegression {
   /**
    * Returns Association object with solution to linear regression.
    *
-   * Implementation of RegressSite method from SiteRegression trait. Performs linear regression on a single site.
-   * A site in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object and a
-   * [[net.fnothaft.gnocchi.models.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this context
-   * have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
+   * Implementation of RegressSite method from [[SiteRegression]] trait. Performs linear regression on a single site.
+   * The Site being regressed in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object
+   * to a [[net.fnothaft.gnocchi.models.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this
+   * context have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
    *
    * For calculation of the p-value this uses a t-distribution with N-p-1 degrees of freedom. (N = number of samples,
    * p = number of regressors i.e. genotype+covariates+intercept).
@@ -47,7 +47,9 @@ trait LinearSiteRegression extends SiteRegression {
    * @param phenotype [[net.fnothaft.gnocchi.models.Phenotype.phenotype]], The name of the phenotype being regressed.
    * @return [[net.fnothaft.gnocchi.models.Association]] object containing statistic result for Logistic Regression.
    */
-  def regressSite(observations: Array[(Double, Array[Double])], variant: Variant, phenotype: String): Association = {
+  def regressSite(observations: Array[(Double, Array[Double])],
+                  variant: Variant,
+                  phenotype: String): Association = {
     val phenotypesLength = observations(0)._2.length
     val numObservations = observations.length
     val x = new Array[Array[Double]](numObservations)
