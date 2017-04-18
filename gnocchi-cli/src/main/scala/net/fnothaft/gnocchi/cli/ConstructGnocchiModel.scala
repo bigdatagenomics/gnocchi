@@ -20,7 +20,7 @@ package net.fnothaft.gnocchi.cli
 import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.gnocchiModel._
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Option => Args4jOption }
 import org.apache.spark.rdd.RDD
@@ -57,8 +57,8 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
 
     val (model, associationObjects): (GnocchiModel, RDD[Association]) = buildModel[Array[Double]](genotypeStates.rdd, phenotypes, sc)
 
-    val sqlContext = new SQLContext(sc)
-    import sqlContext.implicits._
+    val sparkSession = SparkSession.builder.getOrCreate()
+    import sparkSession.implicits._
     implicit val associationEncoder = org.apache.spark.sql.Encoders.kryo[Association]
     regPheno.logResults(associationObjects.toDS, sc)
 

@@ -50,7 +50,7 @@
     </dependency>
     <dependency>
       <groupId>org.bdgenomics.utils</groupId>
-      <artifactId>utils-misc_${scala.version.prefix}</artifactId>
+      <artifactId>utils-misc-spark2_${scala.version.prefix}</artifactId>
       <version>${utils.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
@@ -58,7 +58,7 @@
     <dependency>
         <groupId>org.bdgenomics.adam</groupId>
         <artifactId>adam-cli-spark2_${scala.version.prefix}</artifactId>
-        <version>0.21.0</version>
+        <version>0.22.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.directory.studio</groupId>
@@ -71,7 +71,7 @@
     </dependency>
     <dependency>
       <groupId>org.bdgenomics.utils</groupId>
-      <artifactId>utils-cli_${scala.version.prefix}</artifactId>
+      <artifactId>utils-cli-spark2_${scala.version.prefix}</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>

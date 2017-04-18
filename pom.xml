@@ -49,7 +49,7 @@
   </issueManagement>
 
   <properties>
-    <adam.version>0.21.0</adam.version>
+    <adam.version>0.22.0</adam.version>
     <avro.version>1.8.0</avro.version>
     <hadoop.version>2.7.3</hadoop.version>
     <!-- <hadoop.version>2.6.0-cdh5.8.0</hadoop.version> -->
@@ -62,7 +62,7 @@
     <utils.version>0.2.11</utils.version>
     <scoverage.plugin.version>1.1.1</scoverage.plugin.version>
   </properties>
-  
+
   <build>
     <pluginManagement>
       <plugins>
@@ -289,14 +289,14 @@
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.utils</groupId>
-        <artifactId>utils-misc_${scala.version.prefix}</artifactId>
+        <artifactId>utils-misc-spark2_${scala.version.prefix}</artifactId>
         <version>${utils.version}</version>
         <type>test-jar</type>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.utils</groupId>
-        <artifactId>utils-misc_${scala.version.prefix}</artifactId>
+        <artifactId>utils-misc-spark2_${scala.version.prefix}</artifactId>
         <version>${utils.version}</version>
 	<exclusions>
 	  <exclusion>
@@ -318,7 +318,7 @@
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.utils</groupId>
-        <artifactId>utils-cli_${scala.version.prefix}</artifactId>
+        <artifactId>utils-cli-spark2_${scala.version.prefix}</artifactId>
         <version>${utils.version}</version>
       </dependency>
       <dependency>
@@ -387,7 +387,7 @@
   </dependencyManagement>
 
 
-  
+
   <profiles>
     <!-- Only sign artifacts when we are performing a release, not snapshots -->
     <profile>
