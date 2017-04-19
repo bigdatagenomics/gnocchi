@@ -119,7 +119,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @param sc The spark context in which Gnocchi is running.
    * @return A dataset of GenotypeState objects.
    */
-  def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
+  def loadGenotypes(sc: SparkContext): RDD[GenotypeState] = {
     // sets up sqlContext
     val sqlContext = SQLContext.getOrCreate(sc)
 
@@ -150,37 +150,106 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val genotypeStates = sqlContext
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
     val genoStatesWithNames = genotypeStates.select(
-      struct(concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
-        genotypeStates("start"),
-        genotypeStates("end"),
-        genotypeStates("ref"),
-        genotypeStates("alt"),
-        genotypeStates("sampleId"),
-        genotypeStates("genotypeState"),
-        genotypeStates("missingGenotypes")).as("gs"))
+      concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
+      genotypeStates("start"),
+      genotypeStates("end"),
+      genotypeStates("ref"),
+      genotypeStates("alt"),
+      genotypeStates("sampleId"),
+      genotypeStates("genotypeState"),
+      genotypeStates("missingGenotypes"))
 
-    // mind filter
-    val sampleFilteredDF = genoStatesWithNames
-      .groupBy($"gs.sampleId")
-      .agg((sum($"gs.missingGenotypes") / (count($"gs") * lit(2))).alias("mind"),
-        collect_list($"gs").as("gsList"))
-      .filter($"mind" <= args.mind)
-      .select(explode($"gsList").as("gs"))
+    val gsDataset: Dataset[GenotypeState] = genoStatesWithNames.as[GenotypeState]
+    val datasetImpl = true
 
-    val genoFilteredDF = sampleFilteredDF
-      .groupBy($"gs.contigName")
-      .agg(sum($"gs.missingGenotypes").as("missCount"),
-        (count($"gs") * lit(2)).as("total"),
-        sum($"gs.genotypeState").as("alleleCount"),
-        collect_list($"gs").as("gsList"))
-      .filter(($"missCount" / $"total") <= lit(args.geno))
-      .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(args.maf))
-      .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
-      .select(explode($"gsList").as("gs"))
+    val (mindF, mafF, genoF) = (args.mind, args.maf, args.geno)
+    sc.broadcast(mindF)
+    sc.broadcast(mafF)
+    sc.broadcast(genoF)
 
-    val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" !== lit(2)).select($"gs.*")
+    if (datasetImpl) {
 
-    finalGenotypeStates.as[GenotypeState]
+      val sampleFilteredDataset = gsDataset.groupByKey(_.sampleId).mapGroups((key, group) => {
+        val gsList = group.toArray
+
+        val missCount = gsList.map(_.missingGenotypes).sum.toDouble
+        val total = (gsList.size * 2).toDouble
+        (missCount / total, gsList)
+      }).filter(_._1 <= mindF).flatMap(_._2)
+
+      val genoFilteredDataset = sampleFilteredDataset.groupByKey(_.contigName).mapGroups((key, group) => {
+        val gsList = group.toArray
+
+        val (missCount, alleleCount) = gsList.map(gs => (gs.missingGenotypes, gs.genotypeState)).reduce((p1, p2) => {
+          (p1._1 + p2._1, p1._2 + p2._2)
+        })
+        val total = (gsList.size * 2).toDouble
+
+        val maf = alleleCount / (total - missCount)
+        (missCount / total, maf, 1.0 - maf, gsList)
+      }).filter(stats => {
+        stats._1 <= genoF && stats._2 >= mafF && stats._3 >= mafF
+      }).flatMap(_._4)
+
+      // val finalGenotypeStatesDataset = genoFilteredDataset.filter(_.missingGenotypes != 2)
+      val finalGenotypeStatesDataset = genoFilteredDataset.filter(_.missingGenotypes != 2)
+
+      finalGenotypeStatesDataset.rdd
+    } else {
+      val gsRdd = gsDataset.rdd
+
+      val sampleFilteredRdd = gsRdd.keyBy(_.sampleId).groupByKey.map(pair => {
+        val (key, group) = pair
+        val gsList = group.toArray
+
+        val missCount = gsList.map(_.missingGenotypes).sum.toDouble
+        val total = (gsList.size * 2).toDouble
+        (missCount / total, gsList)
+      }).filter(_._1 <= mindF).flatMap(_._2)
+
+      val genoFilteredRdd = sampleFilteredRdd.keyBy(_.contigName).groupByKey.map(pair => {
+        val (key, group) = pair
+        val gsList = group.toArray
+
+        val (missCount, alleleCount) = gsList.map(gs => (gs.missingGenotypes, gs.genotypeState)).reduce((p1, p2) => {
+          (p1._1 + p2._1, p1._2 + p2._2)
+        })
+        val total = (gsList.size * 2).toDouble
+
+        val maf = alleleCount / (total - missCount)
+        (missCount / total, maf, 1.0 - maf, gsList)
+      }).filter(stats => {
+        stats._1 <= genoF && stats._2 >= mafF && stats._3 >= mafF
+      }).flatMap(_._4)
+
+      val finalGenotypeStatesRdd = genoFilteredRdd.filter(_.missingGenotypes != 2)
+
+      finalGenotypeStatesRdd
+    }
+
+
+    //    // mind filter
+    //    val sampleFilteredDF = genoStatesWithNames
+    //      .groupBy($"gs.sampleId")
+    //      .agg((sum($"gs.missingGenotypes") / (count($"gs") * lit(2))).alias("mind"),
+    //        collect_list($"gs").as("gsList"))
+    //      .filter($"mind" <= args.mind)
+    //      .select(explode($"gsList").as("gs"))
+    //
+    //    val genoFilteredDF = sampleFilteredDF
+    //      .groupBy($"gs.contigName")
+    //      .agg(sum($"gs.missingGenotypes").as("missCount"),
+    //        (count($"gs") * lit(2)).as("total"),
+    //        sum($"gs.genotypeState").as("alleleCount"),
+    //        collect_list($"gs").as("gsList"))
+    //      .filter(($"missCount" / $"total") <= lit(args.geno))
+    //      .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(args.maf))
+    //      .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
+    //      .select(explode($"gsList").as("gs"))
+    //
+    //    val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" !== lit(2)).select($"gs.*")
+    //
+    //    finalGenotypeStates.as[GenotypeState]
   }
 
   /**
@@ -227,7 +296,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @param sc: The spark context in which Gnocchi is running.
    * @return A dataset of GenotypeState objects.
    */
-  def performAnalysis(genotypeStates: Dataset[GenotypeState],
+  def performAnalysis(genotypeStates: RDD[GenotypeState],
                       phenotypes: RDD[Phenotype[Array[Double]]],
                       sc: SparkContext): Dataset[Association] = {
     // sets up sqlContext
@@ -239,10 +308,10 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // performs regression of given type, producing RDD of association objects
     val associations = args.associationType match {
-      case "ADDITIVE_LINEAR"   => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes)
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes)
-      case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes)
-      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes)
+      case "ADDITIVE_LINEAR"   => AdditiveLinearAssociation(genotypeStates, phenotypes)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates, phenotypes)
+      case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates, phenotypes)
+      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates, phenotypes)
     }
 
     /*
