@@ -17,9 +17,12 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import net.fnothaft.gnocchi.association._
-import net.fnothaft.gnocchi.models.GenotypeState
+import java.io.File
+
+import net.fnothaft.gnocchi.algorithms._
+import net.fnothaft.gnocchi.algorithms.siteregression._
 import net.fnothaft.gnocchi.sql.GnocchiContext._
+import org.bdgenomics.adam.rdd.ADAMContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
 import org.bdgenomics.utils.cli._
@@ -30,10 +33,9 @@ import org.bdgenomics.adam.cli.Vcf2ADAM
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.functions.{ concat, lit }
-import net.fnothaft.gnocchi.models.{ Association, AuxEncoders, Phenotype }
-import org.apache.hadoop.fs.{ FileSystem, Path }
-import org.apache.spark.sql.functions.{ concat, lit, sum, count, struct, explode, collect_list }
-import net.fnothaft.gnocchi.models.{ Phenotype, Association, AuxEncoders }
+import net.fnothaft.gnocchi.rdd.association.Association
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -196,7 +198,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @param sc The spark context in which Gnocchi is running.
    * @return An RDD of Phenotype objects.
    */
-  def loadPhenotypes(sc: SparkContext): RDD[Phenotype[Array[Double]]] = {
+  def loadPhenotypes(sc: SparkContext): RDD[Phenotype] = {
     /*
      * Throws IllegalArgumentException if includeCovariates given but no covariates specified
      * or if any of the covariates specified are the phenotype specified in
@@ -228,7 +230,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @return A dataset of GenotypeState objects.
    */
   def performAnalysis(genotypeStates: Dataset[GenotypeState],
-                      phenotypes: RDD[Phenotype[Array[Double]]],
+                      phenotypes: RDD[Phenotype],
                       sc: SparkContext): Dataset[Association] = {
     // sets up sparkSession
     val sparkSession = SparkSession.builder().getOrCreate()
@@ -239,10 +241,10 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     // performs regression of given type, producing RDD of association objects
     val associations = args.associationType match {
-      case "ADDITIVE_LINEAR"   => AdditiveLinearAssociation(genotypeStates.rdd, phenotypes, args.validationStringency)
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticAssociation(genotypeStates.rdd, phenotypes, args.validationStringency)
-      case "DOMINANT_LINEAR"   => DominantLinearAssociation(genotypeStates.rdd, phenotypes, args.validationStringency)
-      case "DOMINANT_LOGISTIC" => DominantLogisticAssociation(genotypeStates.rdd, phenotypes, args.validationStringency)
+      case "ADDITIVE_LINEAR"   => AdditiveLinearRegression(genotypeStates.rdd, phenotypes)
+      case "DOMINANT_LINEAR"   => DominantLinearRegression(genotypeStates.rdd, phenotypes)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticRegression(genotypeStates.rdd, phenotypes)
+      case "DOMINANT_LOGISTIC" => DominantLogisticRegression(genotypeStates.rdd, phenotypes)
     }
 
     /*

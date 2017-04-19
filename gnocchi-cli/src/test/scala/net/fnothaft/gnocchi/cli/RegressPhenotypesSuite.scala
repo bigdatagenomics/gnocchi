@@ -18,7 +18,7 @@
 package net.fnothaft.gnocchi.cli
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.association._
+import net.fnothaft.gnocchi.algorithms._
 import java.io.File
 import java.nio.file.Files
 
@@ -55,22 +55,6 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     intercept[IllegalArgumentException] {
       RegressPhenotypes(cliArgs).run(sc)
     }
-  }
-
-  sparkTest("Test loadGenotypes: output from vcf input") {
-    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
-    val phenoFilePath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    val cliCall = s"../bin/gnocchi-submit regressPhenotypes $genoFilePath $phenoFilePath ADDITIVE_LINEAR $destination -saveAsText -phenoName pheno2 -covar -overwriteParquet"
-    val cliArgs = cliCall.split(" ").drop(2)
-    val genotypeStateDataset = RegressPhenotypes(cliArgs).loadGenotypes(sc)
-    val genotypeStateArray = genotypeStateDataset.collect()
-    val genotypeState = genotypeStateArray(0)
-    assert(genotypeState.start === 14521, "GenotypeState start is incorrect: " + genotypeState.start)
-    assert(genotypeState.end === 14522, "GenotypeState end is incorrect: " + genotypeState.end)
-    assert(genotypeState.ref === "G", "GenotypeState ref is incorrect: " + genotypeState.ref)
-    assert(genotypeState.alt === "A", "GenotypeState alt is incorrect: " + genotypeState.alt)
-    assert(genotypeState.sampleId === "sample1", "GenotypeState sampleId is incorrect: " + genotypeState.sampleId)
-    assert(genotypeState.genotypeState === 1, "GenotypeState genotypeState is incorrect: " + genotypeState.genotypeState)
   }
 
   sparkTest("Test full pipeline: 1 snp, 10 samples, 1 phenotype, no covars") {

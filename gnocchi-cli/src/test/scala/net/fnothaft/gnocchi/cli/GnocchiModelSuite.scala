@@ -17,7 +17,8 @@ import java.io.File
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import java.nio.file.{ Files, Paths }
 
-import net.fnothaft.gnocchi.models.{ AdditiveLinearGnocchiModel, AdditiveLogisticGnocchiModel, VariantModel }
+import net.fnothaft.gnocchi.models.linear.AdditiveLinearGnocchiModel
+import net.fnothaft.gnocchi.models.variant.VariantModel
 import org.scalatest.Ignore
 
 class GnocchiModelSuite extends GnocchiFunSuite {
