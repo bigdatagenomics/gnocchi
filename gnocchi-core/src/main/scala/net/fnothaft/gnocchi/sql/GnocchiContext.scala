@@ -30,7 +30,6 @@ import org.bdgenomics.formats.avro.{ Contig, Variant }
 
 object GnocchiContext {
 
-
   implicit def gcFromSqlContext(sqlContext: SQLContext): GnocchiSqlContext =
     new GnocchiSqlContext(sqlContext)
 
@@ -67,7 +66,6 @@ class GnocchiSqlContext private[sql] (@transient sqlContext: SQLContext) extends
   def toGenotypeStateDataset(gtFrame: DataFrame, ploidy: Int): Dataset[GenotypeState] = {
     toGenotypeStateDataFrame(gtFrame, ploidy).as[GenotypeState]
   }
-
 
   def toGenotypeStateDataFrame(gtFrame: DataFrame, ploidy: Int, sparse: Boolean = false): DataFrame = {
 

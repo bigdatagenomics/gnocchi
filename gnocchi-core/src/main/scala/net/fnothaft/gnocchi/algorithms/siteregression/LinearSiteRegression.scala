@@ -29,25 +29,25 @@ import scala.math.log10
 
 trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
 
-   /**
+  /**
    * Returns Association object with solution to linear regression.
    *
-   * Implementation of RegressSite method from [[SiteRegression]] trait. Performs linear regression on a single site.
+   * Implementation of RegressSite method from [[SiteApplication]] trait. Performs linear regression on a single site.
    * The Site being regressed in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object
-   * to a [[net.fnothaft.gnocchi.models.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this
+   * to a [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this
    * context have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
    *
    * For calculation of the p-value this uses a t-distribution with N-p-1 degrees of freedom. (N = number of samples,
    * p = number of regressors i.e. genotype+covariates+intercept).
    *
    * @param observations Array of tuples. The first element is a coded genotype taken from
-   *                     [[net.fnothaft.gnocchi.models.GenotypeState]]. The second is an array of phenotype values
-   *                     taken from [[net.fnothaft.gnocchi.models.Phenotype]] objects. All genotypes are of the same
+   *                     [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]]. The second is an array of phenotype values
+   *                     taken from [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects. All genotypes are of the same
    *                     site and therefore reference the same contig value i.e. all have the same CHROM_POS_ALT
    *                     identifier. Array of phenotypes has primary phenotype first then covariates.
    * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
-   * @param phenotype [[net.fnothaft.gnocchi.models.Phenotype.phenotype]], The name of the phenotype being regressed.
-   * @return [[net.fnothaft.gnocchi.models.Association]] object containing statistic result for Logistic Regression.
+   * @param phenotype [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]], The name of the phenotype being regressed.
+   * @return [[net.fnothaft.gnocchi.rdd.association.Association]] object containing statistic result for Logistic Regression.
    */
   def applyToSite(observations: Array[(Double, Array[Double])],
                   variant: Variant,
@@ -60,7 +60,6 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
     val numObservations = observations.length
     val x = new Array[Array[Double]](numObservations)
     val y = new Array[Double](numObservations)
-
 
     // iterate over observations, copying correct elements into sample array and filling the x matrix.
     // the first element of each sample in x is the coded genotype and the rest are the covariates.
@@ -109,7 +108,7 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
         a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
         https://en.wikipedia.org/wiki/T-statistic
       */
-      val residualDegreesOfFreedom = numObservations - observationLength - 1
+      val residualDegreesOfFreedom = numObservations - phenotypesLength - 1
       val tDist = new TDistribution(residualDegreesOfFreedom)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
@@ -122,7 +121,7 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
         "ssResiduals" -> ssResiduals,
         "tStatistic" -> t,
         "residualDegreesOfFreedom" -> residualDegreesOfFreedom)
-      constructAssociation(variant.getContig.getContigName,
+      constructAssociation(variant.getContigName,
         numObservations,
         "Linear",
         beta,
@@ -133,7 +132,7 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
         pvalue,
         statistics)
     } catch {
-      case _: SingularMatrixException => constructAssociation(variant.getContig.getContigName,
+      case _: SingularMatrixException => constructAssociation(variant.getContigName,
         numObservations,
         "Linear",
         Array(0.0),

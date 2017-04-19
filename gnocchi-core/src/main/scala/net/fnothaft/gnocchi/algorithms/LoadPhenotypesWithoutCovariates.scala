@@ -17,12 +17,9 @@
  */
 package net.fnothaft.gnocchi.algorithms
 
-import htsjdk.samtools.ValidationStringency
-import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Dataset, Row, SparkSession }
 import org.bdgenomics.utils.misc.Logging
 
 private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable with Logging {
@@ -38,7 +35,7 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
   def apply[T](oneTwo: Boolean,
                file: String,
                phenoName: String,
-               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
+               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype] = {
     logInfo("Loading phenotypes from %s.".format(file))
 
     val phenotypes = sc.textFile(file).persist()
@@ -80,9 +77,6 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
 
     // TODO: NEED TO ASSERT THAT ALL THE PHENOTYPES BE REPRESENTED BY NUMBERS.
 
-    val sparkSession = SparkSession.builder().getOrCreate()
-    import sparkSession.implicits._
-
     var splitHeader = header.split("\t")
     val headerTabDelimited = splitHeader.length != 1
     if (!headerTabDelimited) {
@@ -94,9 +88,8 @@ private[gnocchi] object LoadPhenotypesWithoutCovariates extends Serializable wit
       .filter(p => p.length > 1)
       .filter(p => !indices.exists(index => isMissing(p(index))))
       .map(p => if (oneTwo) p.updated(primaryPhenoIndex, (p(primaryPhenoIndex).toDouble - 1).toString) else p)
-      .map(p => MultipleRegressionDoublePhenotype(
+      .map(p => Phenotype(
         indices.map(i => splitHeader(i)).mkString(","), p(0), indices.map(i => p(i).toDouble)))
-      .map(_.asInstanceOf[Phenotype[Array[Double]]])
     phenotypes.unpersist()
 
     data

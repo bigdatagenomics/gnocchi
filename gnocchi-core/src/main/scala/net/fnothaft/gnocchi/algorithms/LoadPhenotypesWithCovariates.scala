@@ -17,12 +17,9 @@
  */
 package net.fnothaft.gnocchi.algorithms
 
-import htsjdk.samtools.ValidationStringency
-import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Dataset, Row, SparkSession }
 import org.bdgenomics.utils.misc.Logging
 
 private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with Logging {
@@ -42,7 +39,7 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with L
                covarFile: String,
                phenoName: String,
                covarNames: String,
-               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype[Array[Double]]] = {
+               sc: SparkContext)(implicit mT: Manifest[T]): RDD[Phenotype] = {
     logInfo("Loading phenotypes from %s.".format(file))
     val phenotypes = sc.textFile(file).persist()
 
@@ -115,9 +112,6 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with L
                                               sc: SparkContext): RDD[Phenotype] = {
 
     // TODO: NEED TO REQUIRE THAT ALL THE PHENOTYPES BE REPRESENTED BY NUMBERS.
-
-    val sparkSession = SparkSession.builder().getOrCreate()
-    import sparkSession.implicits._
 
     var splitHeader = header.split("\t")
     val headerTabDelimited = splitHeader.length != 1

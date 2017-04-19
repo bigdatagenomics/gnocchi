@@ -23,9 +23,8 @@ import net.fnothaft.gnocchi.rdd.association.Association
 import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.spark.rdd.RDD
-import org.bdgenomics.formats.avro.{ Contig, Variant }
+import org.bdgenomics.formats.avro.Variant
 import org.bdgenomics.utils.misc.Logging
-import scala.collection.JavaConversions._
 
 trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging {
 
@@ -39,18 +38,17 @@ trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging 
    */
   protected def clipOrKeepState(gs: GenotypeState): Double
 
-<<<<<<< HEAD:gnocchi-core/src/main/scala/net/fnothaft/gnocchi/association/SiteRegression.scala
   /**
    * Apply method for SiteRegression. Takes in an RDD of Genotypes and Phenotypes and returns an RDD of
    * Association objects containing the statistics for each site.
    *
-   * @param genotypes an rdd of [[net.fnothaft.gnocchi.models.GenotypeState]] objects to be regressed upon
-   * @param phenotypes an rdd of [[net.fnothaft.gnocchi.models.Phenotype]] objects used as observations
+   * @param genotypes an rdd of [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]] objects to be regressed upon
+   * @param phenotypes an rdd of [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects used as observations
    * @param validationStringency the validation level by which to throw exceptions
    *
-   * @return an rdd of [[net.fnothaft.gnocchi.models.Association]] objects
+   * @return an rdd of [[net.fnothaft.gnocchi.rdd.association.Association]] objects
    */
-  final def apply(rdd: RDD[GenotypeState],
+  final def apply(genotypes: RDD[GenotypeState],
                   phenotypes: RDD[Phenotype],
                   validationStringency: String = "STRICT"): RDD[Association[VM]] = {
     val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
@@ -64,8 +62,8 @@ trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging 
       variant.setStart(gs.start)
       variant.setEnd(gs.end)
       variant.setAlternateAllele(gs.alt)
-      variant.setNames(Seq())
-      variant.setFiltersFailed(Seq())
+//      variant.setNames(List(""))
+//      variant.setFiltersFailed(List(""))
       ((variant, pheno.phenotype), genoPheno)
     })
       .groupByKey()
@@ -76,22 +74,26 @@ trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging 
         val (genotypeState, phenotype) = p
         (clipOrKeepState(genotypeState), phenotype.toDouble)
       }).toArray
-      try { applyToSite(formattedObvs, variant, pheno) }
+      try {
+        applyToSite(formattedObvs, variant, pheno)
+      }
       catch {
         case error: SingularMatrixException => {
           validationStringency match {
             case "STRICT" => throw new SingularMatrixException()
             case "LENIENT" => {
               logError("Singular Matrix found in SiteRegression")
-              Association(variant, pheno, 0.0, null)
+              constructAssociation(variant.getContigName, 0, "", Array(0.0), 0.0, variant, "", 0.0, 0.0, Map(("", "")))
             }
-            case "SILENT" => Association(variant, pheno, 0.0, null)
+            case "SILENT" => {
+              constructAssociation(variant.getContigName, 0, "", Array(0.0), 0.0, variant, "", 0.0, 0.0, Map(("", "")))
+            }
           }
         }
       }
     })
       .filter(assoc => assoc.logPValue != 0.0)
-  
+
   }
 
   /**
@@ -108,6 +110,17 @@ trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging 
   protected def applyToSite(observations: Array[(Double, Array[Double])],
                             variant: Variant,
                             phenotype: String): Association[VM]
+
+  def constructAssociation(variantId: String,
+                           numSamples: Int,
+                           modelType: String,
+                           weights: Array[Double],
+                           geneticParameterStandardError: Double,
+                           variant: Variant,
+                           phenotype: String,
+                           logPValue: Double,
+                           pValue: Double,
+                           statistics: Map[String, Any])
 }
 
 trait Additive {

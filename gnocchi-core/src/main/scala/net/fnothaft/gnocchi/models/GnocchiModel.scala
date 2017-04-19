@@ -253,4 +253,3 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
 
 }
 
-
