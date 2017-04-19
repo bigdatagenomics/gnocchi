@@ -21,7 +21,7 @@ import net.fnothaft.gnocchi.association._
 import net.fnothaft.gnocchi.models.GenotypeState
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 
@@ -120,8 +120,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @return A dataset of GenotypeState objects.
    */
   def loadGenotypes(sc: SparkContext): RDD[GenotypeState] = {
-    // sets up sqlContext
-    val sqlContext = SQLContext.getOrCreate(sc)
+    // sets up sparkSession
+    val sparkSession = SparkSession.builder().getOrCreate()
 
     val absAssociationPath = new Path(args.associations)
     val fs = absAssociationPath.getFileSystem(sc.hadoopConfiguration)
@@ -142,12 +142,12 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     }
 
     // read in parquet files
-    import sqlContext.implicits._
-    //    val genotypes = sqlContext.read.parquet(parquetInputDestination)
-    val genotypes = sqlContext.read.format("parquet").load(parquetInputDestination)
+    import sparkSession.implicits._
+    //    val genotypes = sparkSession.read.parquet(parquetInputDestination)
+    val genotypes = sparkSession.read.format("parquet").load(parquetInputDestination)
     //    val genotypes = sc.loadGenotypes(parquetInputDestination).toDF()
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
-    val genotypeStates = sqlContext
+    val genotypeStates = sparkSession
       .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
     val genoStatesWithNames = genotypeStates.select(
       concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
@@ -299,8 +299,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
   def performAnalysis(genotypeStates: RDD[GenotypeState],
                       phenotypes: RDD[Phenotype[Array[Double]]],
                       sc: SparkContext): Dataset[Association] = {
-    // sets up sqlContext
-    val sqlContext = SQLContext.getOrCreate(sc)
+    // sets up sparkSession
+    val sparkSession = SparkSession.builder().getOrCreate()
     val contextOption = Option(sc)
 
     // imports sparksql encoder for Association objects
@@ -318,13 +318,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
      * creates dataset of Association objects instead of leaving as RDD in order
      * to make it easy to convert to DataFrame and write to parquet in logResults
      */
-    sqlContext.createDataset(associations)
+    sparkSession.createDataset(associations)
   }
 
   def logResults(associations: Dataset[Association],
                  sc: SparkContext) = {
     // save dataset
-    val sqlContext = SQLContext.getOrCreate(sc)
+    val sqlContext = SparkSession.builder().getOrCreate()
     val associationsFile = new Path(args.associations)
     val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
     if (fs.exists(associationsFile)) {

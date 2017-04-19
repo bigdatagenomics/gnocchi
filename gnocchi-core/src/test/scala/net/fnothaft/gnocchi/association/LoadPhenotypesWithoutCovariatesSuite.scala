@@ -19,7 +19,6 @@ package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.models.{ Phenotype }
-import org.apache.spark.sql.SQLContext
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
@@ -69,7 +68,7 @@ class LoadPhenotypesWithoutCovariatesSuite extends GnocchiFunSuite {
     val p1 = LoadPhenotypesWithoutCovariates(false, filepath, "pheno2", sc)
     // assert that it is the right size
     assert(p1.collect().length === 4)
-    // assert that the contents are correct 
+    // assert that the contents are correct
     assert(p1.collect()(0).sampleId === "Sample1")
     assert(p1.collect()(0).phenotype === "pheno2")
     assert(p1.collect()(0).value === Array(12.0))

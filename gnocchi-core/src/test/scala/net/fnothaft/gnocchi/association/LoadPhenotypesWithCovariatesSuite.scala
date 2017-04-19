@@ -19,7 +19,6 @@ package net.fnothaft.gnocchi.association
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.models.{ Phenotype }
-import org.apache.spark.sql.SQLContext
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
