@@ -160,7 +160,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       genotypeStates("missingGenotypes"))
 
     val gsDataset: Dataset[GenotypeState] = genoStatesWithNames.as[GenotypeState]
-    val datasetImpl = true
+    val datasetImpl = false
 
     val mindF = sc.broadcast(args.mind)
     val mafF = sc.broadcast(args.maf)
@@ -196,36 +196,34 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
       finalGenotypeStatesDataset.rdd
     } else {
-
       val gsRdd = gsDataset.rdd
 
-      val samples = sc.broadcast(gsRdd.map(gs => {(gs.sampleId, gs.missingGenotypes, 2)}).keyBy(_._1).reduceByKey((tup1, tup2) => {
-        (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3)
-      }).map(_._2).map(tup => {(tup._1, tup._2.toDouble / tup._3.toDouble)}).filter(_._2 <= mindF.value).map(_._1).collect())
+      val samples = gsRdd.map(gs => (gs.sampleId, gs.missingGenotypes, 2))
+        .keyBy(_._1)
+        .reduceByKey((tup1, tup2) => (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3))
+        .map(keyed_tup => (keyed_tup._2._1, keyed_tup._2._2.toDouble / keyed_tup._2._3.toDouble))
+        .filter(_._2 <= mindF.value)
+        .map(_._1)
+        .collect
+        .toSet
+      val samples_bc = sc.broadcast(samples)
+      val sampleFilteredRdd = gsRdd.filter(gs => samples_bc.value contains gs.sampleId)
 
-      val sampleFilteredRdd = gsRdd.keyBy(_.sampleId).groupByKey.map(pair => {
-        val (key, group) = pair
-        val gsList = group.toArray
-
-        val missCount = gsList.map(_.missingGenotypes).sum.toDouble
-        val total = (gsList.size * 2).toDouble
-        (missCount / total, gsList)
-      }).filter(_._1 <= mindF.value).flatMap(_._2)
-
-      val genoFilteredRdd = sampleFilteredRdd.keyBy(_.contigName).groupByKey.map(pair => {
-        val (key, group) = pair
-        val gsList = group.toArray
-
-        val (missCount, alleleCount) = gsList.map(gs => (gs.missingGenotypes, gs.genotypeState)).reduce((p1, p2) => {
-          (p1._1 + p2._1, p1._2 + p2._2)
+      val genos = sampleFilteredRdd.map(gs => (gs.contigName, gs.missingGenotypes, gs.genotypeState, 2))
+        .keyBy(_._1)
+        .reduceByKey((tup1, tup2) => (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3, tup1._4 + tup2._4))
+        .map(keyed_tup => {
+          val (key, tuple) = keyed_tup
+          val (contigName, missCount, alleleCount, total) = tuple
+          val maf = alleleCount.toDouble / (total - missCount).toDouble
+          (contigName, missCount.toDouble / total.toDouble, maf, 1.0 - maf)
         })
-        val total = (gsList.size * 2).toDouble
-
-        val maf = alleleCount / (total - missCount)
-        (missCount / total, maf, 1.0 - maf, gsList)
-      }).filter(stats => {
-        stats._1 <= genoF.value && stats._2 >= mafF.value && stats._3 >= mafF.value
-      }).flatMap(_._4)
+        .filter(stats => stats._2 <= genoF.value && stats._2 >= mafF.value && stats._3 >= mafF.value)
+        .map(_._1)
+        .collect
+        .toSet
+      val genos_bc = sc.broadcast(genos)
+      val genoFilteredRdd = sampleFilteredRdd.filter(gs => genos_bc.value contains gs.sampleId)
 
       val finalGenotypeStatesRdd = genoFilteredRdd.filter(_.missingGenotypes != 2)
 
