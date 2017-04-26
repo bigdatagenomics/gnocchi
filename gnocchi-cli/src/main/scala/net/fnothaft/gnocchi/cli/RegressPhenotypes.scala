@@ -160,47 +160,58 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       genotypeStates("missingGenotypes"))
 
     val gsDataset: Dataset[GenotypeState] = genoStatesWithNames.as[GenotypeState]
-    val datasetImpl = false
+    val joinImpl = false
 
     val mindF = sc.broadcast(args.mind)
     val mafF = sc.broadcast(args.maf)
     val genoF = sc.broadcast(args.geno)
 
-    if (datasetImpl) {
+    val gsRdd = gsDataset.rdd
 
-      val sampleFilteredDataset = gsDataset.groupByKey(_.sampleId).mapGroups((key, group) => {
-        val gsList = group.toArray
-
-        val missCount = gsList.map(_.missingGenotypes).sum.toDouble
-        val total = (gsList.size * 2).toDouble
-        (missCount / total, gsList)
-      }).filter(_._1 <= mindF.value).flatMap(_._2)
-
-      val genoFilteredDataset = sampleFilteredDataset.groupByKey(_.contigName).mapGroups((key, group) => {
-        val gsList = group.toArray
-
-        val (missCount, alleleCount) = gsList.map(gs => (gs.missingGenotypes, gs.genotypeState)).reduce((p1, p2) => {
-          (p1._1 + p2._1, p1._2 + p2._2)
+    if (joinImpl) {
+      val samplesRdd = gsRdd.map(gs => (gs.sampleId, gs.missingGenotypes, 2))
+        .keyBy(_._1)
+        .reduceByKey((tup1, tup2) => (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3))
+        .map(keyed_tup => {
+          val (key, tuple) = keyed_tup
+          val (sampleId, missCount, total) = tuple
+          val mind = missCount.toDouble / total.toDouble
+          (sampleId, mind)
         })
-        val total = (gsList.size * 2).toDouble
+        .filter(_._2 <= mindF.value)
 
-        val maf = alleleCount / (total - missCount)
-        (missCount / total, maf, 1.0 - maf, gsList)
-      }).filter(stats => {
-        stats._1 <= genoF.value && stats._2 >= mafF.value && stats._3 >= mafF.value
-      }).flatMap(_._4)
+      val sampleFilteredRdd = samplesRdd.join(gsRdd.keyBy(_.sampleId)).map(_._2._2)
 
-      // val finalGenotypeStatesDataset = genoFilteredDataset.filter(_.missingGenotypes != 2)
-      val finalGenotypeStatesDataset = genoFilteredDataset.filter(_.missingGenotypes != 2)
+      val genosRdd = sampleFilteredRdd.map(gs => (gs.contigName, gs.missingGenotypes, gs.genotypeState, 2))
+        .keyBy(_._1)
+        .reduceByKey((tup1, tup2) => (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3, tup1._4 + tup2._4))
+        .map(keyed_tup => {
+          val (key, tuple) = keyed_tup
+          val (contigName, missCount, alleleCount, total) = tuple
+          val geno = missCount.toDouble / total.toDouble
+          val maf = alleleCount.toDouble / (total - missCount).toDouble
+          (contigName, (geno, maf, 1.0 - maf))
+        })
+        .filter(pair => {
+          val (key, stats) = pair
+          stats._1 <= genoF.value && stats._2 >= mafF.value && stats._3 >= mafF.value
+        })
 
-      finalGenotypeStatesDataset.rdd
+      val genoFilteredRdd = genosRdd.join(sampleFilteredRdd.keyBy(_.contigName)).map(_._2._2)
+
+      val finalGenotypeStatesRdd = genoFilteredRdd.filter(_.missingGenotypes != 2)
+
+      finalGenotypeStatesRdd
     } else {
-      val gsRdd = gsDataset.rdd
-
       val samples = gsRdd.map(gs => (gs.sampleId, gs.missingGenotypes, 2))
         .keyBy(_._1)
         .reduceByKey((tup1, tup2) => (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3))
-        .map(keyed_tup => (keyed_tup._2._1, keyed_tup._2._2.toDouble / keyed_tup._2._3.toDouble))
+        .map(keyed_tup => {
+          val (key, tuple) = keyed_tup
+          val (sampleId, missCount, total) = tuple
+          val mind = missCount.toDouble / total.toDouble
+          (sampleId, mind)
+        })
         .filter(_._2 <= mindF.value)
         .map(_._1)
         .collect
@@ -214,8 +225,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
         .map(keyed_tup => {
           val (key, tuple) = keyed_tup
           val (contigName, missCount, alleleCount, total) = tuple
+          val geno = missCount.toDouble / total.toDouble
           val maf = alleleCount.toDouble / (total - missCount).toDouble
-          (contigName, missCount.toDouble / total.toDouble, maf, 1.0 - maf)
+          (contigName, geno, maf, 1.0 - maf)
         })
         .filter(stats => stats._2 <= genoF.value && stats._3 >= mafF.value && stats._4 >= mafF.value)
         .map(_._1)
@@ -228,29 +240,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
       finalGenotypeStatesRdd
     }
-
-    //    // mind filter
-    //    val sampleFilteredDF = genoStatesWithNames
-    //      .groupBy($"gs.sampleId")
-    //      .agg((sum($"gs.missingGenotypes") / (count($"gs") * lit(2))).alias("mind"),
-    //        collect_list($"gs").as("gsList"))
-    //      .filter($"mind" <= args.mind)
-    //      .select(explode($"gsList").as("gs"))
-    //
-    //    val genoFilteredDF = sampleFilteredDF
-    //      .groupBy($"gs.contigName")
-    //      .agg(sum($"gs.missingGenotypes").as("missCount"),
-    //        (count($"gs") * lit(2)).as("total"),
-    //        sum($"gs.genotypeState").as("alleleCount"),
-    //        collect_list($"gs").as("gsList"))
-    //      .filter(($"missCount" / $"total") <= lit(args.geno))
-    //      .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(args.maf))
-    //      .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
-    //      .select(explode($"gsList").as("gs"))
-    //
-    //    val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" !== lit(2)).select($"gs.*")
-    //
-    //    finalGenotypeStates.as[GenotypeState]
   }
 
   /**
