@@ -50,7 +50,7 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
     val regPheno = new RegressPhenotypes(args)
 
     // Load in genotype data filtering out any SNPs not provided in command line
-    val genotypeStates = regPheno.loadGenotypes(sc).rdd
+    val genotypeStates = regPheno.loadGenotypes(sc)
 
     // Load in phenotype data
     val phenotypes = regPheno.loadPhenotypes(sc)

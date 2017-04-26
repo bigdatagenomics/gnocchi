@@ -55,7 +55,7 @@ class ConstructGnocchiModel(protected val args: ConstructGnocchiModelArgs) exten
 
     val phenotypes = regPheno.loadPhenotypes(sc)
 
-    val (model, associationObjects): (GnocchiModel, RDD[Association]) = buildModel[Array[Double]](genotypeStates.rdd, phenotypes, sc)
+    val (model, associationObjects): (GnocchiModel, RDD[Association]) = buildModel[Array[Double]](genotypeStates, phenotypes, sc)
 
     val sparkSession = SparkSession.builder.getOrCreate()
     import sparkSession.implicits._

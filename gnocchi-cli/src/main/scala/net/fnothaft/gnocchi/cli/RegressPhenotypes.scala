@@ -166,7 +166,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val mafF = sc.broadcast(args.maf)
     val genoF = sc.broadcast(args.geno)
 
-
     if (datasetImpl) {
 
       val sampleFilteredDataset = gsDataset.groupByKey(_.sampleId).mapGroups((key, group) => {
@@ -218,18 +217,17 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
           val maf = alleleCount.toDouble / (total - missCount).toDouble
           (contigName, missCount.toDouble / total.toDouble, maf, 1.0 - maf)
         })
-        .filter(stats => stats._2 <= genoF.value && stats._2 >= mafF.value && stats._3 >= mafF.value)
+        .filter(stats => stats._2 <= genoF.value && stats._3 >= mafF.value && stats._4 >= mafF.value)
         .map(_._1)
         .collect
         .toSet
       val genos_bc = sc.broadcast(genos)
-      val genoFilteredRdd = sampleFilteredRdd.filter(gs => genos_bc.value contains gs.sampleId)
+      val genoFilteredRdd = sampleFilteredRdd.filter(gs => genos_bc.value contains gs.contigName)
 
       val finalGenotypeStatesRdd = genoFilteredRdd.filter(_.missingGenotypes != 2)
 
       finalGenotypeStatesRdd
     }
-
 
     //    // mind filter
     //    val sampleFilteredDF = genoStatesWithNames
