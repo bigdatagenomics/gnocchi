@@ -92,6 +92,8 @@ case class AdditiveLogisticAssociation(variantId: String,
    * @return Returns a VariantModel object of the appropriate subtype.
    */
   def toVariantModel: AdditiveLogisticVariantModel = {
+    println("Weights in association")
+    println(weights.toList)
     AdditiveLogisticVariantModel(variantId,
       variant, weights.toList, geneticParameterStandardError.toDouble, pValue,
       numSamples, phenotype)

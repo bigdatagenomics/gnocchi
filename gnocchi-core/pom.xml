@@ -81,11 +81,9 @@
       <version>${adam.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.bdgenomics.adam</groupId>
-      <artifactId>adam-core-spark2_${scala.version.prefix}</artifactId>
-      <version>${adam.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
+        <groupId>org.bdgenomics.adam</groupId>
+        <artifactId>adam-cli-spark2_${scala.version.prefix}</artifactId>
+        <version>${adam.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>

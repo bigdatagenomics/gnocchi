@@ -113,10 +113,11 @@ private[gnocchi] object LoadPhenotypesWithCovariates extends Serializable with L
 
     // TODO: NEED TO REQUIRE THAT ALL THE PHENOTYPES BE REPRESENTED BY NUMBERS.
 
-    var splitHeader = header.split("\t")
-    val headerTabDelimited = splitHeader.length != 1
-    if (!headerTabDelimited) {
-      splitHeader = header.split(" ")
+    val headerTabDelimited = header.split("\t").length != 1
+    val splitHeader = if (headerTabDelimited) {
+      header.split("\t")
+    } else {
+      header.split(" ")
     }
 
     var splitCovarHeader = covarHeader.split("\t")

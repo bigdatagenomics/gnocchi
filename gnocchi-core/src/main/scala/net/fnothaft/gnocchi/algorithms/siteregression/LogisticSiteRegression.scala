@@ -115,7 +115,10 @@ trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM]
           iter = maxIter
         }
       } catch {
-        case _: breeze.linalg.MatrixSingularException => throw new SingularMatrixException()
+        case _: breeze.linalg.MatrixSingularException => {
+          singular = true
+          throw new SingularMatrixException()
+        }
       }
       iter += 1
     }
@@ -155,7 +158,7 @@ trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM]
         "prob" -> pi,
         "rSquared" -> 0.0)
 
-      constructAssociation(variant.getContig.getContigName,
+      constructAssociation(variant.getContigName,
         numObservations,
         "Logistic",
         beta,
@@ -166,7 +169,9 @@ trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM]
         logWaldTests(1),
         statistics)
     } catch {
-      case _: breeze.linalg.MatrixSingularException => throw new SingularMatrixException()
+      case _: breeze.linalg.MatrixSingularException => {
+        throw new SingularMatrixException()
+      }
       //        matrixSingular = true
       //        constructAssociation(variant.getContig.getContigName,
       //          numObservations,

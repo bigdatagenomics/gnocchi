@@ -62,8 +62,8 @@ trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging 
       variant.setStart(gs.start)
       variant.setEnd(gs.end)
       variant.setAlternateAllele(gs.alt)
-//      variant.setNames(List(""))
-//      variant.setFiltersFailed(List(""))
+      //      variant.setNames(List(""))
+      //      variant.setFiltersFailed(List(""))
       ((variant, pheno.phenotype), genoPheno)
     })
       .groupByKey()
@@ -76,36 +76,36 @@ trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging 
       }).toArray
       try {
         applyToSite(formattedObvs, variant, pheno)
-      }
-      catch {
+      } catch {
         case error: SingularMatrixException => {
           validationStringency match {
             case "STRICT" => throw new SingularMatrixException()
             case "LENIENT" => {
               logError("Singular Matrix found in SiteRegression")
-              constructAssociation(variant.getContigName, 0, "", Array(0.0), 0.0, variant, "", 0.0, 0.0, Map(("", "")))
+              constructAssociation(variant.getContigName, 1, "", new Array[Double](formattedObvs.head._2.length + 1), 0.0, variant, "", 0.0, 0.0, Map(("", "")))
             }
             case "SILENT" => {
-              constructAssociation(variant.getContigName, 0, "", Array(0.0), 0.0, variant, "", 0.0, 0.0, Map(("", "")))
+              println("here here")
+              println(new Array[Double](formattedObvs.head._2.length))
+              constructAssociation(variant.getContigName, 1, "", new Array[Double](formattedObvs.head._2.length + 1), 0.0, variant, "", 0.0, 0.0, Map(("", "")))
             }
           }
         }
       }
-    })
+    }).asInstanceOf[RDD[Association[VM]]]
       .filter(assoc => assoc.logPValue != 0.0)
-
   }
 
   /**
    * Performs regression on a single site. A site in this context is the unique pairing of a
-   * [[org.bdgenomics.formats.avro.Variant]] object and a [[net.fnothaft.gnocchi.models.Phenotype]] name.
+   * [[org.bdgenomics.formats.avro.Variant]] object and a [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] name.
    *
    * @param observations Array of tuples. The first element is a coded genotype taken from
-   *                     [[net.fnothaft.gnocchi.models.GenotypeState]]. The second is an array of observed phenotypes
-   *                     taken from [[net.fnothaft.gnocchi.models.Phenotype]] objects.
+   *                     [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]]. The second is an array of observed phenotypes
+   *                     taken from [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects.
    * @param variant [[org.bdgenomics.formats.avro.Variant]] to be regressed on
    * @param phenotype Phenotype value, stored as a String
-   * @return [[net.fnothaft.gnocchi.models.Association]] containing statistic for particular site
+   * @return [[net.fnothaft.gnocchi.rdd.association.Association]] containing statistic for particular site
    */
   protected def applyToSite(observations: Array[(Double, Array[Double])],
                             variant: Variant,
@@ -120,7 +120,7 @@ trait SiteApplication[VM <: VariantModel[VM]] extends Serializable with Logging 
                            phenotype: String,
                            logPValue: Double,
                            pValue: Double,
-                           statistics: Map[String, Any])
+                           statistics: Map[String, Any]): Association[VM]
 }
 
 trait Additive {

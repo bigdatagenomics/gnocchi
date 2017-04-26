@@ -36,6 +36,7 @@ import org.apache.spark.sql.functions.{ concat, lit }
 import net.fnothaft.gnocchi.rdd.association.Association
 import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import org.apache.hadoop.fs.Path
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -66,10 +67,10 @@ class RegressPhenotypesArgs extends Args4jBase {
   var includeCovariates = false
 
   @Args4jOption(required = false, name = "-covarFile", usage = "The covariates file path")
-  var covarFile: String = _
+  var covarFile: Option[String] = None
 
   @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
-  var covarNames: String = _
+  var covarNames: Option[String] = None
 
   @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
   var saveAsText = false
@@ -102,124 +103,125 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
 
-    val genotypeStates = loadGenotypes(sc)
+    val genotypeStates = sc.loadAndFilterGenotypes(args.genotypes, args.associations,
+      args.ploidy, args.mind, args.maf, args.geno, args.overwrite)
 
-    val phenotypes = loadPhenotypes(sc)
+    val phenotypes = sc.loadPhenotypes(args.phenotypes, args.phenoName, args.oneTwo, args.includeCovariates, args.covarFile, args.covarNames)
 
     val associations = performAnalysis(genotypeStates, phenotypes, sc)
 
     logResults(associations, sc)
   }
 
-  /**
-   * Returns a dataset of GenotypeState's from vcf input.
-   *
-   * @note Checks for ADAM-formatted (parquet) genotype data in the output
-   *       directory. If parquet files don't exist or -overwriteParquet flag
-   *       provided, creates ADAM-formatted files from vcf using Vcf2Adam
-   *       before creation of dataset.
-   * @param sc The spark context in which Gnocchi is running.
-   * @return A dataset of GenotypeState objects.
-   */
-  def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
-    // sets up sparkSession
-    val sparkSession = SparkSession.builder().getOrCreate()
-
-    val absAssociationPath = new Path(args.associations)
-    val fs = absAssociationPath.getFileSystem(sc.hadoopConfiguration)
-    // val absAssociationStr = fs.getFileStatus(relAssociationPath).getPath.toString
-    val parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetInputFiles/"
-    val parquetFiles = new Path(parquetInputDestination)
-
-    val vcfPath = args.genotypes
-
-    // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
-    if (!fs.exists(parquetFiles)) {
-      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
-      Vcf2ADAM(cmdLine).run(sc)
-    } else if (args.overwrite) {
-      fs.delete(parquetFiles, true)
-      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
-      Vcf2ADAM(cmdLine).run(sc)
-    }
-
-    // read in parquet files
-    import sparkSession.implicits._
-    //    val genotypes = sparkSession.read.parquet(parquetInputDestination)
-    val genotypes = sparkSession.read.format("parquet").load(parquetInputDestination)
-    //    val genotypes = sc.loadGenotypes(parquetInputDestination).toDF()
-    // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
-    val genotypeStates = sparkSession
-      .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
-    val genoStatesWithNames = genotypeStates.select(
-      struct(concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
-        genotypeStates("start"),
-        genotypeStates("end"),
-        genotypeStates("ref"),
-        genotypeStates("alt"),
-        genotypeStates("sampleId"),
-        genotypeStates("genotypeState"),
-        genotypeStates("missingGenotypes")).as("gs"))
-
-    // mind filter
-    val sampleFilteredDF = genoStatesWithNames
-      .groupBy($"gs.sampleId")
-      .agg((sum($"gs.missingGenotypes") / (count($"gs") * lit(2))).alias("mind"),
-        collect_list($"gs").as("gsList"))
-      .filter($"mind" <= args.mind)
-      .select(explode($"gsList").as("gs"))
-
-    val genoFilteredDF = sampleFilteredDF
-      .groupBy($"gs.contigName")
-      .agg(sum($"gs.missingGenotypes").as("missCount"),
-        (count($"gs") * lit(2)).as("total"),
-        sum($"gs.genotypeState").as("alleleCount"),
-        collect_list($"gs").as("gsList"))
-      .filter(($"missCount" / $"total") <= lit(args.geno))
-      .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(args.maf))
-      .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
-      .select(explode($"gsList").as("gs"))
-
-    val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" =!= lit(2)).select($"gs.*")
-
-    finalGenotypeStates.as[GenotypeState]
-  }
-
-  /**
-   * Returns an RDD of Phenotype objects, built from tab-delimited text file
-   * of phenotypes.
-   *
-   * @throws IllegalArgumentException Throws exception if -includeCovariates
-   *                                  given in command line but no covariates
-   *                                  specified
-   * @throws IllegalArgumentException Throws exception if one of the specified
-   *                                  covariates is the name specified in
-   *                                  -phenoName
-   * @param sc The spark context in which Gnocchi is running.
-   * @return An RDD of Phenotype objects.
-   */
-  def loadPhenotypes(sc: SparkContext): RDD[Phenotype] = {
-    /*
-     * Throws IllegalArgumentException if includeCovariates given but no covariates specified
-     * or if any of the covariates specified are the phenotype specified in
-     * -phenoName
-     */
-    if (args.includeCovariates) {
-      require(Option[String](args.covarNames).isDefined, "If the -covar flag is given, covariate names must be given using the -covarNames flag")
-      // assert that the primary phenotype isn't included in the covariates. 
-      for (covar <- args.covarNames.split(",")) {
-        assert(covar != args.phenoName, "Primary phenotype cannot be a covariate.")
-      }
-    }
-
-    // Load phenotypes
-    val phenotypes = args.includeCovariates match {
-      case true => LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc)
-      case _    => LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc)
-    }
-    phenotypes
-  }
-
+  //  /**
+  //   * Returns a dataset of GenotypeState's from vcf input.
+  //   *
+  //   * @note Checks for ADAM-formatted (parquet) genotype data in the output
+  //   *       directory. If parquet files don't exist or -overwriteParquet flag
+  //   *       provided, creates ADAM-formatted files from vcf using Vcf2Adam
+  //   *       before creation of dataset.
+  //   * @param sc The spark context in which Gnocchi is running.
+  //   * @return A dataset of GenotypeState objects.
+  //   */
+  //  def loadGenotypes(sc: SparkContext): Dataset[GenotypeState] = {
+  //    // sets up sparkSession
+  //    val sparkSession = SparkSession.builder().getOrCreate()
+  //
+  //    val absAssociationPath = new Path(args.associations)
+  //    val fs = absAssociationPath.getFileSystem(sc.hadoopConfiguration)
+  //    // val absAssociationStr = fs.getFileStatus(relAssociationPath).getPath.toString
+  //    val parquetInputDestination = absAssociationPath.toString.split("/").reverse.drop(1).reverse.mkString("/") + "/parquetInputFiles/"
+  //    val parquetFiles = new Path(parquetInputDestination)
+  //
+  //    val vcfPath = args.genotypes
+  //
+  //    // check for ADAM formatted version of the file specified in genotypes. If it doesn't exist, convert vcf to parquet using vcf2adam.
+  //    if (!fs.exists(parquetFiles)) {
+  //      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
+  //      Vcf2ADAM(cmdLine).run(sc)
+  //    } else if (args.overwrite) {
+  //      fs.delete(parquetFiles, true)
+  //      val cmdLine: Array[String] = Array[String](vcfPath, parquetInputDestination)
+  //      Vcf2ADAM(cmdLine).run(sc)
+  //    }
+  //
+  //    // read in parquet files
+  //    import sparkSession.implicits._
+  //    //    val genotypes = sparkSession.read.parquet(parquetInputDestination)
+  //    val genotypes = sparkSession.read.format("parquet").load(parquetInputDestination)
+  //    //    val genotypes = sc.loadGenotypes(parquetInputDestination).toDF()
+  //    // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
+  //    val genotypeStates = sparkSession
+  //      .toGenotypeStateDataFrame(genotypes, args.ploidy, sparse = false)
+  //    val genoStatesWithNames = genotypeStates.select(
+  //      struct(concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
+  //        genotypeStates("start"),
+  //        genotypeStates("end"),
+  //        genotypeStates("ref"),
+  //        genotypeStates("alt"),
+  //        genotypeStates("sampleId"),
+  //        genotypeStates("genotypeState"),
+  //        genotypeStates("missingGenotypes")).as("gs"))
+  //
+  //    // mind filter
+  //    val sampleFilteredDF = genoStatesWithNames
+  //      .groupBy($"gs.sampleId")
+  //      .agg((sum($"gs.missingGenotypes") / (count($"gs") * lit(2))).alias("mind"),
+  //        collect_list($"gs").as("gsList"))
+  //      .filter($"mind" <= args.mind)
+  //      .select(explode($"gsList").as("gs"))
+  //
+  //    val genoFilteredDF = sampleFilteredDF
+  //      .groupBy($"gs.contigName")
+  //      .agg(sum($"gs.missingGenotypes").as("missCount"),
+  //        (count($"gs") * lit(2)).as("total"),
+  //        sum($"gs.genotypeState").as("alleleCount"),
+  //        collect_list($"gs").as("gsList"))
+  //      .filter(($"missCount" / $"total") <= lit(args.geno))
+  //      .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(args.maf))
+  //      .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(args.maf))
+  //      .select(explode($"gsList").as("gs"))
+  //
+  //    val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" =!= lit(2)).select($"gs.*")
+  //
+  //    finalGenotypeStates.as[GenotypeState]
+  //  }
+  //
+  //  /**
+  //   * Returns an RDD of Phenotype objects, built from tab-delimited text file
+  //   * of phenotypes.
+  //   *
+  //   * @throws IllegalArgumentException Throws exception if -includeCovariates
+  //   *                                  given in command line but no covariates
+  //   *                                  specified
+  //   * @throws IllegalArgumentException Throws exception if one of the specified
+  //   *                                  covariates is the name specified in
+  //   *                                  -phenoName
+  //   * @param sc The spark context in which Gnocchi is running.
+  //   * @return An RDD of Phenotype objects.
+  //   */
+  //  def loadPhenotypes(sc: SparkContext): RDD[Phenotype] = {
+  //    /*
+  //     * Throws IllegalArgumentException if includeCovariates given but no covariates specified
+  //     * or if any of the covariates specified are the phenotype specified in
+  //     * -phenoName
+  //     */
+  //    if (args.includeCovariates) {
+  //      require(Option[String](args.covarNames).isDefined, "If the -covar flag is given, covariate names must be given using the -covarNames flag")
+  //      // assert that the primary phenotype isn't included in the covariates.
+  //      for (covar <- args.covarNames.split(",")) {
+  //        assert(covar != args.phenoName, "Primary phenotype cannot be a covariate.")
+  //      }
+  //    }
+  //
+  //    // Load phenotypes
+  //    val phenotypes = args.includeCovariates match {
+  //      case true => LoadPhenotypesWithCovariates(args.oneTwo, args.phenotypes, args.covarFile, args.phenoName, args.covarNames, sc)
+  //      case _    => LoadPhenotypesWithoutCovariates(args.oneTwo, args.phenotypes, args.phenoName, sc)
+  //    }
+  //    phenotypes
+  //  }
+  //
   /**
    * Returns a dataset of Association objects, each the result of a regression
    * for a single variant.
@@ -229,7 +231,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
    * @param sc: The spark context in which Gnocchi is running.
    * @return A dataset of GenotypeState objects.
    */
-  def performAnalysis(genotypeStates: Dataset[GenotypeState],
+  def performAnalysis(genotypeStates: RDD[GenotypeState],
                       phenotypes: RDD[Phenotype],
                       sc: SparkContext): Dataset[Association] = {
     // sets up sparkSession
@@ -237,14 +239,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val contextOption = Option(sc)
 
     // imports sparksql encoder for Association objects
-    import AuxEncoders._
+    import net.fnothaft.gnocchi.sql.AuxEncoders._
 
     // performs regression of given type, producing RDD of association objects
     val associations = args.associationType match {
-      case "ADDITIVE_LINEAR"   => AdditiveLinearRegression(genotypeStates.rdd, phenotypes)
-      case "DOMINANT_LINEAR"   => DominantLinearRegression(genotypeStates.rdd, phenotypes)
-      case "ADDITIVE_LOGISTIC" => AdditiveLogisticRegression(genotypeStates.rdd, phenotypes)
-      case "DOMINANT_LOGISTIC" => DominantLogisticRegression(genotypeStates.rdd, phenotypes)
+      case "ADDITIVE_LINEAR"   => AdditiveLinearRegression(genotypeStates, phenotypes)
+      case "DOMINANT_LINEAR"   => DominantLinearRegression(genotypeStates, phenotypes)
+      case "ADDITIVE_LOGISTIC" => AdditiveLogisticRegression(genotypeStates, phenotypes)
+      case "DOMINANT_LOGISTIC" => DominantLogisticRegression(genotypeStates, phenotypes)
     }
 
     /*

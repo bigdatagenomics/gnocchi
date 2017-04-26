@@ -16,6 +16,9 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
    * @return Returns updated LogisticVariantModel of correct subtype
    */
   def mergeWith(variantModel: VM): VM = {
+    println(variantId)
+    println(weights)
+    println(variantModel.weights)
     val updatedNumSamples = updateNumSamples(variantModel.numSamples)
     val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(variantModel.geneticParameterStandardError, variantModel.numSamples)
     val updatedWeights = updateWeights(variantModel.weights, variantModel.numSamples)

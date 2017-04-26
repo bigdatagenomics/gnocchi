@@ -34,13 +34,13 @@ class VariantModelSuite extends GnocchiFunSuite {
   val locus = ReferenceRegion("Name", 1, 2)
   val scOption = Option(sc)
   val variant = new Variant()
-  val contig = new Contig()
-  contig.setContigName(locus.referenceName)
-  variant.setContig(contig)
+  //  val contig = new Contig()
+  //  contig.setContigName(locus.referenceName)
+  variant.setContigName(locus.referenceName)
   variant.setStart(locus.start)
   variant.setEnd(locus.end)
   variant.setAlternateAllele(altAllele)
-  val variantModel = AdditiveLinearVariantModel(variant.getContig.getContigName,
+  val variantModel = AdditiveLinearVariantModel(variant.getContigName,
     22.0, //ssDeviations
     12.0, //ssResiduals
     .001, //geneticParameterStandardError

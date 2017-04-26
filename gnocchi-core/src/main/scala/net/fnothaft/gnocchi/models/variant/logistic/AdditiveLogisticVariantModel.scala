@@ -2,6 +2,7 @@ package net.fnothaft.gnocchi.models.variant.logistic
 
 import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticRegression
 import net.fnothaft.gnocchi.rdd.association.AdditiveLogisticAssociation
+import org.apache.commons.math3.linear.SingularMatrixException
 import org.bdgenomics.formats.avro.Variant
 
 case class AdditiveLogisticVariantModel(variantId: String,
@@ -30,32 +31,50 @@ case class AdditiveLogisticVariantModel(variantId: String,
    *                     are that sample's values for each covariate.
    */
   def update(observations: Array[(Double, Array[Double])]): AdditiveLogisticVariantModel = {
-    val batchVariantModel = applyToSite(observations, variant, phenotype)
-      .toVariantModel
+
+    //TODO: add validation stringency here rather than just creating empty association object
+    println((new Array[Double](observations.head._2.length)).toList)
+    val batchVariantModel = try {
+      applyToSite(observations, variant, phenotype)
+        .toVariantModel
+    } catch {
+      case error: SingularMatrixException => {
+        AdditiveLogisticRegression.constructAssociation(variantId,
+          1,
+          "",
+          new Array[Double](observations.head._2.length + 1),
+          0.0,
+          variant,
+          "",
+          0.0,
+          0.0,
+          Map(("", ""))).toVariantModel
+      }
+    }
     mergeWith(batchVariantModel)
   }
-  /**
-   * Returns new Association object with provided values for
-   * for weights, geneticParameterStandardError,
-   * number of samples, and pValue.
-   *
-   * @note using updateAssociation enables enforcement that all of the
-   *       fields required for a LogisticVariantModel are present in the
-   *       new association object.
-   *
-   * @param geneticParameterStandardError Updated standard error of genetic parameter
-   *                                      in regression model
-   * @param pValue Updated P value of the genetic parameter in the regression model
-   * @param numSamples Number of samples in the updated model
-   * @param weights Weights associated with the updated regression model
-   * @return Returns new Association object with updated parameters.
-   */
-  def updateAssociation(geneticParameterStandardError: Double,
-                        pValue: Double,
-                        numSamples: Int,
-                        weights: Array[Double]): AdditiveLogisticAssociation = {
-    AdditiveLogisticAssociation("NoID", 0, "NoModelType", Array(0, 0, 0, 0), 0.0, new Variant(), "NoPheno", 0.0, 0.0, Map())
-  }
+  //  /**
+  //   * Returns new Association object with provided values for
+  //   * for weights, geneticParameterStandardError,
+  //   * number of samples, and pValue.
+  //   *
+  //   * @note using updateAssociation enables enforcement that all of the
+  //   *       fields required for a LogisticVariantModel are present in the
+  //   *       new association object.
+  //   *
+  //   * @param geneticParameterStandardError Updated standard error of genetic parameter
+  //   *                                      in regression model
+  //   * @param pValue Updated P value of the genetic parameter in the regression model
+  //   * @param numSamples Number of samples in the updated model
+  //   * @param weights Weights associated with the updated regression model
+  //   * @return Returns new Association object with updated parameters.
+  //   */
+  //  def updateAssociation(geneticParameterStandardError: Double,
+  //                        pValue: Double,
+  //                        numSamples: Int,
+  //                        weights: Array[Double]): AdditiveLogisticAssociation = {
+  //    AdditiveLogisticAssociation("NoID", 0, "NoModelType", Array(0, 0, 0, 0), 0.0, new Variant(), "NoPheno", 0.0, 0.0, Map())
+  //  }
 
   def constructVariantModel(variantId: String,
                             variant: Variant,

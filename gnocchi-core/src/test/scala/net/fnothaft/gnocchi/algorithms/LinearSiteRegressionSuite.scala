@@ -31,11 +31,11 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
   val variant = new Variant()
   val contig = new Contig()
   //    contig.setContigName(locus.referenceName)
-  variant.setContig(contig)
+  //  variant.setContig(contig)
   variant.setStart(locus.start)
   variant.setEnd(locus.end)
   variant.setAlternateAllele(altAllele)
-  variant.getContig.setContigName("Name")
+  variant.setContigName("Name")
 
   test("rsquared should be 1 if all the points lie on a line") {
 

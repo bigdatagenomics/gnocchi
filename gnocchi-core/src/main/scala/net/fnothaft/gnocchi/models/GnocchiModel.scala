@@ -112,6 +112,8 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
     // join new data with correct VariantModel
     val vmAndDataRDD = variantModels.keyBy(_.variant).join(newObservations)
 
+    println("SDFSDF")
+    println(vmAndDataRDD.map(p => p._2._1.weights).collect.toList)
     // update all variants with new data
     vmAndDataRDD.map(kvv => {
       val (variant, (model, data)) = kvv
