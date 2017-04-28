@@ -123,6 +123,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
 
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
     val genotypeStates = toGenotypeStateDataFrame(genotypes, ploidy, sparse = false)
+    // TODO: change convention so that generated variant name gets put in "names" rather than "contigName"
     val genoStatesWithNames = genotypeStates.select(
       struct(concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
         genotypeStates("start"),
@@ -174,23 +175,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
                      covarFile: Option[String],
                      covarNames: Option[String]): RDD[Phenotype] = {
     logInfo("Loading phenotypes from %s.".format(phenotypesPath))
-    //    val phenotypes = sc.textFile(phenotypesPath).persist()
-    //    val header = phenotypes.first()
-    //    val len = header.split("\t").length
-    //    var labels = Array(("", 0))
-    //    if (len >= 2) {
-    //      labels = header.split("\t").zipWithIndex
-    //    } else {
-    //      labels = header.split(" ").zipWithIndex
-    //    }
-    //
-    //    require(labels.length >= 2,
-    //      "Phenotypes file must have a minimum of 2 tab delimited columns. The first being some " +
-    //        "form of sampleID, the rest being phenotype values. A header with column labels must also be present. ")
-    //
-    //    val primaryPhenoIndex = labels.map(item => item._1).indexOf(phenoName)
-    //    require(primaryPhenoIndex != -1, "The phenoName given doesn't match any of the phenotypes specified in the header.")
-    val (phenotypes, header, indexList, delimiter): (RDD[String], Array[String], Array[Int], String) = loadFileAndCheckHeader(phenotypesPath, phenoName)
+
+    val (phenotypes, header, indexList, delimiter) = loadFileAndCheckHeader(phenotypesPath, phenoName)
     val primaryPhenoIndex = indexList(0)
 
     if (includeCovariates) {
@@ -222,12 +208,6 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       "Phenotypes"
     } else {
       "Covariates"
-    }
-
-    val mismatchMessage = if (isCovars) {
-      "One or more of the names from covarNames doesn't match a column title in the header of the phenotype file."
-    } else {
-      "The phenoName given doesn't match any of the phenotypes specified in the header."
     }
 
     require(columnLabels.length >= 2,

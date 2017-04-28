@@ -19,30 +19,48 @@
 package net.fnothaft.gnocchi.sql
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
-import net.fnothaft.gnocchi.sql.GnocchiContext._
-import org.apache.spark.sql.SparkSession
-import net.fnothaft.gnocchi.sql.GnocchiContext._
 
 class GnocchiContextSuite extends GnocchiFunSuite {
 
-  ignore("Test loadAndFilterGenotypes: load VCF with no filters; assert that all genotypes present") {
+  ignore("toGenotypeStateDataFrame should work for ploidy == 1")
 
-  }
+  ignore("toGenotypeStateDataFrame should work for ploidy ==2")
 
-  ignore("Test loadAndFilterGenotypes: load VCF with maf filter; ") {
+  ignore("toGenotypeStateDataFrame should count number of NO_CALL's correctly")
 
-  }
-  ignore("Test loadAndFilterGenotypes: output from vcf input") {
-    //    val genoFilePath = ClassLoader.getSystemClassLoader.getResource("small1.vcf").getFile
-    //    val genotypeStateDataset = sc.loadAndFilterGenotypes(genoFilePath,
-    //      adamDestination, ploidy, mind, maf, geno, overwrite)
-    //    val genotypeStateArray = genotypeStateDataset.collect()
-    //    val genotypeState = genotypeStateArray(0)
-    //    assert(genotypeState.start === 14521, "GenotypeState start is incorrect: " + genotypeState.start)
-    //    assert(genotypeState.end === 14522, "GenotypeState end is incorrect: " + genotypeState.end)
-    //    assert(genotypeState.ref === "G", "GenotypeState ref is incorrect: " + genotypeState.ref)
-    //    assert(genotypeState.alt === "A", "GenotypeState alt is incorrect: " + genotypeState.alt)
-    //    assert(genotypeState.sampleId === "sample1", "GenotypeState sampleId is incorrect: " + genotypeState.sampleId)
-    //    assert(genotypeState.genotypeState === 1, "GenotypeState genotypeState is incorrect: " + genotypeState.genotypeState)
-  }
+  ignore("filterSamples should not filter any samples if mind == 0")
+
+  ignore("filterSamples should filter on mind if mind is greater than 0 but less than 1")
+
+  ignore("filterSamples should filter out all samples if mind is greater or equal to 1")
+
+  ignore("filterVariants should not filter any varaints if geno and maf thresholds are both 0")
+
+  ignore("filterVariants should filter out variants with genotyping rate less than 0.1 when " +
+    "geno threshold set to 0.1 and maf threshold is greater than 0.1")
+
+  ignore("filterVariants should filter out variants with minor allele frequency less than 0.1 when" +
+    "maf threshold set to 0.1 and geno threshold is greater than 0.1")
+
+  ignore("Results from loadAndFilterGenotypes should match results of calls of filterSamples and then filterVariants")
+
+  ignore("loadFileAndCheckHeader should require that the input file is tab or space delimited")
+
+  ignore("loadFileAndCheckHeader should require that the input file has at least 2 columns")
+
+  ignore("loadFileAndCheckHeader should require that phenoName and each covariate match a" +
+    "column label in the header")
+
+  ignore("combineAndFilterPhenotypes should filter out samples that are missing a phenotype or a covariate")
+
+  ignore("loadPhenotypes should call loadFileAndCheckHeader and thus catch poorly formatted headers")
+
+  ignore("loadPhenotypes should call combineAndFilterPhenotypes and thus produce combined phenotype objects")
+
+  ignore("loadPhenotypes should require that phenoName cannot match a provided covar name")
+
+  ignore("isMissing should yield true iff the value provided is -9.0 or -9")
+
+  ignore("isMissing should throw a NumberFormatException the value provided cannot be converted to a double")
+
 }
