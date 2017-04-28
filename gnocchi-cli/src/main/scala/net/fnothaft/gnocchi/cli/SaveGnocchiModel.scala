@@ -21,12 +21,12 @@ import java.io.{ FileOutputStream, ObjectOutputStream }
 import net.fnothaft.gnocchi.models.GnocchiModel
 
 object SaveGnocchiModel {
-
-  def apply(model: GnocchiModel, saveTo: String): Unit = {
-
-    val oos = new ObjectOutputStream(new FileOutputStream(saveTo))
-    oos.writeObject(model)
-    oos.close()
-
-  }
+  //
+  //  def apply(model: GnocchiModel, saveTo: String): Unit = {
+  //
+  //    val oos = new ObjectOutputStream(new FileOutputStream(saveTo))
+  //    oos.writeObject(model)
+  //    oos.close()
+  //
+  //  }
 }

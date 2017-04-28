@@ -528,17 +528,17 @@ class GnocchiModelSuite extends GnocchiFunSuite {
 
     val variant0Model = logisticGnocchiModel.variantModels.filter(_.variantId == "variant0").collect.head
     val updatedVariant0Model = updatedlogisticVariantModels.filter(_.variantId == "variant0").collect.head
-    assert(updatedVariant0Model === variant0Model.update(logisticObsForUpdate0), "Variant model " +
+    assert(updatedVariant0Model.weights == variant0Model.update(logisticObsForUpdate0).weights, "Variant model " +
       "for variant0 incorrect after updateVariantModels call.")
 
     val variant1Model = logisticGnocchiModel.variantModels.filter(_.variantId == "variant1").collect.head
     val updatedVariant1Model = updatedlogisticVariantModels.filter(_.variantId == "variant1").collect.head
-    assert(updatedVariant1Model === variant1Model.update(logisticObsForUpdate1), "Variant model " +
+    assert(updatedVariant1Model.weights == variant1Model.update(logisticObsForUpdate1).weights, "Variant model " +
       "for variant1 incorrect after updateVariantModels call.")
 
     val variant2Model = logisticGnocchiModel.variantModels.filter(_.variantId == "variant2").collect.head
     val updatedVariant2Model = updatedlogisticVariantModels.filter(_.variantId == "variant2").collect.head
-    assert(updatedVariant2Model === variant2Model.update(logisticObsForUpdate2), "Variant model " +
+    assert(updatedVariant2Model.weights == variant2Model.update(logisticObsForUpdate2).weights, "Variant model " +
       "for variant2 incorrect after updateVariantModels call.")
   }
 
@@ -615,7 +615,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     // Update logistic model with update group
     val updatedlogisticGnocchiModel = logisticGnocchiModel.update(observationsForUpdate)
 
-    assert(updatedlogisticGnocchiModel.variantModels.collect.toList === updatedlogisticVariantModels.collect.toList,
+    assert(updatedlogisticGnocchiModel.variantModels.collect.head.weights == updatedlogisticVariantModels.collect.head.weights,
       "Variant Models rdd in updated logistic gnocchi model did not match" +
         "expected results from updateVariantModels(...)")
   }

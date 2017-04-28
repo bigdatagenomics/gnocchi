@@ -21,8 +21,9 @@ import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.algorithms._
 import java.io.File
 import java.nio.file.Files
-import net.fnothaft.gnocchi.sql.GnocchiContext._
 
+import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLinearRegression
+import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.kohsuke.args4j.CmdLineException
 
 class RegressPhenotypesSuite extends GnocchiFunSuite {
@@ -65,7 +66,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = sc.loadAndFilterGenotypes(genoFilePath, destination, 1, 0.1, 0.1, 0.1, false)
     val phenotypes = sc.loadPhenotypes(phenoFilePath, "pheno1", false, false, Option.empty[String], Option.empty[String])
-    val regressionResult = RegressPhenotypes(cliArgs).performAnalysis(genotypeStates, phenotypes, sc).collect()
+    val regressionResult = AdditiveLinearRegression(genotypeStates, phenotypes).collect()
 
     //Assert that the rsquared is in the right threshold.
     assert(regressionResult(0).statistics("rSquared") == 1.0, "rSquared = " + regressionResult(0).statistics("rSquared"))
@@ -78,7 +79,7 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = sc.loadAndFilterGenotypes(genoFilePath, destination, 1, 0.1, 0.1, 0.1, false)
     val phenotypes = sc.loadPhenotypes(phenoFilePath, "pheno1", false, false, Option.empty[String], Option.empty[String])
-    val regressionResult = RegressPhenotypes(cliArgs).performAnalysis(genotypeStates, phenotypes, sc).collect()
+    val regressionResult = AdditiveLinearRegression(genotypeStates, phenotypes).collect()
 
     //Assert that the rsquared is in the right threshold.
     assert(regressionResult(0).statistics("rSquared") == 1.0, "rSquared = " + regressionResult(0).statistics("rSquared"))
@@ -117,10 +118,9 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = sc.loadAndFilterGenotypes(genoFilePath, destination, 1, 0.1, 0.1, 0.1, false)
     val phenotypes = sc.loadPhenotypes(phenoFilePath, "pheno1", false, true, Option(covarFilePath), Option("pheno4,pheno5"))
-    val assocs = RegressPhenotypes(cliArgs).performAnalysis(genotypeStates, phenotypes, sc)
+    val assocs = AdditiveLinearRegression(genotypeStates, phenotypes)
     val regressionResult = assocs.collect()
 
-    RegressPhenotypes(cliArgs).logResults(assocs, sc)
     assert(regressionResult(0).statistics("rSquared") == 0.8438315575507651, "rSquared = " + regressionResult(0).statistics("rSquared"))
 
   }

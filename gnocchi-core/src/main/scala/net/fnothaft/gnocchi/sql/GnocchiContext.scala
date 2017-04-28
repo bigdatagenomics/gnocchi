@@ -23,6 +23,9 @@ import org.bdgenomics.formats.avro.{ Contig, Variant }
 import org.bdgenomics.utils.misc.Logging
 import net.fnothaft.gnocchi.algorithms._
 import net.fnothaft.gnocchi.algorithms.siteregression._
+import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
+import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.rdd.association._
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.apache.spark.SparkContext
@@ -374,6 +377,9 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
 //}
 
 object AuxEncoders {
-  //  implicit def associationEncoder: org.apache.spark.sql.Encoder[Association] = org.apache.spark.sql.Encoders.kryo[Association]
+  implicit def addLogEncoder: org.apache.spark.sql.Encoder[Association[AdditiveLogisticVariantModel]] = org.apache.spark.sql.Encoders.kryo[Association[AdditiveLogisticVariantModel]]
+  //  implicit def domLogEncoder: org.apache.spark.sql.Encoder[Association[AdditiveLogisticVariantModel]] = org.apache.spark.sql.Encoders.kryo[Association[AdditiveLogisticVariantModel]]
+  implicit def addLinEncoder: org.apache.spark.sql.Encoder[Association[AdditiveLinearVariantModel]] = org.apache.spark.sql.Encoders.kryo[Association[AdditiveLinearVariantModel]]
+  //  implicit def domLinEncoder: org.apache.spark.sql.Encoder[Association[AdditiveLinearVariantModel]] = org.apache.spark.sql.Encoders.kryo[Association[AdditiveLinearVariantModel]]
   implicit def genotypeStateEncoder: org.apache.spark.sql.Encoder[GenotypeState] = org.apache.spark.sql.Encoders.kryo[GenotypeState]
 }

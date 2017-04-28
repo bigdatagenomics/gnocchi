@@ -24,9 +24,7 @@ import org.bdgenomics.utils.cli._
 object GnocchiMain {
 
   private val commands = List(
-    RegressPhenotypes,
-    ConstructGnocchiModel,
-    UpdateGnocchiModel)
+    RegressPhenotypes)
 
   private def printCommands() {
     println("\n")
