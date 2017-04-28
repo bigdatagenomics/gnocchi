@@ -15,18 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.cli
+package net.fnothaft.gnocchi.rdd.phenotype
 
-import java.io.{ FileOutputStream, ObjectOutputStream }
-import net.fnothaft.gnocchi.models.GnocchiModel
+/* Note: for the below classes, the array stored in value actually has all of the phenotypes, with the first being the on that is
+  being regressed and the rest are the values of the covariates. The string that is stored in phenotype is actually a line that contains 
+  the names of all the phenotypes, separated by spaces (again, the first is the phenotype being regressed and the rest are covariates)
+*/
 
-object SaveGnocchiModel {
-  //
-  //  def apply(model: GnocchiModel, saveTo: String): Unit = {
-  //
-  //    val oos = new ObjectOutputStream(new FileOutputStream(saveTo))
-  //    oos.writeObject(model)
-  //    oos.close()
-  //
-  //  }
+case class Phenotype(phenotype: String,
+                     sampleId: String,
+                     value: Array[Double]) extends Product {
+  def toDouble: Array[Double] = value
 }
