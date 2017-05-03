@@ -30,12 +30,18 @@ class GnocchiContextSuite extends GnocchiFunSuite {
   //
   //  ignore("toGenotypeStateDataFrame should count number of NO_CALL's correctly")
 
+  private def makeGenotypeState(idx: Int, sampleId: String, gs: Int, missing: Int): GenotypeState = {
+    GenotypeState(s"1_${idx}_A", idx, idx + 1, "A", "C", sampleId, gs, missing)
+  }
+
   sparkTest("filterSamples should not filter any samples if mind >= 1") {
-    // Generate a collection of GenotypeStates:
-    // "sample1" has all missing genotypes, "sample2" has half missing genotypes, "sample3" has no missing genotypes
-    val gsCollection = (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample1", 0, 2)) ++
-      (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample2", 1, 1)) ++
-      (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample3", 2, 0))
+    val allMissingSample = (1 to 10).map(makeGenotypeState(_, "sample1", 0, 2))
+    val eachHalfMissingSample = (1 to 10).map(makeGenotypeState(_, "sample2", 1, 1))
+    val noneMissingSample = (1 to 10).map(makeGenotypeState(_, "sample3", 2, 0))
+    val halfMissingSample = (1 to 5).map(makeGenotypeState(_, "sample4", 2, 0)) ++
+      (6 to 10).map(makeGenotypeState(_, "sample4", 0, 2))
+
+    val gsCollection = allMissingSample ++ eachHalfMissingSample ++ halfMissingSample ++ noneMissingSample
 
     val gsRdd = sc.parallelize(gsCollection)
     val resultsRdd = sc.filterSamples(gsRdd, 1.0)
@@ -44,9 +50,14 @@ class GnocchiContextSuite extends GnocchiFunSuite {
   }
 
   sparkTest("filterSamples should filter on mind if mind is greater than 0 but less than 1") {
-    val badCollection = (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample1", 0, 2))
-    val goodCollection = (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample2", 1, 1)) ++
-      (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample3", 2, 0))
+    val allMissingSample = (1 to 10).map(makeGenotypeState(_, "sample1", 0, 2))
+    val eachHalfMissingSample = (1 to 10).map(makeGenotypeState(_, "sample2", 1, 1))
+    val noneMissingSample = (1 to 10).map(makeGenotypeState(_, "sample3", 2, 0))
+    val halfMissingSample = (1 to 5).map(makeGenotypeState(_, "sample4", 2, 0)) ++
+      (6 to 10).map(makeGenotypeState(_, "sample4", 0, 2))
+
+    val badCollection = allMissingSample
+    val goodCollection = eachHalfMissingSample ++ halfMissingSample ++ noneMissingSample
 
     val gsCollection = goodCollection ++ badCollection
 
@@ -57,9 +68,14 @@ class GnocchiContextSuite extends GnocchiFunSuite {
   }
 
   sparkTest("filterSamples should filter out all non-perfect samples if mind == 0") {
-    val imperfectCollection = (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample1", 0, 2)) ++
-      (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample2", 1, 1))
-    val perfectCollection = (1 to 10).map(i => GenotypeState(s"1_${i}_A", i, i + 1, "A", "C", "sample3", 2, 0))
+    val allMissingSample = (1 to 10).map(makeGenotypeState(_, "sample1", 0, 2))
+    val eachHalfMissingSample = (1 to 10).map(makeGenotypeState(_, "sample2", 1, 1))
+    val noneMissingSample = (1 to 10).map(makeGenotypeState(_, "sample3", 2, 0))
+    val halfMissingSample = (1 to 5).map(makeGenotypeState(_, "sample4", 2, 0)) ++
+      (6 to 10).map(makeGenotypeState(_, "sample4", 0, 2))
+
+    val imperfectCollection = allMissingSample ++ eachHalfMissingSample ++ halfMissingSample
+    val perfectCollection = noneMissingSample
 
     val gsCollection = imperfectCollection ++ perfectCollection
 
