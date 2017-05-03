@@ -30,6 +30,10 @@
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
       <!-- enable scalatest -->
       <plugin>
         <groupId>org.scalatest</groupId>
