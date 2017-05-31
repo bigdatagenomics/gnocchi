@@ -136,7 +136,7 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
     // compute the regressions for the comparison VariantModels
     val updatedComparisonVariantModels = joinedComparisonData.map(kv => {
       val (varModel, obs) = kv
-      (regress(obs, varModel.variant, varModel.phenotype), obs)
+      (regress(obs, varModel.variant, varModel.phenotype, varModel.phaseSetId), obs)
     })
     updatedComparisonVariantModels
   }
@@ -251,7 +251,8 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
    */
   def regress(observations: Array[(Double, Array[Double])],
               variant: Variant,
-              phenotype: String): VM
+              phenotype: String,
+              phaseSetId: Int): VM
 
 }
 

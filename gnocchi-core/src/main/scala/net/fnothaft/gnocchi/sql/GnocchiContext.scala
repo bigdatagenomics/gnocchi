@@ -21,8 +21,6 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 import org.bdgenomics.utils.misc.Logging
-import net.fnothaft.gnocchi.algorithms._
-import net.fnothaft.gnocchi.algorithms.siteregression._
 import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
 import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
 import net.fnothaft.gnocchi.rdd.association._
@@ -87,7 +85,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       filteredGtFrame("variant.alternateAllele").as("alt"),
       filteredGtFrame("sampleId"),
       genotypeState.as("genotypeState"),
-      missingGenotypes.as("missingGenotypes"))
+      missingGenotypes.as("missingGenotypes"),
+      filteredGtFrame("phaseSetId").as("phaseSetId"))
   }
 
   def loadAndFilterGenotypes(genotypesPath: String,
@@ -132,7 +131,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
         genotypeStates("alt"),
         genotypeStates("sampleId"),
         genotypeStates("genotypeState"),
-        genotypeStates("missingGenotypes")).as("gs"))
+        genotypeStates("missingGenotypes")).as("gs"),
+      genotypeStates("phaseSetId"))
 
     // mind filter
     val sampleFilteredDF = filterSamples(genoStatesWithNames, mind)
@@ -321,6 +321,10 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       }).toArray
       (variant, obs).asInstanceOf[(Variant, Array[(Double, Array[Double])])]
     })
+  }
+
+  def extractQCPhaseSetIds(genotypeStates: RDD[GenotypeState]): RDD[(Integer, String)] = {
+    genotypeStates.map(g => (g.phaseSetId, g.contigName)).reduceByKey((a, b) => a)
   }
 
   def pairSamplesWithPhenotypes(rdd: RDD[GenotypeState],

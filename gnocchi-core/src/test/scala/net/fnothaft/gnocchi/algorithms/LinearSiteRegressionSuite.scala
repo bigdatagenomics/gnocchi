@@ -36,6 +36,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
   variant.setEnd(locus.end)
   variant.setAlternateAllele(altAllele)
   variant.setContigName("Name")
+  val phaseSetId = 0
 
   test("rsquared should be 1 if all the points lie on a line") {
 
@@ -52,7 +53,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(9) = (2, Array[Double](3))
 
     //use additiveLinearRegression to regress on Ascombe1
-    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype)
+    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype, phaseSetId)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared") == 1.0, "rSquared = " + regressionResult.statistics("rSquared"))
@@ -96,7 +97,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(10) = (5.0, Array[Double](5.68))
 
     //use additiveLinearRegression to regress on Ascombe1
-    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype)
+    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype, phaseSetId)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -125,7 +126,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(10) = (5.0, Array[Double](4.74))
 
     //use additiveLinearRegression to regress on Ascombe1
-    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype)
+    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype, phaseSetId)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -154,7 +155,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(10) = (5.0, Array[Double](5.73))
 
     //use additiveLinearRegression to regress on Ascombe1
-    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype)
+    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype, phaseSetId)
 
     //Assert that the rsquared is in the right threshold. 
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -183,7 +184,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(10) = (8.0, Array[Double](6.89))
 
     //use additiveLinearRegression to regress on Ascombe1
-    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype)
+    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype, phaseSetId)
 
     //Assert that the rsquared is in the right threshold.
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.6670)
@@ -282,7 +283,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     observations(37) = (93.59, Array[Double](89, 75.5, 179))
 
     // use additiveLinearAssociation to regress on PIQ data
-    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype)
+    val regressionResult = AdditiveLinearRegression.applyToSite(observations, variant, phenotype, phaseSetId)
 
     // check that the rsquared value is correct (correct is 0.2949)
     assert(regressionResult.statistics("rSquared").asInstanceOf[Double] <= 0.2954)

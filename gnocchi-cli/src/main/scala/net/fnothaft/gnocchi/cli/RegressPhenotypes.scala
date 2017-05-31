@@ -132,7 +132,6 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
         val associations = AdditiveLogisticRegression(genotypeStates, phenotypes)
         val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLogisticVariantModel]]])
         logResults[AdditiveLogisticVariantModel](assocsDS, sc)
-
       }
       case "DOMINANT_LOGISTIC" => {
         val associations = DominantLogisticRegression(genotypeStates, phenotypes)

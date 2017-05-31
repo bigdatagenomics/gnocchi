@@ -29,6 +29,7 @@ trait VariantModel[VM <: VariantModel[VM]] {
   val pValue: Double
   val geneticParameterStandardError: Double
   val phenotype: String
+  val phaseSetId: Int
 
   /**
    * Returns an updated VariantModel given a new batch of data

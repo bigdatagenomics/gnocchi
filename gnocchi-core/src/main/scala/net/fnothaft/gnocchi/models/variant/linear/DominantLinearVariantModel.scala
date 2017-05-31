@@ -17,10 +17,10 @@
  */
 package net.fnothaft.gnocchi.models.variant.linear
 
-import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLinearRegression
+import net.fnothaft.gnocchi.algorithms.siteregression.DominantLinearRegression
 import org.bdgenomics.formats.avro.Variant
 
-case class AdditiveLinearVariantModel(variantId: String,
+case class DominantLinearVariantModel(variantId: String,
                                       ssDeviations: Double,
                                       ssResiduals: Double,
                                       geneticParameterStandardError: Double,
@@ -32,15 +32,15 @@ case class AdditiveLinearVariantModel(variantId: String,
                                       numSamples: Int,
                                       phenotype: String,
                                       phaseSetId: Int = 0)
-    extends LinearVariantModel[AdditiveLinearVariantModel]
-    with AdditiveLinearRegression with Serializable {
+    extends LinearVariantModel[DominantLinearVariantModel]
+    with DominantLinearRegression with Serializable {
 
-  type VM = AdditiveLinearVariantModel
-  val modelType = "Additive Linear Variant Model"
-  val regressionName = "Additive Linear Regression"
+  type VM = DominantLinearVariantModel
+  val modelType = "Dominant Linear Variant Model"
+  val regressionName = "Dominant Linear Regression"
 
   /**
-   * Updates the AdditiveLinearVariantModel given a new batch of data
+   * Updates the DominantLinearVariantModel given a new batch of data
    *
    * @param observations Array containing data at the particular site for
    *                     all samples. Format of each element is:
@@ -50,7 +50,7 @@ case class AdditiveLinearVariantModel(variantId: String,
    *                     the primary phenotype being regressed on, and covar1-covarp
    *                     are that sample's values for each covariate.
    */
-  def update(observations: Array[(Double, Array[Double])]): AdditiveLinearVariantModel = {
+  def update(observations: Array[(Double, Array[Double])]): DominantLinearVariantModel = {
     val batchVariantModel = applyToSite(observations, variant, phenotype, phaseSetId)
       .toVariantModel
     mergeWith(batchVariantModel)
@@ -65,8 +65,8 @@ case class AdditiveLinearVariantModel(variantId: String,
                             updatedPValue: Double,
                             variant: Variant,
                             updatedWeights: List[Double],
-                            updatedNumSamples: Int): AdditiveLinearVariantModel = {
-    AdditiveLinearVariantModel(variantID,
+                            updatedNumSamples: Int): DominantLinearVariantModel = {
+    DominantLinearVariantModel(variantID,
       updatedSsDeviations,
       updatedSsResiduals,
       updatedGeneticParameterStandardError,

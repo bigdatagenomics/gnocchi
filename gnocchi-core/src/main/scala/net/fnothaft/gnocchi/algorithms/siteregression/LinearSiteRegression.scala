@@ -18,16 +18,16 @@
 package net.fnothaft.gnocchi.algorithms.siteregression
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
+import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
 import net.fnothaft.gnocchi.rdd.association.{ AdditiveLinearAssociation, Association, DominantLinearAssociation }
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.bdgenomics.formats.avro.Variant
-
 import scala.math.log10
 
-trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
+trait LinearSiteRegression[VM <: VariantModel[VM], A <: Association[VM]]
+    extends SiteApplication[VM, A] {
 
   /**
    * Returns Association object with solution to linear regression.
@@ -51,7 +51,8 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
    */
   def applyToSite(observations: Array[(Double, Array[Double])],
                   variant: Variant,
-                  phenotype: String): Association[VM] = {
+                  phenotype: String,
+                  phaseSetId: Int): A = {
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
@@ -130,6 +131,7 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
         phenotype,
         logPValue,
         pvalue,
+        phaseSetId,
         statistics)
     } catch {
       case _: SingularMatrixException => constructAssociation(variant.getContigName,
@@ -141,6 +143,7 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
         phenotype,
         0.0,
         0.0,
+        0,
         Map())
     }
   }
@@ -159,14 +162,15 @@ trait LinearSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
                            phenotype: String,
                            logPValue: Double,
                            pValue: Double,
-                           statistics: Map[String, Any]): Association[VM]
+                           phaseSetId: Int,
+                           statistics: Map[String, Any]): A
 }
 
 object AdditiveLinearRegression extends AdditiveLinearRegression {
   val regressionName = "additiveLinearRegression"
 }
 
-trait AdditiveLinearRegression extends LinearSiteRegression[AdditiveLinearVariantModel]
+trait AdditiveLinearRegression extends LinearSiteRegression[AdditiveLinearVariantModel, AdditiveLinearAssociation]
     with Additive {
   def constructAssociation(variantId: String,
                            numSamples: Int,
@@ -177,10 +181,11 @@ trait AdditiveLinearRegression extends LinearSiteRegression[AdditiveLinearVarian
                            phenotype: String,
                            logPValue: Double,
                            pValue: Double,
+                           phaseSetId: Int,
                            statistics: Map[String, Any]): AdditiveLinearAssociation = {
     new AdditiveLinearAssociation(variantId, numSamples, modelType, weights,
       geneticParameterStandardError, variant, phenotype,
-      logPValue, pValue, statistics)
+      logPValue, pValue, phaseSetId, statistics)
   }
 }
 
@@ -188,7 +193,7 @@ object DominantLinearRegression extends DominantLinearRegression {
   val regressionName = "dominantLinearRegression"
 }
 
-trait DominantLinearRegression extends LinearSiteRegression[AdditiveLinearVariantModel]
+trait DominantLinearRegression extends LinearSiteRegression[DominantLinearVariantModel, DominantLinearAssociation]
     with Dominant {
   def constructAssociation(variantId: String,
                            numSamples: Int,
@@ -199,9 +204,10 @@ trait DominantLinearRegression extends LinearSiteRegression[AdditiveLinearVarian
                            phenotype: String,
                            logPValue: Double,
                            pValue: Double,
+                           phaseSetId: Int,
                            statistics: Map[String, Any]): DominantLinearAssociation = {
     new DominantLinearAssociation(variantId, numSamples, modelType, weights,
       geneticParameterStandardError, variant, phenotype,
-      logPValue, pValue, statistics)
+      logPValue, pValue, phaseSetId, statistics)
   }
 }

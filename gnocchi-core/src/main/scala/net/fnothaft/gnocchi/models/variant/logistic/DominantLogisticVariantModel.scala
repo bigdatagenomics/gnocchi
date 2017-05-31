@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package net.fnothaft.gnocchi.models.variant.logistic
 
-import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticRegression
+import net.fnothaft.gnocchi.algorithms.siteregression.DominantLogisticRegression
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.bdgenomics.formats.avro.Variant
 
-case class AdditiveLogisticVariantModel(variantId: String,
+case class DominantLogisticVariantModel(variantId: String,
                                         variant: Variant,
                                         weights: List[Double],
                                         geneticParameterStandardError: Double,
@@ -29,11 +30,11 @@ case class AdditiveLogisticVariantModel(variantId: String,
                                         numSamples: Int,
                                         phenotype: String,
                                         phaseSetId: Int = 0)
-    extends LogisticVariantModel[AdditiveLogisticVariantModel]
-    with AdditiveLogisticRegression with Serializable {
+    extends LogisticVariantModel[DominantLogisticVariantModel]
+    with DominantLogisticRegression with Serializable {
 
-  val modelType = "Additive Logistic Variant Model"
-  override val regressionName = "Additive Logistic Regression"
+  val modelType = "Dominant Logistic Variant Model"
+  override val regressionName = "Dominant Logistic Regression"
 
   /**
    * Updates the LogisticVariantModel given a new batch of data
@@ -46,7 +47,7 @@ case class AdditiveLogisticVariantModel(variantId: String,
    *                     the primary phenotype being regressed on, and covar1-covarp
    *                     are that sample's values for each covariate.
    */
-  def update(observations: Array[(Double, Array[Double])]): AdditiveLogisticVariantModel = {
+  def update(observations: Array[(Double, Array[Double])]): DominantLogisticVariantModel = {
 
     //TODO: add validation stringency here rather than just creating empty association object
     println((new Array[Double](observations.head._2.length)).toList)
@@ -55,7 +56,7 @@ case class AdditiveLogisticVariantModel(variantId: String,
         .toVariantModel
     } catch {
       case error: SingularMatrixException => {
-        AdditiveLogisticRegression.constructAssociation(variantId,
+        DominantLogisticRegression.constructAssociation(variantId,
           1,
           "",
           new Array[Double](observations.head._2.length + 1),
@@ -76,8 +77,8 @@ case class AdditiveLogisticVariantModel(variantId: String,
                             updatedGeneticParameterStandardError: Double,
                             updatedPValue: Double,
                             updatedWeights: List[Double],
-                            updatedNumSamples: Int): AdditiveLogisticVariantModel = {
-    AdditiveLogisticVariantModel(variantId,
+                            updatedNumSamples: Int): DominantLogisticVariantModel = {
+    DominantLogisticVariantModel(variantId,
       variant,
       updatedWeights,
       updatedGeneticParameterStandardError,
