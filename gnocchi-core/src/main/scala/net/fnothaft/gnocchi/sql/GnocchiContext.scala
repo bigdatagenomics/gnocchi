@@ -17,12 +17,18 @@
  */
 package net.fnothaft.gnocchi.sql
 
+import java.io.File
+
+import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
+import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
+import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
+import net.fnothaft.gnocchi.models.variant.VariantModel
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 import org.bdgenomics.utils.misc.Logging
-import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
+import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import net.fnothaft.gnocchi.rdd.association._
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.bdgenomics.adam.rdd.ADAMContext._
@@ -36,6 +42,7 @@ import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.hadoop.fs.Path
 import org.bdgenomics.adam.cli.Vcf2ADAM
+import java.io._
 
 object GnocchiContext {
 
@@ -323,7 +330,42 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     })
   }
 
-  def extractQCPhaseSetIds(genotypeStates: RDD[GenotypeState]): RDD[(Integer, String)] = {
+  /**
+   *
+   * @param genotypes an rdd of [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]] objects to be regressed upon
+   * @param phenotypes an rdd of [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects used as observations
+   * @param clipOrKeepState
+   * @return
+   */
+  def formatObservations(genotypes: RDD[GenotypeState],
+                         phenotypes: RDD[Phenotype],
+                         clipOrKeepState: GenotypeState => Double): RDD[((Variant, String, Int), Array[(Double, Array[Double])])] = {
+    val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
+
+    val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
+      val (_, genoPheno) = keyGenoPheno
+      val (gs, pheno) = genoPheno
+      val variant = new Variant()
+      variant.setContigName(gs.contigName)
+      variant.setStart(gs.start)
+      variant.setEnd(gs.end)
+      variant.setAlternateAllele(gs.alt)
+      //      variant.setNames(List(""))
+      //      variant.setFiltersFailed(List(""))
+      ((variant, pheno.phenotype, gs.phaseSetId), genoPheno)
+    })
+      .groupByKey()
+
+    keyedGenoPheno.map(site => {
+      val ((variant, pheno, phaseSetId), observations) = site
+      val formattedObs = observations.map(p => {
+        val (genotypeState, phenotype) = p
+        (clipOrKeepState(genotypeState), phenotype.toDouble)
+      }).toArray
+    }).asInstanceOf[RDD[((Variant, String, Int), Array[(Double, Array[Double])])]]
+  }
+
+  def extractQCPhaseSetIds(genotypeStates: RDD[GenotypeState]): RDD[(Int, String)] = {
     genotypeStates.map(g => (g.phaseSetId, g.contigName)).reduceByKey((a, b) => a)
   }
 

@@ -17,10 +17,13 @@
  */
 package net.fnothaft.gnocchi.models.logistic
 
+import java.io.{ File, FileOutputStream, ObjectOutputStream }
+
 import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticRegression
 import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 import org.bdgenomics.formats.avro.Variant
 
 case class AdditiveLogisticGnocchiModel(metaData: GnocchiModelMetaData,
@@ -41,5 +44,19 @@ case class AdditiveLogisticGnocchiModel(metaData: GnocchiModelMetaData,
               phaseSetId: Int): AdditiveLogisticVariantModel = {
     AdditiveLogisticRegression.applyToSite(obs, variant, metaData.phenotype, phaseSetId)
       .toVariantModel
+  }
+
+  def save(saveTo: String): Unit = {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    variantModels.toDF.write.parquet(saveTo + "/variantModels")
+    comparisonVariantModels.map(vmobs => {
+      val (vm, observations) = vmobs
+      new QualityControlVariant[AdditiveLogisticVariantModel](vm, observations)
+    })
+      .toDF.write.parquet(saveTo + "/qcModels")
+    val metaDataFileStream = new FileOutputStream(new File(saveTo + "/metaData"))
+    val metaDataObjectStream = new ObjectOutputStream(metaDataFileStream)
+    metaDataObjectStream.writeObject(metaData)
   }
 }

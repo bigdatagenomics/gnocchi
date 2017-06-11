@@ -66,7 +66,8 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = sc.loadAndFilterGenotypes(genoFilePath, destination, 1, 0.1, 0.1, 0.1, false)
     val phenotypes = sc.loadPhenotypes(phenoFilePath, "pheno1", false, false, Option.empty[String], Option.empty[String])
-    val regressionResult = AdditiveLinearRegression(genotypeStates, phenotypes).collect()
+    val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
+    val regressionResult = AdditiveLinearRegression(genoPhenoObs).collect()
 
     //Assert that the rsquared is in the right threshold.
     assert(regressionResult(0).statistics("rSquared") == 1.0, "rSquared = " + regressionResult(0).statistics("rSquared"))
@@ -79,7 +80,8 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = sc.loadAndFilterGenotypes(genoFilePath, destination, 1, 0.1, 0.1, 0.1, false)
     val phenotypes = sc.loadPhenotypes(phenoFilePath, "pheno1", false, false, Option.empty[String], Option.empty[String])
-    val regressionResult = AdditiveLinearRegression(genotypeStates, phenotypes).collect()
+    val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
+    val regressionResult = AdditiveLinearRegression(genoPhenoObs).collect()
 
     //Assert that the rsquared is in the right threshold.
     assert(regressionResult(0).statistics("rSquared") == 1.0, "rSquared = " + regressionResult(0).statistics("rSquared"))
@@ -118,7 +120,8 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
     val cliArgs = cliCall.split(" ").drop(2)
     val genotypeStates = sc.loadAndFilterGenotypes(genoFilePath, destination, 1, 0.1, 0.1, 0.1, false)
     val phenotypes = sc.loadPhenotypes(phenoFilePath, "pheno1", false, true, Option(covarFilePath), Option("pheno4,pheno5"))
-    val assocs = AdditiveLinearRegression(genotypeStates, phenotypes)
+    val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
+    val assocs = AdditiveLinearRegression(genoPhenoObs)
     val regressionResult = assocs.collect()
 
     assert(regressionResult(0).statistics("rSquared") == 0.8438315575507651, "rSquared = " + regressionResult(0).statistics("rSquared"))

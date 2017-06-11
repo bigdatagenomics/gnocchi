@@ -17,10 +17,13 @@
  */
 package net.fnothaft.gnocchi.models.linear
 
+import java.io.{ File, FileOutputStream, ObjectOutputStream }
+
 import net.fnothaft.gnocchi.algorithms.siteregression.DominantLinearRegression
 import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.models.variant.linear.DominantLinearVariantModel
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 import org.bdgenomics.formats.avro.Variant
 
 case class DominantLinearGnocchiModel(metaData: GnocchiModelMetaData,
@@ -41,5 +44,19 @@ case class DominantLinearGnocchiModel(metaData: GnocchiModelMetaData,
               phaseSetId: Int): DominantLinearVariantModel = {
     DominantLinearRegression.applyToSite(obs, variant, metaData.phenotype, phaseSetId)
       .toVariantModel
+  }
+
+  def save(saveTo: String): Unit = {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    variantModels.toDF.write.parquet(saveTo + "/variantModels")
+    comparisonVariantModels.map(vmobs => {
+      val (vm, observations) = vmobs
+      new QualityControlVariant[DominantLinearVariantModel](vm, observations)
+    })
+      .toDF.write.parquet(saveTo + "/qcModels")
+    val metaDataFileStream = new FileOutputStream(new File(saveTo + "/metaData"))
+    val metaDataObjectStream = new ObjectOutputStream(metaDataFileStream)
+    metaDataObjectStream.writeObject(metaData)
   }
 }

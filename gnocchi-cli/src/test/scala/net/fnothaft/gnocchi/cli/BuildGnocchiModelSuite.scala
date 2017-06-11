@@ -53,12 +53,20 @@ class BuildGnocchiModelSuite extends GnocchiFunSuite {
 
   }
 
-  ignore("loaded model should have correct type: AdditiveLogisticGnocchiModel")
+  ignore("loaded model should have correct type: AdditiveLogisticGnocchiModel") {
 
-  ignore("loaded model should have correct type: DominantLogisticGnocchiModel")
+  }
 
-  ignore("loaded model should have correct type: AdditiveLinearGnocchiModel")
+  ignore("loaded model should have correct type: DominantLogisticGnocchiModel") {
 
-  ignore("loaded model should have correct type: DominantLinearGnocchiModel")
+  }
+
+  ignore("loaded model should have correct type: AdditiveLinearGnocchiModel") {
+
+  }
+
+  ignore("loaded model should have correct type: DominantLinearGnocchiModel") {
+
+  }
 
 }

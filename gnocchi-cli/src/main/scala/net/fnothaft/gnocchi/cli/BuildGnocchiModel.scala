@@ -27,9 +27,12 @@ import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantMod
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
+import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
+import org.bdgenomics.formats.avro.Variant
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Option => Args4jOption }
+import scala.reflect.ClassTag
 
 object BuildGnocchiModel extends BDGCommandCompanion {
   val commandName = "UpdateGnocchiModel"
@@ -42,7 +45,7 @@ object BuildGnocchiModel extends BDGCommandCompanion {
 
 class BuildGnocchiModelArgs extends RegressPhenotypesArgs {
 
-//  @Args4jOption(required = true, name = "-haplotypeBlocks", usage = "List of variants, one haplotype block per line.")
+  //  @Args4jOption(required = true, name = "-haplotypeBlocks", usage = "List of variants, one haplotype block per line.")
   //  var haplotypeBlocks: String = _
 
   @Args4jOption(required = true, name = "-saveModelTo", usage = "The location to save model to.")
@@ -53,7 +56,7 @@ class BuildGnocchiModelArgs extends RegressPhenotypesArgs {
 
 }
 
-class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSparkCommand[BuildGnocchiModel] {
+class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSparkCommand[BuildGnocchiModelArgs] {
   override val companion = BuildGnocchiModel
 
   override def run(sc: SparkContext) {
@@ -75,39 +78,47 @@ class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSp
     // build GnocchiModel
     val gnocchiModel = args.associationType match {
       case "ADDITIVE_LINEAR" => {
-        val variantModels = AdditiveLinearRegression(genotypeStates, phenotypes).map(_.toVariantModel)
-        val comparisonModels = selectComparisonModels[AdditiveLinearVariantModel](variantModels, qcVariantIds)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
+        val variantModels = AdditiveLinearRegression(genoPhenoObs).map(_.toVariantModel)
+        val comparisonModels = selectComparisonModels[AdditiveLinearVariantModel](variantModels, qcVariantIds, genoPhenoObs)
         AdditiveLinearGnocchiModel(gnocchiModelMetaData, variantModels, comparisonModels)
       }
       case "DOMINANT_LINEAR" => {
-        val variantModels = DominantLinearRegression(genotypeStates, phenotypes).map(_.toVariantModel)
-        val comparisonModels = selectComparisonModels[DominantLinearVariantModel](variantModels, qcVariantIds)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, DominantLinearRegression.clipOrKeepState)
+        val variantModels = DominantLinearRegression(genoPhenoObs).map(_.toVariantModel)
+        val comparisonModels = selectComparisonModels[DominantLinearVariantModel](variantModels, qcVariantIds, genoPhenoObs)
         DominantLinearGnocchiModel(gnocchiModelMetaData, variantModels, comparisonModels)
       }
       case "ADDITIVE_LOGISTIC" => {
-        val variantModels = AdditiveLogisticRegression(genotypeStates, phenotypes).map(_.toVariantModel)
-        val comparisonModels = selectComparisonModels[AdditiveLogisticVariantModel](variantModels, qcVariantIds)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLogisticRegression.clipOrKeepState)
+        val variantModels = AdditiveLogisticRegression(genoPhenoObs).map(_.toVariantModel)
+        val comparisonModels = selectComparisonModels[AdditiveLogisticVariantModel](variantModels, qcVariantIds, genoPhenoObs)
         AdditiveLogisticGnocchiModel(gnocchiModelMetaData, variantModels, comparisonModels)
       }
       case "DOMINANT_LOGISTIC" => {
-        val variantModels = DominantLogisticRegression(genotypeStates, phenotypes).map(_.toVariantModel)
-        val comparisonModels = selectComparisonModels[DominantLogisticVariantModel](variantModels, qcVariantIds)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, DominantLogisticRegression.clipOrKeepState)
+        val variantModels = DominantLogisticRegression(genoPhenoObs).map(_.toVariantModel)
+        val comparisonModels = selectComparisonModels[DominantLogisticVariantModel](variantModels, qcVariantIds, genoPhenoObs)
         DominantLogisticGnocchiModel(gnocchiModelMetaData, variantModels, comparisonModels)
       }
     }
 
     // save the model
-    gnocchiModel.save
+    gnocchiModel.save(args.saveTo)
 
   }
 
-  def selectComparisonModels[VM <: VariantModel[VM]](variantModels: RDD[VM], variantsList: RDD[String]): RDD[(VM, Array[(Double, Array[Double])])] = {
-    val qcVariantsList = variantsList.map(p => (p,p))
-    variantModels.keyBy(vm => vm.variantId).join(qcVariantsList).map(kvv => kvv._)
+  def selectComparisonModels[VM <: VariantModel[VM]](variantModels: RDD[VM], qcVariantsList: RDD[String], observations: RDD[((Variant, String, Int), Array[(Double, Array[Double])])])(implicit ct: ClassTag[VM]): RDD[(VM, Array[(Double, Array[Double])])] = {
+    val keyedQCVariantsList = qcVariantsList.keyBy(p => p)
+    val qcVariantModels = variantModels.keyBy(_.variantId).join(keyedQCVariantsList).map(kvv => kvv._2._1)
+    qcVariantModels.map(vm => ((vm.variant, vm.phenotype, vm.phaseSetId), vm)).join(observations).map(kv => kv._2)
   }
 
   def buildMetaData(phenotypes: RDD[Phenotype],
-                    haplotypeBlockErrorThreshold: Double, modelType: String, variables: Option[String], phenotype: String): GnocchiModelMetaData = {
+                    haplotypeBlockErrorThreshold: Double,
+                    modelType: String,
+                    variables: Option[String],
+                    phenotype: String): GnocchiModelMetaData = {
     // TODO: get the final numSamples after the Genotypes/Phenotypes join
     val numSamples = phenotypes.count.toInt
     new GnocchiModelMetaData(numSamples, haplotypeBlockErrorThreshold, modelType,

@@ -21,6 +21,7 @@ import net.fnothaft.gnocchi.models.variant.VariantModel
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.Variant
 import org.apache.spark.SparkContext._
+import org.apache.spark.sql.SparkSession
 
 import scala.reflect.ClassTag
 
@@ -30,6 +31,8 @@ class GnocchiModelMetaData(val numSamples: Int,
                            val variables: String,
                            val flaggedVariantModels: List[String],
                            val phenotype: String) extends Serializable
+
+case class QualityControlVariant[VM <: VariantModel[VM]](variantModel: VM, observations: Array[(Double, Array[Double])]) extends Serializable
 
 /**
  * A trait that wraps an RDD of variant-specific models that are incrementally
@@ -234,9 +237,7 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
    * Saves Gnocchi model by saving GnocchiModelMetaData as Java object,
    * variantModels as parquet, and comparisonVariantModels as parquet.
    */
-  def save: Unit = {
-
-  }
+  def save(saveTo: String): Unit
 
   /**
    * Runs a regression on the data for the given variant and returns
