@@ -108,7 +108,9 @@ class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSp
 
   }
 
-  def selectComparisonModels[VM <: VariantModel[VM]](variantModels: RDD[VM], qcVariantsList: RDD[String], observations: RDD[((Variant, String, Int), Array[(Double, Array[Double])])])(implicit ct: ClassTag[VM]): RDD[(VM, Array[(Double, Array[Double])])] = {
+  def selectComparisonModels[VM <: VariantModel[VM]](variantModels: RDD[VM],
+                                                     qcVariantsList: RDD[String],
+                                                     observations: RDD[((Variant, String, Int), Array[(Double, Array[Double])])])(implicit ct: ClassTag[VM]): RDD[(VM, Array[(Double, Array[Double])])] = {
     val keyedQCVariantsList = qcVariantsList.keyBy(p => p)
     val qcVariantModels = variantModels.keyBy(_.variantId).join(keyedQCVariantsList).map(kvv => kvv._2._1)
     qcVariantModels.map(vm => ((vm.variant, vm.phenotype, vm.phaseSetId), vm)).join(observations).map(kv => kv._2)

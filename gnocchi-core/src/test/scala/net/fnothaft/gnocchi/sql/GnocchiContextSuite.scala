@@ -19,6 +19,10 @@
 package net.fnothaft.gnocchi.sql
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
+import net.fnothaft.gnocchi.algorithms.siteregression.{ AdditiveLinearRegression, DominantLinearRegression }
+import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
+import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import org.bdgenomics.formats.avro.Variant
 
 class GnocchiContextSuite extends GnocchiFunSuite {
 
@@ -99,6 +103,61 @@ class GnocchiContextSuite extends GnocchiFunSuite {
 
   ignore("isMissing should throw a NumberFormatException the value provided cannot be converted to a double") {
 
+  }
+  //
+  //  def dominant(gs: GenotypeState): Double = {
+  //    gs.genotypeState match {
+  //      case 2 => 1.0
+  //      case _ => gs.genotypeState.toDouble
+  //    }
+  //  }
+  //
+  //  def additive(gs: GenotypeState): Double = {
+  //    gs.genotypeState match {
+  //      case _ => gs.genotypeState.toDouble
+  //    }
+  //  }
+
+  sparkTest("formatObservations should return Array or (genotype, Array[Phenotypes + covariates])") {
+    val gc = new GnocchiContext(sc)
+
+    val genotypeState1 = new GenotypeState("geno1", 0L, 1L, "A", "G", "sample1", 0, 0, 0)
+    val genotypeState2 = new GenotypeState("geno2", 1L, 2L, "A", "G", "sample1", 2, 0, 1)
+    val genotypeState3 = new GenotypeState("geno1", 0L, 1L, "A", "G", "sample2", 0, 0, 0)
+    val genotypeState4 = new GenotypeState("geno2", 1L, 2L, "A", "G", "sample2", 2, 0, 1)
+    //TODO: Note - if the phase set id's for the same genotype are not consistent, it causes there to only be one genotype present after the sortByKey
+    val phenotype1 = new Phenotype("pheno", "sample1", Array(0.0, 1.0, 2.0))
+    val phenotype2 = new Phenotype("pheno", "sample2", Array(3.0, 4.0, 5.0))
+
+    val genoRDD = sc.parallelize(Array(genotypeState1, genotypeState2, genotypeState3, genotypeState4))
+    val phenoRDD = sc.parallelize(Array(phenotype1, phenotype2))
+
+    //    RDD[((Variant, String, Int), Array[(Double, Array[Double])]
+
+    val additiveFormattedObservations = gc.formatObservations(genoRDD, phenoRDD, AdditiveLinearRegression.clipOrKeepState).collect
+    val dominantFormattedObservations = gc.formatObservations(genoRDD, phenoRDD, DominantLinearRegression.clipOrKeepState).collect
+
+    assert(additiveFormattedObservations(0)._1._1.getContigName == "geno2", "Variant incorrect")
+    assert(additiveFormattedObservations(1)._1._1.getContigName == "geno1", "Variant incorrect")
+    assert(additiveFormattedObservations(0)._2(0)._1 == 2.0, "Genotype incorrect")
+    assert(additiveFormattedObservations(0)._2(1)._1 == 2.0, "Genotype incorrect")
+    assert(additiveFormattedObservations(0)._2(1)._2 sameElements Array(0.0, 1.0, 2.0), "Phenotype array incorrect")
+    assert(additiveFormattedObservations(0)._2(0)._2 sameElements Array(3.0, 4.0, 5.0), "Phenotype array incorrect")
+    assert(additiveFormattedObservations(1)._2(0)._1 == 0.0, "Genotype incorrect")
+    assert(additiveFormattedObservations(1)._2(1)._1 == 0.0, "Genotype incorrect")
+    assert(additiveFormattedObservations(1)._2(1)._2 sameElements Array(0.0, 1.0, 2.0), "Phenotype array incorrect")
+    assert(additiveFormattedObservations(1)._2(0)._2 sameElements Array(3.0, 4.0, 5.0), "Phenotype array incorrect")
+
+    assert(dominantFormattedObservations(0)._1._1.getContigName == "geno2", "Variant incorrect")
+    assert(dominantFormattedObservations(1)._1._1.getContigName == "geno1", "Variant incorrect")
+    assert(dominantFormattedObservations(0)._2(0)._1 == 1.0, "Genotype incorrect")
+    assert(dominantFormattedObservations(0)._2(1)._1 == 1.0, "Genotype incorrect")
+    assert(dominantFormattedObservations(0)._2(1)._2 sameElements Array(0.0, 1.0, 2.0), "Phenotype array incorrect")
+    assert(dominantFormattedObservations(0)._2(0)._2 sameElements Array(3.0, 4.0, 5.0), "Phenotype array incorrect")
+    assert(dominantFormattedObservations(1)._2(0)._1 == 0.0, "Genotype incorrect")
+    assert(dominantFormattedObservations(1)._2(1)._1 == 0.0, "Genotype incorrect")
+    assert(dominantFormattedObservations(1)._2(1)._2 sameElements Array(0.0, 1.0, 2.0), "Phenotype array incorrect")
+    assert(dominantFormattedObservations(1)._2(0)._2 sameElements Array(3.0, 4.0, 5.0), "Phenotype array incorrect")
   }
 
 }

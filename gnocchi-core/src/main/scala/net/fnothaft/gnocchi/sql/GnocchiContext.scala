@@ -43,6 +43,7 @@ import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.hadoop.fs.Path
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import java.io._
+import java.util
 
 object GnocchiContext {
 
@@ -345,12 +346,13 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
       val (_, genoPheno) = keyGenoPheno
       val (gs, pheno) = genoPheno
-      val variant = new Variant()
-      variant.setContigName(gs.contigName)
-      variant.setStart(gs.start)
-      variant.setEnd(gs.end)
-      variant.setAlternateAllele(gs.alt)
-      //      variant.setNames(List(""))
+      val variant = Variant.newBuilder()
+        .setContigName(gs.contigName)
+        .setStart(gs.start)
+        .setEnd(gs.end)
+        .setAlternateAllele(gs.alt)
+        .build()
+      //        .setNames(Seq(gs.contigName).toList).build
       //      variant.setFiltersFailed(List(""))
       ((variant, pheno.phenotype, gs.phaseSetId), genoPheno)
     })
@@ -362,7 +364,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
         val (genotypeState, phenotype) = p
         (clipOrKeepState(genotypeState), phenotype.toDouble)
       }).toArray
-    }).asInstanceOf[RDD[((Variant, String, Int), Array[(Double, Array[Double])])]]
+      ((variant, pheno, phaseSetId), formattedObs)
+    })
   }
 
   def extractQCPhaseSetIds(genotypeStates: RDD[GenotypeState]): RDD[(Int, String)] = {
