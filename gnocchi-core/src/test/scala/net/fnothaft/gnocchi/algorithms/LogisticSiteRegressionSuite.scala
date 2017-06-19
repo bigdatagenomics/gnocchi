@@ -51,9 +51,10 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     variant.setStart(locus.start)
     variant.setEnd(locus.end)
     variant.setAlternateAllele(altAllele)
+    val phaseSetId = 0
 
     // feed it into logisitic regression and compare the Wald Chi Squared tests
-    val regressionResult = AdditiveLogisticRegression.applyToSite(observations, variant, phenotype)
+    val regressionResult = AdditiveLogisticRegression.applyToSite(observations, variant, phenotype, phaseSetId)
 
     // Assert that the weights are correct within a threshold.
     val estWeights: Array[Double] = regressionResult.statistics("weights").asInstanceOf[Array[Double]] :+ regressionResult.statistics("intercept").asInstanceOf[Double]

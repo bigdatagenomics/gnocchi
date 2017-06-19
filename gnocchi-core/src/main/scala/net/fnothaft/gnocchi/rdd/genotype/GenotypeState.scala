@@ -25,7 +25,7 @@ import org.bdgenomics.formats.avro.{ Contig, Variant }
  *
  * @todo add validation for ploidy being two and only single ref and alt values
  *
- * @param contig identifier for genotype, VCFtoAdam initially sets this to be only the chromosome value, but in
+ * @param contigName identifier for genotype, VCFtoAdam initially sets this to be only the chromosome value, but in
  *               RegressPhenotypes.loadGenotypes() the contig identifier is changed to the form, CHROM_POS_ALT, which
  *               uniquely categorizes a single base
  * @param start start position of the contig
@@ -45,7 +45,8 @@ case class GenotypeState(contigName: String,
                          alt: String,
                          sampleId: String,
                          genotypeState: Int,
-                         missingGenotypes: Int) {
+                         missingGenotypes: Int,
+                         phaseSetId: Int = 0) {
 
   def referenceAllele: (ReferenceRegion, String) = {
     (ReferenceRegion(contigName, start, end), alt)

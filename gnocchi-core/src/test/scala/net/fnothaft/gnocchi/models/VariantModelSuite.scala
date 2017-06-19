@@ -161,9 +161,10 @@ class VariantModelSuite extends GnocchiFunSuite {
   // break observations into initial group and update group
   val linearInitialGroup = linearObservations.slice(0, linearObservations.length / 2).toArray
   val linearUpdateGroup = linearObservations.slice(linearObservations.length / 2, linearObservations.length).toArray
+  val phaseSetId = 0
 
   // build a VariantModel using initial data and update with update data
-  val incrementalLinearVariantModel: AdditiveLinearVariantModel = AdditiveLinearRegression.applyToSite(linearInitialGroup, variant, phenotype)
+  val incrementalLinearVariantModel: AdditiveLinearVariantModel = AdditiveLinearRegression.applyToSite(linearInitialGroup, variant, phenotype, phaseSetId)
     .toVariantModel
   println(incrementalLinearVariantModel.weights.toList)
   val updatedLinearModel = incrementalLinearVariantModel.update(linearUpdateGroup)
@@ -257,7 +258,7 @@ class VariantModelSuite extends GnocchiFunSuite {
   val logisticUpdateGroup = logisticObservations.slice(logisticObservations.length / 2, logisticObservations.length).toArray
 
   // Build a logistic model with initial group
-  val incrementalLogisticVariantModel: AdditiveLogisticVariantModel = AdditiveLogisticRegression.applyToSite(logisticInitialGroup, variant, phenotype)
+  val incrementalLogisticVariantModel: AdditiveLogisticVariantModel = AdditiveLogisticRegression.applyToSite(logisticInitialGroup, variant, phenotype, phaseSetId)
     .toVariantModel
 
   // Update logistic model with update group

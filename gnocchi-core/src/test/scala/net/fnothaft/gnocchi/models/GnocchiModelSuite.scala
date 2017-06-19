@@ -50,56 +50,14 @@ class GnocchiModelSuite extends GnocchiFunSuite {
      */
 
     //TODO: Figure out why we need to make Java objects in order to serialize Variant objects now...
-    //    val contig0 = new Contig
-    //    contig0.setContigName("variant0")
     val variant0 = Variant.newBuilder.build
-    //    val variant0 = new Variant
     variant0.setContigName("variant0")
-    //    variant0.setAlternateAllele("")
-    //    variant0.setEnd(0L)
-    //    variant0.setFiltersApplied(false)
-    //    val arrayBuffer: java.util.List[String] = ArrayBuffer("").asJava
-    //    val varAnn = new VariantAnnotation
-    //    val te = new TranscriptEffect
-    //    te.setEffects(arrayBuffer)
-    //    val javaMap = mutable.HashMap("" -> "").asJava
-    //    varAnn.setAttributes(javaMap)
-    //    val varAnnMess = VariantAnnotationMessage.ERROR_CHROMOSOME_NOT_FOUND
-    //    te.setMessages(ArrayBuffer(varAnnMess).asJava)
-    //    varAnn.setTranscriptEffects(ArrayBuffer(te).asJava)
-    //    variant0.setAnnotation(varAnn)
-    //    variant0.setFiltersFailed(arrayBuffer)
-    //    variant0.setNames(arrayBuffer)
-    //    variant0.setReferenceAllele("")
-    //    variant0.setStart(0L)
 
-    //    val contig1 = new Contig
-    //    contig1.setContigName("variant1")
     val variant1 = Variant.newBuilder.build
     variant1.setContigName("variant1")
-    //    variant1.setContigName("vatiant0")
-    //    variant1.setAlternateAllele("")
-    //    variant1.setAnnotation(varAnn)
-    //    variant1.setEnd(0L)
-    //    variant1.setFiltersApplied(false)
-    //    variant1.setFiltersFailed(arrayBuffer)
-    //    variant1.setNames(arrayBuffer)
-    //    variant1.setReferenceAllele("")
-    //    variant1.setStart(0L)
 
-    //    val contig2 = new Contig
-    //    contig2.setContigName("variant2")
     val variant2 = Variant.newBuilder.build
     variant2.setContigName("variant2")
-    //    variant2.setContigName("vatiant0")
-    //    variant2.setAlternateAllele("")
-    //    variant2.setAnnotation(varAnn)
-    //    variant2.setEnd(0L)
-    //    variant2.setFiltersApplied(false)
-    //    variant2.setFiltersFailed(arrayBuffer)
-    //    variant2.setNames(arrayBuffer)
-    //    variant2.setReferenceAllele("")
-    //    variant2.setStart(0L)
 
     val linearObs0 = Array((0.0, Array(1.4, 0.8404, 2.9080)),
       (0.0, Array(0.1, -0.8880, 0.8252)),
@@ -122,13 +80,16 @@ class GnocchiModelSuite extends GnocchiFunSuite {
     val variables = "Genotype + 2 covariates"
     val linearFlaggedVariantModels = List()
     val linearPhenotype = "Phenotype"
+    val phaseSetId0 = 0
+    val phaseSetId1 = 1
+    val phaseSetId2 = 2
 
     val linearVariantModel0 = AdditiveLinearRegression.applyToSite(
-      linearObs0, variant0, linearPhenotype).toVariantModel
+      linearObs0, variant0, linearPhenotype, phaseSetId0).toVariantModel
     val linearVariantModel1 = AdditiveLinearRegression.applyToSite(
-      linearObs1, variant1, linearPhenotype).toVariantModel
+      linearObs1, variant1, linearPhenotype, phaseSetId1).toVariantModel
     val linearVariantModel2 = AdditiveLinearRegression.applyToSite(
-      linearObs2, variant2, linearPhenotype).toVariantModel
+      linearObs2, variant2, linearPhenotype, phaseSetId2).toVariantModel
 
     /* updateGroupGenotypes 3 variants, 5 samples
     #CHROM	POS	    ID	        REF	ALT	QUAL	FILTER	INFO	FORMAT	sample6	sample7	sample8	sample9	sample10
@@ -211,30 +172,30 @@ class GnocchiModelSuite extends GnocchiFunSuite {
 
     // TODO: make this not throw a singular matrix error
     val logisticVariantModel0 = try {
-      AdditiveLogisticRegression.applyToSite(logisticObs0, variant0, logisticPhenotype)
+      AdditiveLogisticRegression.applyToSite(logisticObs0, variant0, logisticPhenotype, phaseSetId0)
         .toVariantModel
     } catch {
       case error: SingularMatrixException => {
-        AdditiveLogisticRegression.constructAssociation(variant0.getContigName, 0, "", new Array[Double](4), 0.0, variant0, "", 0.0, 0.0, Map(("", ""))).toVariantModel
+        AdditiveLogisticRegression.constructAssociation(variant0.getContigName, 0, "", new Array[Double](4), 0.0, variant0, "", 0.0, 0.0, phaseSetId0, Map(("", ""))).toVariantModel
       }
     }
     // TODO: make this not throw a singular matrix error
     val logisticVariantModel1 = try {
-      AdditiveLogisticRegression.applyToSite(logisticObs1, variant1, logisticPhenotype)
+      AdditiveLogisticRegression.applyToSite(logisticObs1, variant1, logisticPhenotype, phaseSetId1)
         .toVariantModel
     } catch {
       case error: SingularMatrixException => {
-        AdditiveLogisticRegression.constructAssociation(variant1.getContigName, 0, "", new Array[Double](4), 0.0, variant1, "", 0.0, 0.0, Map(("", ""))).toVariantModel
+        AdditiveLogisticRegression.constructAssociation(variant1.getContigName, 0, "", new Array[Double](4), 0.0, variant1, "", 0.0, 0.0, phaseSetId1, Map(("", ""))).toVariantModel
       }
     }
 
     // TODO: make this not throw a singular matrix error
     val logisticVariantModel2 = try {
-      AdditiveLogisticRegression.applyToSite(logisticObs2, variant2, logisticPhenotype)
+      AdditiveLogisticRegression.applyToSite(logisticObs2, variant2, logisticPhenotype, phaseSetId2)
         .toVariantModel
     } catch {
       case error: SingularMatrixException => {
-        AdditiveLogisticRegression.constructAssociation(variant2.getContigName, 0, "", new Array[Double](4), 0.0, variant2, "", 0.0, 0.0, Map(("", ""))).toVariantModel
+        AdditiveLogisticRegression.constructAssociation(variant2.getContigName, 0, "", new Array[Double](4), 0.0, variant2, "", 0.0, 0.0, phaseSetId2, Map(("", ""))).toVariantModel
       }
     }
 
@@ -366,7 +327,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
       .collect.head
       ._1.variant
     val comparisonVariantModel = AdditiveLinearRegression
-      .applyToSite(mergedLinearDataForComparisonModel, variant, linearPhenotype).toVariantModel
+      .applyToSite(mergedLinearDataForComparisonModel, variant, linearPhenotype, phaseSetId0).toVariantModel
 
     val (variantModelAfterUpdate, dataAfterUpdate) = updatedLinearComparisonVariantModels.filter(_._1.variantId == comparisonVariantModel.variantId).collect.head
     val dataToLists = dataAfterUpdate.map(pv => {
@@ -557,7 +518,7 @@ class GnocchiModelSuite extends GnocchiFunSuite {
       .collect.head
       ._1.variant
     val comparisonVariantModel = AdditiveLogisticRegression
-      .applyToSite(mergedLogisticDataForComparisonModel, variant, logisticPhenotype).toVariantModel
+      .applyToSite(mergedLogisticDataForComparisonModel, variant, logisticPhenotype, phaseSetId0).toVariantModel
 
     val (variantModelAfterUpdate, dataAfterUpdate) = updatedLogisticComparisonVariantModels.filter(_._1.variantId == comparisonVariantModel.variantId).collect.head
     val dataToLists = dataAfterUpdate.map(pv => {

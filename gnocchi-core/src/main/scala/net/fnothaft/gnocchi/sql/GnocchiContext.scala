@@ -17,14 +17,18 @@
  */
 package net.fnothaft.gnocchi.sql
 
+import java.io.File
+
+import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
+import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
+import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
+import net.fnothaft.gnocchi.models.variant.VariantModel
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 import org.bdgenomics.utils.misc.Logging
-import net.fnothaft.gnocchi.algorithms._
-import net.fnothaft.gnocchi.algorithms.siteregression._
-import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
+import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import net.fnothaft.gnocchi.rdd.association._
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.bdgenomics.adam.rdd.ADAMContext._
@@ -38,6 +42,8 @@ import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
 import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
 import org.apache.hadoop.fs.Path
 import org.bdgenomics.adam.cli.Vcf2ADAM
+import java.io._
+import java.util
 
 object GnocchiContext {
 
@@ -87,7 +93,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       filteredGtFrame("variant.alternateAllele").as("alt"),
       filteredGtFrame("sampleId"),
       genotypeState.as("genotypeState"),
-      missingGenotypes.as("missingGenotypes"))
+      missingGenotypes.as("missingGenotypes"),
+      filteredGtFrame("phaseSetId").as("phaseSetId"))
   }
 
   def loadAndFilterGenotypes(genotypesPath: String,
@@ -125,14 +132,15 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     val genotypeStates = toGenotypeStateDataFrame(genotypes, ploidy, sparse = false)
     // TODO: change convention so that generated variant name gets put in "names" rather than "contigName"
     val genoStatesWithNames = genotypeStates.select(
-      concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
-      genotypeStates("start"),
-      genotypeStates("end"),
-      genotypeStates("ref"),
-      genotypeStates("alt"),
-      genotypeStates("sampleId"),
-      genotypeStates("genotypeState"),
-      genotypeStates("missingGenotypes"))
+      struct(concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
+        genotypeStates("start"),
+        genotypeStates("end"),
+        genotypeStates("ref"),
+        genotypeStates("alt"),
+        genotypeStates("sampleId"),
+        genotypeStates("genotypeState"),
+        genotypeStates("missingGenotypes")).as("gs"),
+      genotypeStates("phaseSetId"))
 
     val gsRdd = genoStatesWithNames.as[GenotypeState].rdd
 
@@ -346,6 +354,47 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       }).toArray
       (variant, obs).asInstanceOf[(Variant, Array[(Double, Array[Double])])]
     })
+  }
+
+  /**
+   *
+   * @param genotypes an rdd of [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]] objects to be regressed upon
+   * @param phenotypes an rdd of [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects used as observations
+   * @param clipOrKeepState
+   * @return
+   */
+  def formatObservations(genotypes: RDD[GenotypeState],
+                         phenotypes: RDD[Phenotype],
+                         clipOrKeepState: GenotypeState => Double): RDD[((Variant, String, Int), Array[(Double, Array[Double])])] = {
+    val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
+
+    val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
+      val (_, genoPheno) = keyGenoPheno
+      val (gs, pheno) = genoPheno
+      val variant = Variant.newBuilder()
+        .setContigName(gs.contigName)
+        .setStart(gs.start)
+        .setEnd(gs.end)
+        .setAlternateAllele(gs.alt)
+        .build()
+      //        .setNames(Seq(gs.contigName).toList).build
+      //      variant.setFiltersFailed(List(""))
+      ((variant, pheno.phenotype, gs.phaseSetId), genoPheno)
+    })
+      .groupByKey()
+
+    keyedGenoPheno.map(site => {
+      val ((variant, pheno, phaseSetId), observations) = site
+      val formattedObs = observations.map(p => {
+        val (genotypeState, phenotype) = p
+        (clipOrKeepState(genotypeState), phenotype.toDouble)
+      }).toArray
+      ((variant, pheno, phaseSetId), formattedObs)
+    })
+  }
+
+  def extractQCPhaseSetIds(genotypeStates: RDD[GenotypeState]): RDD[(Int, String)] = {
+    genotypeStates.map(g => (g.phaseSetId, g.contigName)).reduceByKey((a, b) => a)
   }
 
   def pairSamplesWithPhenotypes(rdd: RDD[GenotypeState],

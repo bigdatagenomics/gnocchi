@@ -20,7 +20,7 @@ package net.fnothaft.gnocchi.algorithms.siteregression
 import breeze.linalg._
 import breeze.numerics.{ log10, _ }
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import net.fnothaft.gnocchi.rdd.association.{ AdditiveLogisticAssociation, Association, DominantLogisticAssociation }
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.commons.math3.linear
@@ -28,7 +28,7 @@ import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.bdgenomics.formats.avro.Variant
 
-trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM] {
+trait LogisticSiteRegression[VM <: VariantModel[VM], A <: Association[VM]] extends SiteApplication[VM, A] {
 
   /**
    * Returns Association object with solution to logistic regression.
@@ -56,7 +56,8 @@ trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM]
   @throws(classOf[SingularMatrixException])
   def applyToSite(observations: Array[(Double, Array[Double])],
                   variant: Variant,
-                  phenotype: String): Association[VM] = {
+                  phenotype: String,
+                  phaseSetId: Int): A = {
 
     /* Setting up logistic regression references */
     val phenotypesLength = observations(0)._2.length
@@ -167,6 +168,7 @@ trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM]
         phenotype,
         waldTests(1),
         logWaldTests(1),
+        phaseSetId,
         statistics)
     } catch {
       case _: breeze.linalg.MatrixSingularException => {
@@ -237,13 +239,14 @@ trait LogisticSiteRegression[VM <: VariantModel[VM]] extends SiteApplication[VM]
                            phenotype: String,
                            logPValue: Double,
                            pValue: Double,
-                           statistics: Map[String, Any]): Association[VM]
+                           phaseSetId: Int,
+                           statistics: Map[String, Any]): A
 }
 
 object AdditiveLogisticRegression extends AdditiveLogisticRegression {
   val regressionName = "additiveLogisticRegression"
 }
-trait AdditiveLogisticRegression extends LogisticSiteRegression[AdditiveLogisticVariantModel] with Additive {
+trait AdditiveLogisticRegression extends LogisticSiteRegression[AdditiveLogisticVariantModel, AdditiveLogisticAssociation] with Additive {
   def constructAssociation(variantId: String,
                            numSamples: Int,
                            modelType: String,
@@ -253,17 +256,18 @@ trait AdditiveLogisticRegression extends LogisticSiteRegression[AdditiveLogistic
                            phenotype: String,
                            logPValue: Double,
                            pValue: Double,
+                           phaseSetId: Int,
                            statistics: Map[String, Any]): AdditiveLogisticAssociation = {
     new AdditiveLogisticAssociation(variantId, numSamples, modelType, weights, geneticParameterStandardError,
-      variant, phenotype, logPValue, pValue, statistics)
+      variant, phenotype, logPValue, pValue, phaseSetId, statistics)
   }
 }
 
-object DominantLogisticRegression extends AdditiveLogisticRegression {
+object DominantLogisticRegression extends DominantLogisticRegression {
   val regressionName = "dominantLogisticRegression"
 }
 
-trait DominantLogisticRegression extends LogisticSiteRegression[AdditiveLogisticVariantModel] with Dominant {
+trait DominantLogisticRegression extends LogisticSiteRegression[DominantLogisticVariantModel, DominantLogisticAssociation] with Dominant {
   def constructAssociation(variantId: String,
                            numSamples: Int,
                            modelType: String,
@@ -273,8 +277,9 @@ trait DominantLogisticRegression extends LogisticSiteRegression[AdditiveLogistic
                            phenotype: String,
                            logPValue: Double,
                            pValue: Double,
+                           phaseSetId: Int,
                            statistics: Map[String, Any]): DominantLogisticAssociation = {
     new DominantLogisticAssociation(variantId, numSamples, modelType, weights, geneticParameterStandardError,
-      variant, phenotype, logPValue, pValue, statistics)
+      variant, phenotype, logPValue, pValue, phaseSetId, statistics)
   }
 }

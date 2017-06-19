@@ -119,23 +119,26 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     args.associationType match {
       case "ADDITIVE_LINEAR" => {
-        val associations = AdditiveLinearRegression(genotypeStates, phenotypes)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
+        val associations = AdditiveLinearRegression(genoPhenoObs)
         val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLinearVariantModel]]])
         logResults[AdditiveLinearVariantModel](assocsDS, sc)
       }
       case "DOMINANT_LINEAR" => {
-        val associations = DominantLinearRegression(genotypeStates, phenotypes)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, DominantLinearRegression.clipOrKeepState)
+        val associations = DominantLinearRegression(genoPhenoObs)
         val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLinearVariantModel]]])
         logResults[AdditiveLinearVariantModel](assocsDS, sc)
       }
       case "ADDITIVE_LOGISTIC" => {
-        val associations = AdditiveLogisticRegression(genotypeStates, phenotypes)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLogisticRegression.clipOrKeepState)
+        val associations = AdditiveLogisticRegression(genoPhenoObs)
         val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLogisticVariantModel]]])
         logResults[AdditiveLogisticVariantModel](assocsDS, sc)
-
       }
       case "DOMINANT_LOGISTIC" => {
-        val associations = DominantLogisticRegression(genotypeStates, phenotypes)
+        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, DominantLogisticRegression.clipOrKeepState)
+        val associations = DominantLogisticRegression(genoPhenoObs)
         val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLogisticVariantModel]]])
         logResults[AdditiveLogisticVariantModel](assocsDS, sc)
       }

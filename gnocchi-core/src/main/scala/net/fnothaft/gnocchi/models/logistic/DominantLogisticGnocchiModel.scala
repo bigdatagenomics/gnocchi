@@ -19,30 +19,30 @@ package net.fnothaft.gnocchi.models.logistic
 
 import java.io.{ File, FileOutputStream, ObjectOutputStream }
 
-import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticRegression
+import net.fnothaft.gnocchi.algorithms.siteregression.DominantLogisticRegression
 import net.fnothaft.gnocchi.models._
-import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.models.variant.logistic.DominantLogisticVariantModel
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.bdgenomics.formats.avro.Variant
 
-case class AdditiveLogisticGnocchiModel(metaData: GnocchiModelMetaData,
-                                        variantModels: RDD[AdditiveLogisticVariantModel],
-                                        comparisonVariantModels: RDD[(AdditiveLogisticVariantModel, Array[(Double, Array[Double])])])
-    extends GnocchiModel[AdditiveLogisticVariantModel, AdditiveLogisticGnocchiModel] {
+case class DominantLogisticGnocchiModel(metaData: GnocchiModelMetaData,
+                                        variantModels: RDD[DominantLogisticVariantModel],
+                                        comparisonVariantModels: RDD[(DominantLogisticVariantModel, Array[(Double, Array[Double])])])
+    extends GnocchiModel[DominantLogisticVariantModel, DominantLogisticGnocchiModel] {
 
   def constructGnocchiModel(metaData: GnocchiModelMetaData,
-                            variantModels: RDD[AdditiveLogisticVariantModel],
-                            comparisonVariantModels: RDD[(AdditiveLogisticVariantModel, Array[(Double, Array[Double])])]): AdditiveLogisticGnocchiModel = {
-    AdditiveLogisticGnocchiModel(metaData, variantModels, comparisonVariantModels)
+                            variantModels: RDD[DominantLogisticVariantModel],
+                            comparisonVariantModels: RDD[(DominantLogisticVariantModel, Array[(Double, Array[Double])])]): DominantLogisticGnocchiModel = {
+    DominantLogisticGnocchiModel(metaData, variantModels, comparisonVariantModels)
   }
 
   // calls the appropriate version of BuildVariantModel
   def regress(obs: Array[(Double, Array[Double])],
               variant: Variant,
               phenotype: String,
-              phaseSetId: Int): AdditiveLogisticVariantModel = {
-    AdditiveLogisticRegression.applyToSite(obs, variant, metaData.phenotype, phaseSetId)
+              phaseSetId: Int): DominantLogisticVariantModel = {
+    DominantLogisticRegression.applyToSite(obs, variant, metaData.phenotype, phaseSetId)
       .toVariantModel
   }
 
@@ -52,7 +52,7 @@ case class AdditiveLogisticGnocchiModel(metaData: GnocchiModelMetaData,
     variantModels.toDF.write.parquet(saveTo + "/variantModels")
     comparisonVariantModels.map(vmobs => {
       val (vm, observations) = vmobs
-      new QualityControlVariant[AdditiveLogisticVariantModel](vm, observations)
+      new QualityControlVariant[DominantLogisticVariantModel](vm, observations)
     })
       .toDF.write.parquet(saveTo + "/qcModels")
     val metaDataFileStream = new FileOutputStream(new File(saveTo + "/metaData"))

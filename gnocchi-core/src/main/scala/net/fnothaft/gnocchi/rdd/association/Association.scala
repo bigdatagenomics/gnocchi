@@ -18,8 +18,8 @@
 package net.fnothaft.gnocchi.rdd.association
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
+import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import org.bdgenomics.formats.avro.Variant
 
 trait Association[VM <: VariantModel[VM]] {
@@ -47,6 +47,7 @@ case class AdditiveLinearAssociation(variantId: String,
                                      phenotype: String,
                                      logPValue: Double,
                                      pValue: Double,
+                                     phaseSetId: Int,
                                      statistics: Map[String, Any]) extends Association[AdditiveLinearVariantModel] {
   /**
    * Converts Association object into a VariantModel object of the
@@ -71,7 +72,7 @@ case class AdditiveLinearAssociation(variantId: String,
     AdditiveLinearVariantModel(variantId,
       ssDeviations.get, ssResiduals.get, geneticParameterStandardError.toDouble,
       tStatistic.get, residualDegreesOfFreedom.get, pValue, variant,
-      weights.toList, numSamples, phenotype)
+      weights.toList, numSamples, phenotype, phaseSetId)
   }
 }
 
@@ -84,6 +85,7 @@ case class AdditiveLogisticAssociation(variantId: String,
                                        phenotype: String,
                                        logPValue: Double,
                                        pValue: Double,
+                                       phaseSetId: Int,
                                        statistics: Map[String, Any]) extends Association[AdditiveLogisticVariantModel] {
   /**
    * Converts Association object into a VariantModel object of the
@@ -96,7 +98,7 @@ case class AdditiveLogisticAssociation(variantId: String,
     println(weights.toList)
     AdditiveLogisticVariantModel(variantId,
       variant, weights.toList, geneticParameterStandardError.toDouble, pValue,
-      numSamples, phenotype)
+      numSamples, phenotype, phaseSetId)
   }
 }
 
@@ -109,23 +111,24 @@ case class DominantLinearAssociation(variantId: String,
                                      phenotype: String,
                                      logPValue: Double,
                                      pValue: Double,
-                                     statistics: Map[String, Any]) extends Association[AdditiveLinearVariantModel] {
+                                     phaseSetId: Int,
+                                     statistics: Map[String, Any]) extends Association[DominantLinearVariantModel] {
   /**
    * Converts Association object into a VariantModel object of the
    * appropriate subtype.
    *
    * @return Returns a VariantModel object of the appropriate subtype.
    */
-  def toVariantModel: AdditiveLinearVariantModel = {
+  def toVariantModel: DominantLinearVariantModel = {
     assert(statistics.nonEmpty, "Cannot convert association object with empty statistics map to VariantModel")
     val ssDeviations = statistics("ssDeviations").asInstanceOf[Double]
     val ssResiduals = statistics("ssResiduals").asInstanceOf[Double]
     val tStatistic = statistics("tStatistic").asInstanceOf[Double]
     val residualDegreesOfFreedom = statistics("residualDegreesOfFreedom").asInstanceOf[Int]
-    AdditiveLinearVariantModel(variantId,
+    DominantLinearVariantModel(variantId,
       ssDeviations, ssResiduals, geneticParameterStandardError,
       tStatistic, residualDegreesOfFreedom, pValue, variant,
-      weights.toList, numSamples, phenotype)
+      weights.toList, numSamples, phenotype, phaseSetId)
   }
 }
 
@@ -138,17 +141,18 @@ case class DominantLogisticAssociation(variantId: String,
                                        phenotype: String,
                                        logPValue: Double,
                                        pValue: Double,
-                                       statistics: Map[String, Any]) extends Association[AdditiveLogisticVariantModel] {
+                                       phaseSetId: Int,
+                                       statistics: Map[String, Any]) extends Association[DominantLogisticVariantModel] {
   /**
    * Converts Association object into a VariantModel object of the
    * appropriate subtype.
    *
    * @return Returns a VariantModel object of the appropriate subtype.
    */
-  def toVariantModel: AdditiveLogisticVariantModel = {
-    AdditiveLogisticVariantModel(variantId,
+  def toVariantModel: DominantLogisticVariantModel = {
+    DominantLogisticVariantModel(variantId,
       variant, weights.toList, geneticParameterStandardError, pValue,
-      numSamples, phenotype)
+      numSamples, phenotype, phaseSetId)
   }
 }
 

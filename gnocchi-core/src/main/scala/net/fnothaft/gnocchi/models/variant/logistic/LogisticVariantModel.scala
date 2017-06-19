@@ -1,7 +1,23 @@
+/**
+ * Licensed to Big Data Genomics (BDG) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The BDG licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package net.fnothaft.gnocchi.models.variant.logistic
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.rdd.association.{ AdditiveLogisticAssociation, Association, DominantLogisticAssociation }
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.bdgenomics.formats.avro.Variant
 
@@ -16,9 +32,6 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
    * @return Returns updated LogisticVariantModel of correct subtype
    */
   def mergeWith(variantModel: VM): VM = {
-    println(variantId)
-    println(weights)
-    println(variantModel.weights)
     val updatedNumSamples = updateNumSamples(variantModel.numSamples)
     val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(variantModel.geneticParameterStandardError, variantModel.numSamples)
     val updatedWeights = updateWeights(variantModel.weights, variantModel.numSamples)
