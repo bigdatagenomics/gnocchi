@@ -142,38 +142,63 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
         genotypeStates("missingGenotypes")).as("gs"),
       genotypeStates("phaseSetId"))
 
+    val gsRdd = genoStatesWithNames.as[GenotypeState].rdd
+
     // mind filter
-    val sampleFilteredDF = filterSamples(genoStatesWithNames, mind)
+    val sampleFilteredRdd = filterSamples(gsRdd, mind)
 
     // maf and geno filters
-    val genoFilteredDF = filterVariants(sampleFilteredDF, geno, maf)
+    val genoFilteredRdd = filterVariants(sampleFilteredRdd, geno, maf)
 
-    val finalGenotypeStates = genoFilteredDF.filter($"gs.missingGenotypes" =!= lit(2)).select($"gs.*")
+    val finalGenotypeStatesRdd = genoFilteredRdd.filter(_.missingGenotypes != 2)
 
-    finalGenotypeStates.as[GenotypeState].rdd
-
+    finalGenotypeStatesRdd
   }
 
-  def filterSamples(genotypeStates: DataFrame, mind: Double): DataFrame = {
-    genotypeStates
-      .groupBy($"gs.sampleId")
-      .agg((sum($"gs.missingGenotypes") / (count($"gs") * lit(2))).alias("mind"),
-        collect_list($"gs").as("gsList"))
-      .filter($"mind" <= mind)
-      .select(explode($"gsList").as("gs"))
+  def filterSamples(genotypeStates: RDD[GenotypeState], mind: Double): RDD[GenotypeState] = {
+    val mindF = sc.broadcast(mind)
+
+    val samples = genotypeStates.map(gs => (gs.sampleId, gs.missingGenotypes, 2))
+      .keyBy(_._1)
+      .reduceByKey((tup1, tup2) => (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3))
+      .map(keyed_tup => {
+        val (key, tuple) = keyed_tup
+        val (sampleId, missCount, total) = tuple
+        val mind = missCount.toDouble / total.toDouble
+        (sampleId, mind)
+      })
+      .filter(_._2 <= mindF.value)
+      .map(_._1)
+      .collect
+      .toSet
+    val samples_bc = sc.broadcast(samples)
+    val sampleFilteredRdd = genotypeStates.filter(gs => samples_bc.value contains gs.sampleId)
+
+    sampleFilteredRdd
   }
 
-  def filterVariants(genotypeStates: DataFrame, geno: Double, maf: Double): DataFrame = {
-    genotypeStates
-      .groupBy($"gs.contigName")
-      .agg(sum($"gs.missingGenotypes").as("missCount"),
-        (count($"gs") * lit(2)).as("total"),
-        sum($"gs.genotypeState").as("alleleCount"),
-        collect_list($"gs").as("gsList"))
-      .filter(($"missCount" / $"total") <= lit(geno))
-      .filter((lit(1) - ($"alleleCount" / ($"total" - $"missCount"))) >= lit(maf))
-      .filter(($"alleleCount" / ($"total" - $"missCount")) >= lit(maf))
-      .select(explode($"gsList").as("gs"))
+  def filterVariants(genotypeStates: RDD[GenotypeState], geno: Double, maf: Double): RDD[GenotypeState] = {
+    val genoF = sc.broadcast(geno)
+    val mafF = sc.broadcast(maf)
+
+    val genos = genotypeStates.map(gs => (gs.contigName, gs.missingGenotypes, gs.genotypeState, 2))
+      .keyBy(_._1)
+      .reduceByKey((tup1, tup2) => (tup1._1, tup1._2 + tup2._2, tup1._3 + tup2._3, tup1._4 + tup2._4))
+      .map(keyed_tup => {
+        val (key, tuple) = keyed_tup
+        val (contigName, missCount, alleleCount, total) = tuple
+        val geno = missCount.toDouble / total.toDouble
+        val maf = alleleCount.toDouble / (total - missCount).toDouble
+        (contigName, geno, maf, 1.0 - maf)
+      })
+      .filter(stats => stats._2 <= genoF.value && stats._3 >= mafF.value && stats._4 >= mafF.value)
+      .map(_._1)
+      .collect
+      .toSet
+    val genos_bc = sc.broadcast(genos)
+    val genoFilteredRdd = genotypeStates.filter(gs => genos_bc.value contains gs.contigName)
+
+    genoFilteredRdd
   }
 
   def loadPhenotypes(phenotypesPath: String,

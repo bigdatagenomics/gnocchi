@@ -26,6 +26,8 @@ import org.bdgenomics.formats.avro.Variant
 
 class GnocchiContextSuite extends GnocchiFunSuite {
 
+  import GnocchiContext._
+
   ignore("toGenotypeStateDataFrame should work for ploidy == 1") {
 
   }
@@ -38,16 +40,59 @@ class GnocchiContextSuite extends GnocchiFunSuite {
 
   }
 
-  ignore("filterSamples should not filter any samples if mind == 0") {
-
+  private def makeGenotypeState(idx: Int, sampleId: String, gs: Int, missing: Int): GenotypeState = {
+    GenotypeState(s"1_${idx}_A", idx, idx + 1, "A", "C", sampleId, gs, missing)
   }
 
-  ignore("filterSamples should filter on mind if mind is greater than 0 but less than 1") {
+  sparkTest("filterSamples should not filter any samples if mind >= 1") {
+    val allMissingSample = (1 to 10).map(makeGenotypeState(_, "sample1", 0, 2))
+    val eachHalfMissingSample = (1 to 10).map(makeGenotypeState(_, "sample2", 1, 1))
+    val noneMissingSample = (1 to 10).map(makeGenotypeState(_, "sample3", 2, 0))
+    val halfMissingSample = (1 to 5).map(makeGenotypeState(_, "sample4", 2, 0)) ++
+      (6 to 10).map(makeGenotypeState(_, "sample4", 0, 2))
 
+    val gsCollection = allMissingSample ++ eachHalfMissingSample ++ halfMissingSample ++ noneMissingSample
+
+    val gsRdd = sc.parallelize(gsCollection)
+    val resultsRdd = sc.filterSamples(gsRdd, 1.0)
+
+    assert(gsCollection.toSet == resultsRdd.collect.toSet, "Sample filtering did not match original collection.")
   }
 
-  ignore("filterSamples should filter out all samples if mind is greater or equal to 1") {
+  sparkTest("filterSamples should filter on mind if mind is greater than 0 but less than 1") {
+    val allMissingSample = (1 to 10).map(makeGenotypeState(_, "sample1", 0, 2))
+    val eachHalfMissingSample = (1 to 10).map(makeGenotypeState(_, "sample2", 1, 1))
+    val noneMissingSample = (1 to 10).map(makeGenotypeState(_, "sample3", 2, 0))
+    val halfMissingSample = (1 to 5).map(makeGenotypeState(_, "sample4", 2, 0)) ++
+      (6 to 10).map(makeGenotypeState(_, "sample4", 0, 2))
 
+    val badCollection = allMissingSample
+    val goodCollection = eachHalfMissingSample ++ halfMissingSample ++ noneMissingSample
+
+    val gsCollection = goodCollection ++ badCollection
+
+    val gsRdd = sc.parallelize(gsCollection)
+    val resultsRdd = sc.filterSamples(gsRdd, 0.5)
+
+    assert(goodCollection.toSet == resultsRdd.collect.toSet, "Sample filtering did not match expected collection.")
+  }
+
+  sparkTest("filterSamples should filter out all non-perfect samples if mind == 0") {
+    val allMissingSample = (1 to 10).map(makeGenotypeState(_, "sample1", 0, 2))
+    val eachHalfMissingSample = (1 to 10).map(makeGenotypeState(_, "sample2", 1, 1))
+    val noneMissingSample = (1 to 10).map(makeGenotypeState(_, "sample3", 2, 0))
+    val halfMissingSample = (1 to 5).map(makeGenotypeState(_, "sample4", 2, 0)) ++
+      (6 to 10).map(makeGenotypeState(_, "sample4", 0, 2))
+
+    val imperfectCollection = allMissingSample ++ eachHalfMissingSample ++ halfMissingSample
+    val perfectCollection = noneMissingSample
+
+    val gsCollection = imperfectCollection ++ perfectCollection
+
+    val gsRdd = sc.parallelize(gsCollection)
+    val resultsRdd = sc.filterSamples(gsRdd, 0.0)
+
+    assert(perfectCollection.toSet == resultsRdd.collect.toSet, "Sample filtering did not match perfect collection.")
   }
 
   ignore("filterVariants should not filter any varaints if geno and maf thresholds are both 0") {
@@ -159,5 +204,4 @@ class GnocchiContextSuite extends GnocchiFunSuite {
     assert(dominantFormattedObservations(1)._2(1)._2 sameElements Array(0.0, 1.0, 2.0), "Phenotype array incorrect")
     assert(dominantFormattedObservations(1)._2(0)._2 sameElements Array(3.0, 4.0, 5.0), "Phenotype array incorrect")
   }
-
 }
