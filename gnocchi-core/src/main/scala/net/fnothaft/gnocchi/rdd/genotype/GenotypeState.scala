@@ -46,7 +46,7 @@ case class GenotypeState(contigName: String,
                          sampleId: String,
                          genotypeState: Int,
                          missingGenotypes: Int,
-                         phaseSetId: Int = 0) {
+                         phaseSetId: java.lang.Integer = 0) {
 
   def referenceAllele: (ReferenceRegion, String) = {
     (ReferenceRegion(contigName, start, end), alt)
