@@ -61,13 +61,24 @@ class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSp
 
   override def run(sc: SparkContext) {
 
+    var covarFile: Option[String] = None
+    var covarNames: Option[String] = None
+
+    if (args.covarFile != "") {
+      covarFile = Option(args.covarFile)
+    }
+
+    if (args.covarNames != "") {
+      covarNames = Option(args.covarNames)
+    }
+
     // Load in genotype data filtering out any SNPs not provided in command line
     val genotypeStates = sc.loadAndFilterGenotypes(args.genotypes, args.associations,
       args.ploidy, args.mind, args.maf, args.geno, args.overwrite)
 
     // Load in phenotype data
     val phenotypes = sc.loadPhenotypes(args.phenotypes, args.phenoName, args.oneTwo,
-      args.includeCovariates, args.covarFile, args.covarNames)
+      args.includeCovariates, covarFile, covarNames)
 
     // Select variant Ids for variants to use as quality control
     val phaseSetsList = sc.extractQCPhaseSetIds(genotypeStates)
