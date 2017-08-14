@@ -71,10 +71,10 @@ class RegressPhenotypesArgs extends Args4jBase {
   var includeCovariates = false
 
   @Args4jOption(required = false, name = "-covarFile", usage = "The covariates file path")
-  var covarFile: Option[String] = None
+  var covarFile: String = ""
 
   @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
-  var covarNames: Option[String] = None
+  var covarNames: String = ""
 
   @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
   var saveAsText = false
@@ -107,13 +107,24 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
 
+    var covarFile: Option[String] = None
+    var covarNames: Option[String] = None
+
+    if (args.covarFile != "") {
+      covarFile = Option(args.covarFile)
+    }
+
+    if (args.covarNames != "") {
+      covarNames = Option(args.covarNames)
+    }
+
     val sparkSession = SparkSession.builder().getOrCreate()
 
     val genotypeStates = sc.loadAndFilterGenotypes(args.genotypes, args.associations,
       args.ploidy, args.mind, args.maf, args.geno, args.overwrite)
 
     val phenotypes = sc.loadPhenotypes(args.phenotypes, args.phenoName, args.oneTwo,
-      args.includeCovariates, args.covarFile, args.covarNames)
+      args.includeCovariates, covarFile, covarNames)
 
     import net.fnothaft.gnocchi.sql.AuxEncoders._
 
