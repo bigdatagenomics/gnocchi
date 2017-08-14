@@ -84,7 +84,7 @@ class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSp
     val phaseSetsList = sc.extractQCPhaseSetIds(genotypeStates)
     val qcVariantIds = phaseSetsList.map(kv => kv._2)
 
-    val gnocchiModelMetaData = buildMetaData(phenotypes, args.errorThreshold, args.associationType, args.covarNames, args.phenoName)
+    val gnocchiModelMetaData = buildMetaData(phenotypes, args.errorThreshold, args.associationType, covarNames, args.phenoName)
 
     // build GnocchiModel
     val gnocchiModel = args.associationType match {
