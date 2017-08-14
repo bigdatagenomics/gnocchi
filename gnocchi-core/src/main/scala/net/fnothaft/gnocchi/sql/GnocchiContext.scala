@@ -130,7 +130,6 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
 
     genotypes.collect().foreach(println)
 
-
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
     val genotypeStates = toGenotypeStateDataFrame(genotypes, ploidy, sparse = false)
     // TODO: change convention so that generated variant name gets put in "names" rather than "contigName"
@@ -142,8 +141,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
         genotypeStates("alt"),
         genotypeStates("sampleId"),
         genotypeStates("genotypeState"),
-        genotypeStates("missingGenotypes")).as("gs"),
-      genotypeStates("phaseSetId"))
+        genotypeStates("missingGenotypes"),
+        genotypeStates("phaseSetId")))
 
     val gsRdd = genoStatesWithNames.as[GenotypeState].rdd
 
