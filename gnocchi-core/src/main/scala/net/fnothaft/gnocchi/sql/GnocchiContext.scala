@@ -86,6 +86,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       c
     }).reduce(_ + _)
 
+    val phaseSetId: Column = when(filteredGtFrame("phaseSetId").isNull, 0).otherwise(filteredGtFrame("phaseSetId"))
+
     filteredGtFrame.select(filteredGtFrame("variant.contigName").as("contigName"),
       filteredGtFrame("variant.start").as("start"),
       filteredGtFrame("variant.end").as("end"),
@@ -94,7 +96,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       filteredGtFrame("sampleId"),
       genotypeState.as("genotypeState"),
       missingGenotypes.as("missingGenotypes"),
-      filteredGtFrame("phaseSetId").as("phaseSetId"))
+      phaseSetId.as("phaseSetId"))
   }
 
   def loadAndFilterGenotypes(genotypesPath: String,
@@ -129,7 +131,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     val genotypes = sparkSession.read.format("parquet").load(parquetInputDestination)
 
     // transform the parquet-formatted genotypes into a dataFrame of GenotypeStates and convert to Dataset.
-    val genotypeStates = toGenotypeStateDataFrame(genotypes, ploidy, sparse = false)
+    val genotypeStates = toGenotypeStateDataFrame(genotypes, ploidy)
     // TODO: change convention so that generated variant name gets put in "names" rather than "contigName"
     val genoStatesWithNames = genotypeStates.select(
       concat($"contigName", lit("_"), $"end", lit("_"), $"alt") as "contigName",
