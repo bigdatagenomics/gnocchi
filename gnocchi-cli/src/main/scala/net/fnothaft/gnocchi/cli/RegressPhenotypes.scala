@@ -131,8 +131,16 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     args.associationType match {
       case "ADDITIVE_LINEAR" => {
         val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
+        println("Printing Observations")
+        genoPhenoObs.collect().foreach(println)
+        println("HERE")
         val associations = AdditiveLinearRegression(genoPhenoObs)
+        println("Printing the associations")
+        associations.collect().foreach(println)
+        println("HERE")
         val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLinearVariantModel]]])
+        println("Printing the associations Dataset")
+        assocsDS.collect().foreach(println)
         logResults[AdditiveLinearVariantModel](assocsDS, sc)
       }
       case "DOMINANT_LINEAR" => {

@@ -370,6 +370,9 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
                          clipOrKeepState: GenotypeState => Double): RDD[((Variant, String, Int), Array[(Double, Array[Double])])] = {
     val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
 
+    println("Printing joinedGenoPheno from gnocchiContext")
+    joinedGenoPheno.collect().foreach(println)
+
     val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
       val (_, genoPheno) = keyGenoPheno
       val (gs, pheno) = genoPheno
@@ -384,6 +387,9 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       ((variant, pheno.phenotype, gs.phaseSetId), genoPheno)
     })
       .groupByKey()
+
+    println("printing the keyedGenoPheno from the gnocchiContext")
+    keyedGenoPheno.collect().foreach(println)
 
     keyedGenoPheno.map(site => {
       val ((variant, pheno, phaseSetId), observations) = site
