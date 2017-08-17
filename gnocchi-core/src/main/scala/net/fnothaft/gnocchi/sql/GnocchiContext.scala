@@ -86,6 +86,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       c
     }).reduce(_ + _)
 
+    // is this correct? or should we change the column to nullable?
     val phaseSetId: Column = when(filteredGtFrame("phaseSetId").isNull, 0).otherwise(filteredGtFrame("phaseSetId"))
 
     filteredGtFrame.select(filteredGtFrame("variant.contigName").as("contigName"),
@@ -207,54 +208,59 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
                      phenoName: String,
                      oneTwo: Boolean,
                      includeCovariates: Boolean,
-                     covarFile: Option[String],
+                     covarPath: Option[String],
                      covarNames: Option[String]): RDD[Phenotype] = {
+
     logInfo("Loading phenotypes from %s.".format(phenotypesPath))
+    val phenotypesRDD = sc.textFile(phenotypesPath).persist()
 
-    val (phenotypes, header, indexList, delimiter) = loadFileAndCheckHeader(phenotypesPath, phenoName)
-    val primaryPhenoIndex = indexList(0)
+    var phenoHeader = phenotypesRDD.first().split('\t')
+    var delimiter = "\t"
 
-    if (includeCovariates) {
-      logInfo("Loading covariates from %s.".format(covarFile))
-      val (covariates, covarHeader, covarIndices, delimiter) = loadFileAndCheckHeader(covarFile.get, covarNames.get)
-      require(!covarNames.get.split(",").contains(phenoName), "One or more of the covariates has the same name as phenoName.")
-      combineAndFilterPhenotypes(oneTwo, phenotypes, header, primaryPhenoIndex, delimiter, Option(covariates), Option(covarHeader), Option(covarIndices))
-    } else {
-      combineAndFilterPhenotypes(oneTwo, phenotypes, header, primaryPhenoIndex, delimiter)
-    }
-  }
-
-  def loadFileAndCheckHeader(path: String, variablesString: String, isCovars: Boolean = false): (RDD[String], Array[String], Array[Int], String) = {
-    val lines = sc.textFile(path).persist()
-    val header = lines.first()
-    val len = header.split("\t").length
-    val delimiter = if (len >= 2) {
-      "\t"
-    } else {
-      " "
-    }
-    val columnLabels = if (delimiter == "\t") {
-      header.split("\t").zipWithIndex
-    } else {
-      header.split(" ").zipWithIndex
+    if (phenoHeader.length < 2) {
+      phenoHeader = phenotypesRDD.first().split(" ")
+      delimiter = " "
     }
 
-    val contents = if (isCovars) {
-      "Phenotypes"
-    } else {
-      "Covariates"
+    require(phenoHeader.length >= 2,
+      s"Phenotype files must have a minimum of 2 columns. The first column is a sampleID, " +
+        "the rest are phenotype values. The first row must be a header that contains labels.")
+    require(phenoHeader.contains(phenoName),
+      s"The primary phenotype, '$phenoName' does not exist in the specified file, '$phenotypesPath'")
+
+    var covariatesRDD: Option[RDD[String]] = None
+    var covariateHeader: Option[Array[String]] = None
+    var covariateIndices: Option[Array[Int]] = None
+
+    if (covarPath.isDefined) {
+      logInfo("Loading covariates from %s.".format(covarPath.get))
+      covariatesRDD = Some(sc.textFile(covarPath.get).persist())
+      var covariateNames = covarNames.get.split(",")
+
+      covariateHeader = Some(covariatesRDD.get.first().split('\t'))
+      var delimiter = "\t"
+
+      if (covariateHeader.get.length < 2) {
+        covariateHeader = Some(covariatesRDD.get.first().split(" "))
+        delimiter = " "
+      }
+
+      require(covariateNames.forall(name => covariateHeader.get.contains(name)),
+        "One of the covariates specified is missing from the covariate file '%s'".format(covarPath.get))
+      require(!covariateNames.contains(phenoName), "The primary phenotype cannot be a covariate.")
+
+      covariateIndices = Some(covariateNames.map(name => covariateHeader.get.indexOf(name)))
     }
 
-    require(columnLabels.length >= 2,
-      s"$contents file must have a minimum of 2 tab delimited columns. The first being some " +
-        "form of sampleID, the rest being phenotype values. A header with column labels must also be present.")
-
-    val variableNames = variablesString.split(",")
-    for (variable <- variableNames) {
-      val index = columnLabels.map(p => p._1).indexOf(variable)
-      require(index != -1, s"$variable doesn't match any of the phenotypes specified in the header.")
-    }
-    (lines, columnLabels.map(p => p._1), columnLabels.map(p => p._2), delimiter)
+    combineAndFilterPhenotypes(
+      oneTwo,
+      phenotypesRDD,
+      phenoHeader,
+      phenoHeader.indexOf(phenoName),
+      delimiter,
+      covariatesRDD,
+      covariateHeader,
+      covariateIndices)
   }
 
   /**
@@ -280,7 +286,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
 
     // TODO: NEED TO REQUIRE THAT ALL THE PHENOTYPES BE REPRESENTED BY NUMBERS.
 
-    val fullHeader = splitHeader ++ splitCovarHeader
+    val fullHeader = if (splitCovarHeader.isDefined) splitHeader ++ splitCovarHeader.get else splitHeader
 
     val indices = if (covarIndices.isDefined) {
       val mergedIndices = covarIndices.get.map(elem => { elem + splitHeader.length })
@@ -299,8 +305,8 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
         .filter(_._1 != "")
       data.cogroup(covarData).map(pair => {
         val (_, (phenosIterable, covariatesIterable)) = pair
-        val phenoArray = phenosIterable.toList.head
-        val covarArray = covariatesIterable.toList.head
+        val phenoArray = phenosIterable.head
+        val covarArray = covariatesIterable.head
         phenoArray ++ covarArray
       })
     } else {
@@ -315,6 +321,9 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
         indices.map(index => fullHeader(index)).mkString(","), p(0), indices.map(i => p(i).toDouble).toArray))
 
     phenotypes.unpersist()
+    if (covars.isDefined) {
+      covars.get.unpersist()
+    }
 
     finalData
   }
@@ -370,9 +379,6 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
                          clipOrKeepState: GenotypeState => Double): RDD[((Variant, String, Int), Array[(Double, Array[Double])])] = {
     val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
 
-    println("Printing joinedGenoPheno from gnocchiContext")
-    joinedGenoPheno.collect().foreach(println)
-
     val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
       val (_, genoPheno) = keyGenoPheno
       val (gs, pheno) = genoPheno
@@ -387,9 +393,6 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       ((variant, pheno.phenotype, gs.phaseSetId), genoPheno)
     })
       .groupByKey()
-
-    println("printing the keyedGenoPheno from the gnocchiContext")
-    keyedGenoPheno.collect().foreach(println)
 
     keyedGenoPheno.map(site => {
       val ((variant, pheno, phaseSetId), observations) = site

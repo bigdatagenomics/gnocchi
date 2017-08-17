@@ -71,10 +71,10 @@ class RegressPhenotypesArgs extends Args4jBase {
   var includeCovariates = false
 
   @Args4jOption(required = false, name = "-covarFile", usage = "The covariates file path")
-  var covarFile: String = ""
+  var covarFile: String = _
 
   @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
-  var covarNames: String = ""
+  var covarNames: String = _
 
   @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
   var saveAsText = false
@@ -107,40 +107,21 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
 
-    var covarFile: Option[String] = None
-    var covarNames: Option[String] = None
-
-    if (args.covarFile != "") {
-      covarFile = Option(args.covarFile)
-    }
-
-    if (args.covarNames != "") {
-      covarNames = Option(args.covarNames)
-    }
-
     val sparkSession = SparkSession.builder().getOrCreate()
 
     val genotypeStates = sc.loadAndFilterGenotypes(args.genotypes, args.associations,
       args.ploidy, args.mind, args.maf, args.geno, args.overwrite)
 
     val phenotypes = sc.loadPhenotypes(args.phenotypes, args.phenoName, args.oneTwo,
-      args.includeCovariates, covarFile, covarNames)
+      args.includeCovariates, Option(args.covarFile), Option(args.covarNames))
 
     import net.fnothaft.gnocchi.sql.AuxEncoders._
 
     args.associationType match {
       case "ADDITIVE_LINEAR" => {
         val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
-        println("Printing Observations")
-        genoPhenoObs.collect().foreach(println)
-        println("HERE")
         val associations = AdditiveLinearRegression(genoPhenoObs)
-        println("Printing the associations")
-        associations.collect().foreach(println)
-        println("HERE")
         val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLinearVariantModel]]])
-        println("Printing the associations Dataset")
-        assocsDS.collect().foreach(println)
         logResults[AdditiveLinearVariantModel](assocsDS, sc)
       }
       case "DOMINANT_LINEAR" => {
