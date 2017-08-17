@@ -64,7 +64,7 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Argument(required = true, metaVar = "ASSOCIATIONS", usage = "The location to save associations to.", index = 3)
   var associations: String = _
 
-  @Args4jOption(required = true, name = "-phenoName", usage = "The phenotype to regress.")
+  @Args4jOption(required = false, name = "-phenoName", usage = "The phenotype to regress.")
   var phenoName: String = _
 
   @Args4jOption(required = false, name = "-covar", usage = "Whether to include covariates.")
