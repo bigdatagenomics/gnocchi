@@ -1,4 +1,4 @@
-# gnocchi
+# Gnocchi
 
 [![Coverage Status](https://coveralls.io/repos/github/bigdatagenomics/gnocchi/badge.svg?branch=master)](https://coveralls.io/github/bigdatagenomics/gnocchi?branch=master)
 
@@ -46,13 +46,9 @@ gnocchi-submit regressPhenotypes testData/5snps10samples.vcf testData/10samples5
 Format phenotypes in a CSV. Both comma and tabs are accepted as delimiters.
 
 ```
-SampleID, pheno1, pheno2
-00001,    0.001,  0.002
+SampleID    pheno1    pheno2
+00001       0.001     0.002
 ```
-
-| SampleID     | pheno1         | pheno2       |
-| ------------ | :------------: | :----------: |
-| 00001        | 0.001   | 0.002 |
 
 Note: phenotypes and covariates must be numerical. For nominal scale data (i.e. categorical data), binarize. For ordinal scale data, convert to integers. 
 
