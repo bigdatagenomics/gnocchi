@@ -47,12 +47,12 @@ Format phenotypes in a CSV. Both comma and tabs are accepted as delimiters.
 
 ```
 SampleID, pheno1, pheno2
-00001, pheno1_value, pheno2_value
+00001,    0.001,  0.002
 ```
 
 | SampleID     | pheno1         | pheno2       |
 | ------------ | :------------: | :----------: |
-| 00001        | pheno1_value   | pheno2_value |
+| 00001        | 0.001   | 0.002 |
 
 Note: phenotypes and covariates must be numerical. For nominal scale data (i.e. categorical data), binarize. For ordinal scale data, convert to integers. 
 
