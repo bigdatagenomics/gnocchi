@@ -24,7 +24,7 @@ import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, Domi
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
@@ -35,8 +35,8 @@ import org.kohsuke.args4j.{ Option => Args4jOption }
 import scala.reflect.ClassTag
 
 object BuildGnocchiModel extends BDGCommandCompanion {
-  val commandName = "UpdateGnocchiModel"
-  val commandDescription = "Updates saved GnocchiModel with new batch of data"
+  val commandName = "buildGnocchiModel"
+  val commandDescription = "Builds a new GnocchiModel"
 
   def apply(cmdLine: Array[String]) = {
     new BuildGnocchiModel(Args4j[BuildGnocchiModelArgs](cmdLine))

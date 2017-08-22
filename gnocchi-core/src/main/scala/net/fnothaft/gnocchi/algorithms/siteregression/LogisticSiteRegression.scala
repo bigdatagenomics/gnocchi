@@ -21,7 +21,7 @@ import breeze.linalg._
 import breeze.numerics.{ log10, _ }
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
-import net.fnothaft.gnocchi.rdd.association.{ AdditiveLogisticAssociation, Association, DominantLogisticAssociation }
+import net.fnothaft.gnocchi.primitives.association.{ AdditiveLogisticAssociation, Association, DominantLogisticAssociation }
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.apache.commons.math3.linear
 import org.apache.commons.math3.linear.SingularMatrixException
@@ -35,23 +35,21 @@ trait LogisticSiteRegression[VM <: VariantModel[VM], A <: Association[VM]] exten
    *
    * Implementation of RegressSite method from SiteRegression trait. Performs logistic regression on a single site.
    * A site in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object and a
-   * [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this context
+   * [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this context
    * have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
    *
    * Solves the regression through Newton-Raphson method, then uses the solution to generate p-value.
    *
    * @param observations Array of tuples. The first element is a coded genotype taken from
-   *                     [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]]. The second is an array of phenotype values
-   *                     taken from [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects. All genotypes are of the same
+   *                     [[net.fnothaft.gnocchi.primitives.genotype.Genotype]]. The second is an array of phenotype values
+   *                     taken from [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]] objects. All genotypes are of the same
    *                     site and therefore reference the same contig value i.e. all have the same CHROM_POS_ALT
    *                     identifier. Array of phenotypes has primary phenotype first then covariates.
-   * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
-   * @param phenotype [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype.phenotype]], The name of the phenotype being regressed.
-   *
+   * @param variant      [[org.bdgenomics.formats.avro.Variant]] being regressed
+   * @param phenotype    [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype.phenotype]], The name of the phenotype being regressed.
    * @throws [[SingularMatrixException]], repackages any [[breeze.linalg.MatrixSingularException]] into a
    *        [[SingularMatrixException]] for error handling purposes.
-   *
-   * @return [[net.fnothaft.gnocchi.rdd.association.Association]] object containing statistic result for Logistic Regression.
+   * @return [[net.fnothaft.gnocchi.primitives.association.Association]] object containing statistic result for Logistic Regression.
    */
   @throws(classOf[SingularMatrixException])
   def applyToSite(observations: Array[(Double, Array[Double])],
@@ -174,28 +172,6 @@ trait LogisticSiteRegression[VM <: VariantModel[VM], A <: Association[VM]] exten
       case _: breeze.linalg.MatrixSingularException => {
         throw new SingularMatrixException()
       }
-      //        matrixSingular = true
-      //        constructAssociation(variant.getContig.getContigName,
-      //          numObservations,
-      //          "Logistic",
-      //          beta,
-      //          1.0,
-      //          variant,
-      //          phenotype,
-      //          0.0,
-      //          0.0,
-      //          Map(
-      //            "numSamples" -> 0,
-      //            "weights" -> beta,
-      //            "intercept" -> 0.0,
-      //            "'P Values' aka Wald Tests" -> 0.0,
-      //            "log of wald tests" -> 0.0,
-      //            "fisherInfo" -> 0.0,
-      //            "XiVectors" -> xiVectors(0),
-      //            "xixit" -> xixiT(0),
-      //            "prob" -> pi,
-      //            "rSquared" -> 0.0))
-      //      }
     }
   }
 

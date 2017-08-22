@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.rdd.genotype
+package net.fnothaft.gnocchi.primitives.genotype
 
 import org.bdgenomics.adam.models.ReferenceRegion
 import org.bdgenomics.formats.avro.{ Contig, Variant }
@@ -38,15 +38,15 @@ import org.bdgenomics.formats.avro.{ Contig, Variant }
  *                      0, 1 or 2, meaning ploidy is 2 and there is only one ref value and one alt value.
  * @param missingGenotypes Number of genotypes that are marked as missing
  */
-case class GenotypeState(contigName: String,
-                         start: Long,
-                         end: Long,
-                         ref: String,
-                         alt: String,
-                         sampleId: String,
-                         genotypeState: Int,
-                         missingGenotypes: Int,
-                         phaseSetId: Int = 0) {
+case class Genotype(contigName: String,
+                    start: Long,
+                    end: Long,
+                    ref: String,
+                    alt: String,
+                    sampleId: String,
+                    genotypeState: Int,
+                    missingGenotypes: Int,
+                    phaseSetId: Int = 0) {
 
   def referenceAllele: (ReferenceRegion, String) = {
     (ReferenceRegion(contigName, start, end), alt)

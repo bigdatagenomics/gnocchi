@@ -36,9 +36,9 @@ import org.bdgenomics.adam.cli.Vcf2ADAM
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.functions.{ concat, lit }
-import net.fnothaft.gnocchi.rdd.association._
-import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.association._
+import net.fnothaft.gnocchi.primitives.genotype.Genotype
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import org.apache.hadoop.fs.Path
 import net.fnothaft.gnocchi.sql.AuxEncoders
 

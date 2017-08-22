@@ -1,4 +1,4 @@
-package net.fnothaft.gnocchi.rdd.observation
+package net.fnothaft.gnocchi.primitives.observation
 
 class Observation(sampleId: String,
                   genotypeDosage: Int,

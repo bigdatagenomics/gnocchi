@@ -17,7 +17,8 @@
  */
 package net.fnothaft.gnocchi.models
 
-import net.fnothaft.gnocchi.models.variant.VariantModel
+import java.io.{ File, FileOutputStream, ObjectOutputStream }
+import net.fnothaft.gnocchi.models.variant.{ VariantModel, QualityControlVariantModel }
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.Variant
 import org.apache.spark.SparkContext._
@@ -31,8 +32,6 @@ class GnocchiModelMetaData(val numSamples: Int,
                            val variables: String,
                            val flaggedVariantModels: List[String],
                            val phenotype: String) extends Serializable
-
-case class QualityControlVariant[VM <: VariantModel[VM]](variantModel: VM, observations: Array[(Double, Array[Double])]) extends Serializable
 
 /**
  * A trait that wraps an RDD of variant-specific models that are incrementally

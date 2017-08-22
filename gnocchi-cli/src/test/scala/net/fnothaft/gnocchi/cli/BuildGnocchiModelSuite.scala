@@ -19,7 +19,7 @@ package net.fnothaft.gnocchi.cli
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.models.GnocchiModelMetaData
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 
 class BuildGnocchiModelSuite extends GnocchiFunSuite {
 

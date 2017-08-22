@@ -19,9 +19,10 @@ package net.fnothaft.gnocchi.cli
 
 import java.io.FileInputStream
 
-import net.fnothaft.gnocchi.models.{ GnocchiModelMetaData, QualityControlVariant }
+import net.fnothaft.gnocchi.models.GnocchiModelMetaData
 import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
 import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
+import net.fnothaft.gnocchi.models.variant.QualityControlVariantModel
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import org.apache.spark.SparkContext
@@ -77,7 +78,7 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
     val model = args.associationType match {
       case "ADDITIVE_LINEAR" => {
         val variantModels = sparkSession.read.parquet(vmLocation).as[AdditiveLinearVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariant[AdditiveLinearVariantModel]].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[AdditiveLinearVariantModel]].rdd
           .map(qcv => {
             (qcv.variantModel, qcv.observations)
           })
@@ -85,7 +86,7 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
       }
       case "DOMINANT_LINEAR" => {
         val variantModels = sparkSession.read.parquet(vmLocation).as[DominantLinearVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariant[DominantLinearVariantModel]].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[DominantLinearVariantModel]].rdd
           .map(qcv => {
             (qcv.variantModel, qcv.observations)
           })
@@ -93,7 +94,7 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
       }
       case "ADDITIVE_LOGISTIC" => {
         val variantModels = sparkSession.read.parquet(vmLocation).as[AdditiveLogisticVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariant[AdditiveLogisticVariantModel]].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[AdditiveLogisticVariantModel]].rdd
           .map(qcv => {
             (qcv.variantModel, qcv.observations)
           })
@@ -101,7 +102,7 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
       }
       case "DOMINANT_LOGISTIC" => {
         val variantModels = sparkSession.read.parquet(vmLocation).as[DominantLogisticVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariant[DominantLogisticVariantModel]].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[DominantLogisticVariantModel]].rdd
           .map(qcv => {
             (qcv.variantModel, qcv.observations)
           })

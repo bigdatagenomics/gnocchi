@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.rdd.phenotype
+package net.fnothaft.gnocchi.primitives.phenotype
 
 /* Note: for the below classes, the array stored in value actually has all of the phenotypes, with the first being the on that is
   being regressed and the rest are the values of the covariates. The string that is stored in phenotype is actually a line that contains 

@@ -50,7 +50,6 @@ case class DominantLogisticVariantModel(variantId: String,
   def update(observations: Array[(Double, Array[Double])]): DominantLogisticVariantModel = {
 
     //TODO: add validation stringency here rather than just creating empty association object
-    println((new Array[Double](observations.head._2.length)).toList)
     val batchVariantModel = try {
       applyToSite(observations, variant, phenotype, phaseSetId)
         .toVariantModel

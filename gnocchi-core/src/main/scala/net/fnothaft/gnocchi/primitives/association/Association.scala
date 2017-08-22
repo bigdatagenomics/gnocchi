@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.fnothaft.gnocchi.rdd.association
+package net.fnothaft.gnocchi.primitives.association
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
@@ -25,14 +25,14 @@ import org.bdgenomics.formats.avro.Variant
 trait Association[VM <: VariantModel[VM]] {
   implicit val myObjEncoder = org.apache.spark.sql.Encoders.kryo[Association[VM]]
   val variantId: String
+  val variant: Variant
   val numSamples: Int
   val modelType: String
   val weights: Array[Double]
-  val geneticParameterStandardError: Double
-  val variant: Variant
-  val phenotype: String
-  val logPValue: Double
   val pValue: Double
+  val geneticParameterStandardError: Double
+  val phenotype: String
+  val logPValue: Double // This should be removed. Single source of truth means you can get this from pValue
   val statistics: Map[String, Any]
 
   def toVariantModel: VM
@@ -94,8 +94,6 @@ case class AdditiveLogisticAssociation(variantId: String,
    * @return Returns a VariantModel object of the appropriate subtype.
    */
   def toVariantModel: AdditiveLogisticVariantModel = {
-    println("Weights in association")
-    println(weights.toList)
     AdditiveLogisticVariantModel(variantId,
       variant, weights.toList, geneticParameterStandardError.toDouble, pValue,
       numSamples, phenotype, phaseSetId)

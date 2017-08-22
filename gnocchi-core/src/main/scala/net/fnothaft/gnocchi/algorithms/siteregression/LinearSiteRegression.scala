@@ -19,7 +19,7 @@ package net.fnothaft.gnocchi.algorithms.siteregression
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
-import net.fnothaft.gnocchi.rdd.association.{ AdditiveLinearAssociation, Association, DominantLinearAssociation }
+import net.fnothaft.gnocchi.primitives.association.{ AdditiveLinearAssociation, Association, DominantLinearAssociation }
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
@@ -34,20 +34,20 @@ trait LinearSiteRegression[VM <: VariantModel[VM], A <: Association[VM]]
    *
    * Implementation of RegressSite method from [[SiteApplication]] trait. Performs linear regression on a single site.
    * The Site being regressed in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object
-   * to a [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this
+   * to a [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this
    * context have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
    *
    * For calculation of the p-value this uses a t-distribution with N-p-1 degrees of freedom. (N = number of samples,
    * p = number of regressors i.e. genotype+covariates+intercept).
    *
    * @param observations Array of tuples. The first element is a coded genotype taken from
-   *                     [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]]. The second is an array of phenotype values
-   *                     taken from [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects. All genotypes are of the same
+   *                     [[net.fnothaft.gnocchi.primitives.genotype.Genotype]]. The second is an array of phenotype values
+   *                     taken from [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]] objects. All genotypes are of the same
    *                     site and therefore reference the same contig value i.e. all have the same CHROM_POS_ALT
    *                     identifier. Array of phenotypes has primary phenotype first then covariates.
-   * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
-   * @param phenotype [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]], The name of the phenotype being regressed.
-   * @return [[net.fnothaft.gnocchi.rdd.association.Association]] object containing statistic result for Logistic Regression.
+   * @param variant      [[org.bdgenomics.formats.avro.Variant]] being regressed
+   * @param phenotype    [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]], The name of the phenotype being regressed.
+   * @return [[net.fnothaft.gnocchi.primitives.association.Association]] object containing statistic result for Logistic Regression.
    */
   def applyToSite(observations: Array[(Double, Array[Double])],
                   variant: Variant,

@@ -19,9 +19,9 @@ package net.fnothaft.gnocchi.algorithms.siteregression
 
 import org.apache.commons.math3.linear.SingularMatrixException
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.rdd.association.Association
-import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.association.Association
+import net.fnothaft.gnocchi.primitives.genotype.Genotype
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.Variant
 import org.bdgenomics.utils.misc.Logging
@@ -36,15 +36,14 @@ trait SiteApplication[VM <: VariantModel[VM], A <: Association[VM]] extends Seri
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double
+  def clipOrKeepState(gs: Genotype): Double
 
   /**
    * Apply method for SiteRegression. Takes in an RDD of Genotype and Phenotype observations and returns an RDD of
    * Association objects containing the statistics for each site.
    *
    * @param validationStringency the validation level by which to throw exceptions
-   *
-   * @return an rdd of [[net.fnothaft.gnocchi.rdd.association.Association]] objects
+   * @return an rdd of [[net.fnothaft.gnocchi.primitives.association.Association]] objects
    */
   final def apply(observations: RDD[((Variant, String, Int), Array[(Double, Array[Double])])],
                   validationStringency: String = "STRICT"): RDD[Association[VM]] = {
@@ -97,14 +96,14 @@ trait SiteApplication[VM <: VariantModel[VM], A <: Association[VM]] extends Seri
 
   /**
    * Performs regression on a single site. A site in this context is the unique pairing of a
-   * [[org.bdgenomics.formats.avro.Variant]] object and a [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] name.
+   * [[org.bdgenomics.formats.avro.Variant]] object and a [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]] name.
    *
    * @param observations Array of tuples. The first element is a coded genotype taken from
-   *                     [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]]. The second is an array of observed phenotypes
-   *                     taken from [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects.
-   * @param variant [[org.bdgenomics.formats.avro.Variant]] to be regressed on
-   * @param phenotype Phenotype value, stored as a String
-   * @return [[net.fnothaft.gnocchi.rdd.association.Association]] containing statistic for particular site
+   *                     [[net.fnothaft.gnocchi.primitives.genotype.Genotype]]. The second is an array of observed phenotypes
+   *                     taken from [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]] objects.
+   * @param variant      [[org.bdgenomics.formats.avro.Variant]] to be regressed on
+   * @param phenotype    Phenotype value, stored as a String
+   * @return [[net.fnothaft.gnocchi.primitives.association.Association]] containing statistic for particular site
    */
   protected def applyToSite(observations: Array[(Double, Array[Double])],
                             variant: Variant,
@@ -133,7 +132,7 @@ trait Additive {
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double = {
+  def clipOrKeepState(gs: Genotype): Double = {
     gs.genotypeState.toDouble
   }
 }
@@ -146,7 +145,7 @@ trait Dominant {
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double = {
+  def clipOrKeepState(gs: Genotype): Double = {
     if (gs.genotypeState == 0) 0.0 else 1.0
   }
 }

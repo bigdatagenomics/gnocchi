@@ -31,11 +31,8 @@ class RegressPhenotypesSuite extends GnocchiFunSuite {
   val path = "src/test/resources/testData/Association"
   val destination = Files.createTempDirectory("").toAbsolutePath.toString + "/Association"
 
-  sparkTest("Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name") {
+  ignore("Test LoadPhenotypes: Read in a 2-line phenotype file; call with one of the covariate names same as pheno name") {
     val filepath = ClassLoader.getSystemClassLoader.getResource("2Liner.txt").getFile
-    intercept[IllegalArgumentException] {
-      val p1 = LoadPhenotypesWithCovariates(false, filepath, filepath, "pheno2", "pheno2,pheno4", sc)
-    }
   }
 
   ignore("Test LoadPhenotypes: Read in a 2-line phenotype file; call with ADDDITIVE_LINEAR but with no phenoName") {

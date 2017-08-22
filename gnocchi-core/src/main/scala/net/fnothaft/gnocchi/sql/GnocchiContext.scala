@@ -22,14 +22,14 @@ import java.io.File
 import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
 import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
 import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
-import net.fnothaft.gnocchi.models.variant.VariantModel
+import net.fnothaft.gnocchi.models.variant.{ VariantModel, QualityControlVariantModel }
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.bdgenomics.formats.avro.{ Contig, Variant }
 import org.bdgenomics.utils.misc.Logging
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
-import net.fnothaft.gnocchi.rdd.association._
+import net.fnothaft.gnocchi.primitives.association._
 import net.fnothaft.gnocchi.sql.GnocchiContext._
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.apache.spark.SparkContext
@@ -38,8 +38,8 @@ import org.bdgenomics.utils.cli._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.functions.{ concat, lit }
-import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.genotype.Genotype
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import org.apache.hadoop.fs.Path
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import java.io._
@@ -59,54 +59,13 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
   val sparkSession = SparkSession.builder().getOrCreate()
   import sparkSession.implicits._
 
-  def toGenotypeStateDataset(gtFrame: DataFrame, ploidy: Int): Dataset[GenotypeState] = {
-    toGenotypeStateDataFrame(gtFrame, ploidy).as[GenotypeState]
-  }
-
-  def toGenotypeStateDataFrame(gtFrame: DataFrame, ploidy: Int, sparse: Boolean = false): DataFrame = {
-
-    val filteredGtFrame = if (sparse) {
-      // if we want the sparse representation, we prefilter
-      val sparseFilter = (0 until ploidy).map(i => {
-        gtFrame("alleles").getItem(i) =!= "Ref"
-      }).reduce(_ || _)
-      gtFrame.filter(sparseFilter)
-    } else {
-      gtFrame
-    }
-
-    // generate expression
-    val genotypeState = (0 until ploidy).map(i => {
-      val c: Column = when(filteredGtFrame("alleles").getItem(i) === "REF", 1).otherwise(0)
-      c
-    }).reduce(_ + _)
-
-    val missingGenotypes = (0 until ploidy).map(i => {
-      val c: Column = when(filteredGtFrame("alleles").getItem(i) === "NO_CALL", 1).otherwise(0)
-      c
-    }).reduce(_ + _)
-
-    // is this correct? or should we change the column to nullable?
-    val phaseSetId: Column = when(filteredGtFrame("phaseSetId").isNull, 0).otherwise(filteredGtFrame("phaseSetId"))
-
-    filteredGtFrame.select(filteredGtFrame("variant.contigName").as("contigName"),
-      filteredGtFrame("variant.start").as("start"),
-      filteredGtFrame("variant.end").as("end"),
-      filteredGtFrame("variant.referenceAllele").as("ref"),
-      filteredGtFrame("variant.alternateAllele").as("alt"),
-      filteredGtFrame("sampleId"),
-      genotypeState.as("genotypeState"),
-      missingGenotypes.as("missingGenotypes"),
-      phaseSetId.as("phaseSetId"))
-  }
-
   def loadAndFilterGenotypes(genotypesPath: String,
                              adamDestination: String,
                              ploidy: Int,
                              mind: Double,
                              maf: Double,
                              geno: Double,
-                             overwrite: Boolean): RDD[GenotypeState] = {
+                             overwrite: Boolean): RDD[Genotype] = {
 
     val absAdamDestination = new Path(adamDestination)
     val fs = absAdamDestination.getFileSystem(sc.hadoopConfiguration)
@@ -145,7 +104,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       genotypeStates("missingGenotypes"),
       genotypeStates("phaseSetId"))
 
-    val gsRdd = genoStatesWithNames.as[GenotypeState].rdd
+    val gsRdd = genoStatesWithNames.as[Genotype].rdd
 
     // mind filter
     val sampleFilteredRdd = filterSamples(gsRdd, mind)
@@ -158,7 +117,37 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     finalGenotypeStatesRdd
   }
 
-  def filterSamples(genotypeStates: RDD[GenotypeState], mind: Double): RDD[GenotypeState] = {
+  def toGenotypeStateDataset(gtFrame: DataFrame, ploidy: Int): Dataset[Genotype] = {
+    toGenotypeStateDataFrame(gtFrame, ploidy).as[Genotype]
+  }
+
+  def toGenotypeStateDataFrame(gtFrame: DataFrame, ploidy: Int): DataFrame = {
+    // generate expression
+    val genotypeState = (0 until ploidy).map(i => {
+      val c: Column = when(gtFrame("alleles").getItem(i) === "REF", 1).otherwise(0)
+      c
+    }).reduce(_ + _)
+
+    val missingGenotypes = (0 until ploidy).map(i => {
+      val c: Column = when(gtFrame("alleles").getItem(i) === "NO_CALL", 1).otherwise(0)
+      c
+    }).reduce(_ + _)
+
+    // is this correct? or should we change the column to nullable?
+    val phaseSetId: Column = when(gtFrame("phaseSetId").isNull, 0).otherwise(gtFrame("phaseSetId"))
+
+    gtFrame.select(gtFrame("variant.contigName").as("contigName"),
+      gtFrame("variant.start").as("start"),
+      gtFrame("variant.end").as("end"),
+      gtFrame("variant.referenceAllele").as("ref"),
+      gtFrame("variant.alternateAllele").as("alt"),
+      gtFrame("sampleId"),
+      genotypeState.as("genotypeState"),
+      missingGenotypes.as("missingGenotypes"),
+      phaseSetId.as("phaseSetId"))
+  }
+
+  def filterSamples(genotypeStates: RDD[Genotype], mind: Double): RDD[Genotype] = {
     val mindF = sc.broadcast(mind)
 
     val samples = genotypeStates.map(gs => (gs.sampleId, gs.missingGenotypes, 2))
@@ -180,7 +169,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     sampleFilteredRdd
   }
 
-  def filterVariants(genotypeStates: RDD[GenotypeState], geno: Double, maf: Double): RDD[GenotypeState] = {
+  def filterVariants(genotypeStates: RDD[Genotype], geno: Double, maf: Double): RDD[Genotype] = {
     val genoF = sc.broadcast(geno)
     val mafF = sc.broadcast(maf)
 
@@ -349,7 +338,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
    * @param phenotypes RDD of Pheontype objects
    * @return Returns an RDD of arrays of observations (genotype + phenotype), keyed by variant
    */
-  def generateObservations(genotypes: RDD[GenotypeState],
+  def generateObservations(genotypes: RDD[Genotype],
                            phenotypes: RDD[Phenotype]): RDD[(Variant, Array[(Double, Array[Double])])] = {
     // convert genotypes and phenotypes into observations
     val data = pairSamplesWithPhenotypes(genotypes, phenotypes)
@@ -369,14 +358,14 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
 
   /**
    *
-   * @param genotypes an rdd of [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]] objects to be regressed upon
-   * @param phenotypes an rdd of [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects used as observations
+   * @param genotypes  an rdd of [[net.fnothaft.gnocchi.primitives.genotype.Genotype]] objects to be regressed upon
+   * @param phenotypes an rdd of [[net.fnothaft.gnocchi.primitives.phenotype.Phenotype]] objects used as observations
    * @param clipOrKeepState
    * @return
    */
-  def formatObservations(genotypes: RDD[GenotypeState],
+  def formatObservations(genotypes: RDD[Genotype],
                          phenotypes: RDD[Phenotype],
-                         clipOrKeepState: GenotypeState => Double): RDD[((Variant, String, Int), Array[(Double, Array[Double])])] = {
+                         clipOrKeepState: Genotype => Double): RDD[((Variant, String, Int), Array[(Double, Array[Double])])] = {
     val joinedGenoPheno = genotypes.keyBy(_.sampleId).join(phenotypes.keyBy(_.sampleId))
 
     val keyedGenoPheno = joinedGenoPheno.map(keyGenoPheno => {
@@ -404,12 +393,12 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     })
   }
 
-  def extractQCPhaseSetIds(genotypeStates: RDD[GenotypeState]): RDD[(Int, String)] = {
+  def extractQCPhaseSetIds(genotypeStates: RDD[Genotype]): RDD[(Int, String)] = {
     genotypeStates.map(g => (g.phaseSetId, g.contigName)).reduceByKey((a, b) => a)
   }
 
-  def pairSamplesWithPhenotypes(rdd: RDD[GenotypeState],
-                                phenotypes: RDD[Phenotype]): RDD[((Variant, String), Iterable[(String, (GenotypeState, Phenotype))])] = {
+  def pairSamplesWithPhenotypes(rdd: RDD[Genotype],
+                                phenotypes: RDD[Phenotype]): RDD[((Variant, String), Iterable[(String, (Genotype, Phenotype))])] = {
     rdd.keyBy(_.sampleId)
       // join together the samples with both genotype and phenotype entry
       .join(phenotypes.keyBy(_.sampleId))
@@ -426,7 +415,7 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
       }).groupByKey
   }
 
-  def gs2variant(gs: GenotypeState): Variant = {
+  def gs2variant(gs: Genotype): Variant = {
     val variant = new Variant()
     val contig = new Contig()
     contig.setContigName(gs.contigName)
@@ -446,5 +435,13 @@ object AuxEncoders {
   //  implicit def domLogEncoder: org.apache.spark.sql.Encoder[Association[AdditiveLogisticVariantModel]] = org.apache.spark.sql.Encoders.kryo[Association[AdditiveLogisticVariantModel]]
   implicit def addLinEncoder: org.apache.spark.sql.Encoder[Association[AdditiveLinearVariantModel]] = org.apache.spark.sql.Encoders.kryo[Association[AdditiveLinearVariantModel]]
   //  implicit def domLinEncoder: org.apache.spark.sql.Encoder[Association[AdditiveLinearVariantModel]] = org.apache.spark.sql.Encoders.kryo[Association[AdditiveLinearVariantModel]]
-  implicit def genotypeStateEncoder: org.apache.spark.sql.Encoder[GenotypeState] = org.apache.spark.sql.Encoders.kryo[GenotypeState]
+  implicit def genotypeStateEncoder: org.apache.spark.sql.Encoder[Genotype] = org.apache.spark.sql.Encoders.kryo[Genotype]
+  implicit def addLinModelEncoder: org.apache.spark.sql.Encoder[AdditiveLinearVariantModel] = org.apache.spark.sql.Encoders.kryo[AdditiveLinearVariantModel]
+  implicit def addLogModelEncoder: org.apache.spark.sql.Encoder[AdditiveLogisticVariantModel] = org.apache.spark.sql.Encoders.kryo[AdditiveLogisticVariantModel]
+  implicit def domLinModelEncoder: org.apache.spark.sql.Encoder[DominantLinearVariantModel] = org.apache.spark.sql.Encoders.kryo[DominantLinearVariantModel]
+  implicit def domLogModelEncoder: org.apache.spark.sql.Encoder[DominantLogisticVariantModel] = org.apache.spark.sql.Encoders.kryo[DominantLogisticVariantModel]
+  implicit def qcAddLinVariantModel: org.apache.spark.sql.Encoder[QualityControlVariantModel[AdditiveLinearVariantModel]] = org.apache.spark.sql.Encoders.kryo[QualityControlVariantModel[AdditiveLinearVariantModel]]
+  implicit def qcAddLogVariantModel: org.apache.spark.sql.Encoder[QualityControlVariantModel[AdditiveLogisticVariantModel]] = org.apache.spark.sql.Encoders.kryo[QualityControlVariantModel[AdditiveLogisticVariantModel]]
+  implicit def qcDomLinVariantModel: org.apache.spark.sql.Encoder[QualityControlVariantModel[DominantLinearVariantModel]] = org.apache.spark.sql.Encoders.kryo[QualityControlVariantModel[DominantLinearVariantModel]]
+  implicit def qcDomLogVariantModel: org.apache.spark.sql.Encoder[QualityControlVariantModel[DominantLogisticVariantModel]] = org.apache.spark.sql.Encoders.kryo[QualityControlVariantModel[DominantLogisticVariantModel]]
 }

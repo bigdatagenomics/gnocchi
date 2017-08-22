@@ -20,8 +20,8 @@ package net.fnothaft.gnocchi.sql
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
 import net.fnothaft.gnocchi.algorithms.siteregression.{ AdditiveLinearRegression, DominantLinearRegression }
-import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.genotype.Genotype
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.formats.avro.Variant
 
 class GnocchiContextSuite extends GnocchiFunSuite {
@@ -40,8 +40,8 @@ class GnocchiContextSuite extends GnocchiFunSuite {
 
   }
 
-  private def makeGenotypeState(idx: Int, sampleId: String, gs: Int, missing: Int): GenotypeState = {
-    GenotypeState(s"1_${idx}_A", idx, idx + 1, "A", "C", sampleId, gs, missing)
+  private def makeGenotypeState(idx: Int, sampleId: String, gs: Int, missing: Int): Genotype = {
+    Genotype(s"1_${idx}_A", idx, idx + 1, "A", "C", sampleId, gs, missing)
   }
 
   sparkTest("filterSamples should not filter any samples if mind >= 1") {
@@ -166,10 +166,10 @@ class GnocchiContextSuite extends GnocchiFunSuite {
   sparkTest("formatObservations should return Array or (genotype, Array[Phenotypes + covariates])") {
     val gc = new GnocchiContext(sc)
 
-    val genotypeState1 = new GenotypeState("geno1", 0L, 1L, "A", "G", "sample1", 0, 0, 0)
-    val genotypeState2 = new GenotypeState("geno2", 1L, 2L, "A", "G", "sample1", 2, 0, 1)
-    val genotypeState3 = new GenotypeState("geno1", 0L, 1L, "A", "G", "sample2", 0, 0, 0)
-    val genotypeState4 = new GenotypeState("geno2", 1L, 2L, "A", "G", "sample2", 2, 0, 1)
+    val genotypeState1 = new Genotype("geno1", 0L, 1L, "A", "G", "sample1", 0, 0, 0)
+    val genotypeState2 = new Genotype("geno2", 1L, 2L, "A", "G", "sample1", 2, 0, 1)
+    val genotypeState3 = new Genotype("geno1", 0L, 1L, "A", "G", "sample2", 0, 0, 0)
+    val genotypeState4 = new Genotype("geno2", 1L, 2L, "A", "G", "sample2", 2, 0, 1)
     //TODO: Note - if the phase set id's for the same genotype are not consistent, it causes there to only be one genotype present after the sortByKey
     val phenotype1 = new Phenotype("pheno", "sample1", Array(0.0, 1.0, 2.0))
     val phenotype2 = new Phenotype("pheno", "sample2", Array(3.0, 4.0, 5.0))

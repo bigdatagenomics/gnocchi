@@ -73,6 +73,5 @@ trait VariantModel[VM <: VariantModel[VM]] {
   def updateNumSamples(batchNumSamples: Int): Int = {
     numSamples + batchNumSamples
   }
-
 }
 
