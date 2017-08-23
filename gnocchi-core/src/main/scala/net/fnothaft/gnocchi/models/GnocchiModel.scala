@@ -26,12 +26,12 @@ import org.apache.spark.sql.SparkSession
 
 import scala.reflect.ClassTag
 
-class GnocchiModelMetaData(val numSamples: Int,
-                           val haplotypeBlockErrorThreshold: Double,
-                           val modelType: String,
-                           val variables: String,
-                           val flaggedVariantModels: List[String],
-                           val phenotype: String) extends Serializable
+case class GnocchiModelMetaData(numSamples: Int,
+                                haplotypeBlockErrorThreshold: Double,
+                                modelType: String,
+                                variables: String,
+                                flaggedVariantModels: List[String],
+                                phenotype: String)
 
 /**
  * A trait that wraps an RDD of variant-specific models that are incrementally
@@ -100,7 +100,6 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
 
     constructGnocchiModel(updatedMetaData, updatedVariantModels,
       updatedComparisonVariantModels)
-
   }
 
   /**

@@ -17,7 +17,7 @@
  */
 package net.fnothaft.gnocchi.models.linear
 
-import java.io.{ File, FileOutputStream, ObjectOutputStream }
+import java.io.{ File, FileOutputStream, ObjectOutputStream, PrintWriter }
 
 import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLinearRegression
 import net.fnothaft.gnocchi.models._
@@ -26,6 +26,8 @@ import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.bdgenomics.formats.avro.Variant
+import scala.pickling.Defaults._
+import scala.pickling.json._
 
 case class AdditiveLinearGnocchiModel(metaData: GnocchiModelMetaData,
                                       variantModels: RDD[AdditiveLinearVariantModel],
@@ -57,8 +59,11 @@ case class AdditiveLinearGnocchiModel(metaData: GnocchiModelMetaData,
       new QualityControlVariantModel[AdditiveLinearVariantModel](vm, observations)
     }))
       .toDF.write.parquet(saveTo + "/qcModels")
-    val metaDataFileStream = new FileOutputStream(new File(saveTo + "/metaData"))
-    val metaDataObjectStream = new ObjectOutputStream(metaDataFileStream)
-    metaDataObjectStream.writeObject(metaData)
+
+    val metadataPkl = metaData.pickle.value
+    val outputFile = new File(saveTo + "/metaData")
+    val writer = new PrintWriter(outputFile)
+    writer.write(metadataPkl)
+    writer.close()
   }
 }

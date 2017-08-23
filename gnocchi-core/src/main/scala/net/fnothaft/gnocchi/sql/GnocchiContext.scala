@@ -44,6 +44,9 @@ import org.apache.hadoop.fs.Path
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import java.io._
 import java.util
+import scala.io.Source._
+import scala.pickling.Defaults._
+import scala.pickling.json._
 
 object GnocchiContext {
 
@@ -423,6 +426,52 @@ class GnocchiContext(@transient val sc: SparkContext) extends Serializable with 
     variant.setEnd(gs.end)
     variant.setAlternateAllele(gs.alt)
     variant
+  }
+
+  def loadGnocchiModel(gnocchiModelPath: String) = {
+    val vmLocation = gnocchiModelPath + "/variantModels"
+    val qcModelsLocation = gnocchiModelPath + "/qcModels"
+    val metaDataLocation = gnocchiModelPath + "/metaData"
+
+    import AuxEncoders._
+
+    val metaData = fromFile(metaDataLocation).mkString.unpickle[GnocchiModelMetaData]
+
+    val model = metaData.modelType match {
+      case "ADDITIVE_LINEAR" => {
+        val variantModels = sparkSession.read.parquet(vmLocation).as[AdditiveLinearVariantModel].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[AdditiveLinearVariantModel]].rdd
+          .map(qcv => {
+            (qcv.variantModel, qcv.observations)
+          })
+        AdditiveLinearGnocchiModel(metaData, variantModels, qcModels)
+      }
+      case "DOMINANT_LINEAR" => {
+        val variantModels = sparkSession.read.parquet(vmLocation).as[DominantLinearVariantModel].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[DominantLinearVariantModel]].rdd
+          .map(qcv => {
+            (qcv.variantModel, qcv.observations)
+          })
+        DominantLinearGnocchiModel(metaData, variantModels, qcModels)
+      }
+      case "ADDITIVE_LOGISTIC" => {
+        val variantModels = sparkSession.read.parquet(vmLocation).as[AdditiveLogisticVariantModel].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[AdditiveLogisticVariantModel]].rdd
+          .map(qcv => {
+            (qcv.variantModel, qcv.observations)
+          })
+        AdditiveLogisticGnocchiModel(metaData, variantModels, qcModels)
+      }
+      case "DOMINANT_LOGISTIC" => {
+        val variantModels = sparkSession.read.parquet(vmLocation).as[DominantLogisticVariantModel].rdd
+        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[DominantLogisticVariantModel]].rdd
+          .map(qcv => {
+            (qcv.variantModel, qcv.observations)
+          })
+        DominantLogisticGnocchiModel(metaData, variantModels, qcModels)
+      }
+    }
+    model
   }
 }
 

@@ -67,48 +67,7 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
     val sparkSession = SparkSession.builder().getOrCreate()
     import sparkSession.implicits._
 
-    // load model
-    val gnocchiModelPath = args.modelLocation
-    val vmLocation = gnocchiModelPath + "/variantModels"
-    val qcModelsLocation = gnocchiModelPath + "/qcModels"
-    val metaDataLocation = gnocchiModelPath + "/metaData"
-    val metaDataIn = new FileInputStream(metaDataLocation)
-    val metaData = metaDataIn.read.asInstanceOf[GnocchiModelMetaData]
-
-    val model = args.associationType match {
-      case "ADDITIVE_LINEAR" => {
-        val variantModels = sparkSession.read.parquet(vmLocation).as[AdditiveLinearVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[AdditiveLinearVariantModel]].rdd
-          .map(qcv => {
-            (qcv.variantModel, qcv.observations)
-          })
-        AdditiveLinearGnocchiModel(metaData, variantModels, qcModels)
-      }
-      case "DOMINANT_LINEAR" => {
-        val variantModels = sparkSession.read.parquet(vmLocation).as[DominantLinearVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[DominantLinearVariantModel]].rdd
-          .map(qcv => {
-            (qcv.variantModel, qcv.observations)
-          })
-        DominantLinearGnocchiModel(metaData, variantModels, qcModels)
-      }
-      case "ADDITIVE_LOGISTIC" => {
-        val variantModels = sparkSession.read.parquet(vmLocation).as[AdditiveLogisticVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[AdditiveLogisticVariantModel]].rdd
-          .map(qcv => {
-            (qcv.variantModel, qcv.observations)
-          })
-        AdditiveLogisticGnocchiModel(metaData, variantModels, qcModels)
-      }
-      case "DOMINANT_LOGISTIC" => {
-        val variantModels = sparkSession.read.parquet(vmLocation).as[DominantLogisticVariantModel].rdd
-        val qcModels = sparkSession.read.parquet(qcModelsLocation).as[QualityControlVariantModel[DominantLogisticVariantModel]].rdd
-          .map(qcv => {
-            (qcv.variantModel, qcv.observations)
-          })
-        DominantLogisticGnocchiModel(metaData, variantModels, qcModels)
-      }
-    }
+    val model = sc.loadGnocchiModel(args.modelLocation)
 
     val batchObservations = sc.generateObservations(batchGenotypeStates, batchPhenotypes)
     // update the model with new data
@@ -116,7 +75,5 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
 
     // save the model
     updatedModel.save(args.saveTo)
-
   }
-
 }
