@@ -63,14 +63,10 @@ class UpdateGnocchiModel(protected val args: UpdateGnocchiModelArgs) extends BDG
     val batchPhenotypes = sc.loadPhenotypes(args.phenotypes, args.phenoName, args.oneTwo,
       args.includeCovariates, Option(args.covarFile), Option(args.covarNames))
 
-    // sets up sparkSession
-    val sparkSession = SparkSession.builder().getOrCreate()
-    import sparkSession.implicits._
-
     val model = sc.loadGnocchiModel(args.modelLocation)
 
     val batchObservations = sc.generateObservations(batchGenotypeStates, batchPhenotypes)
-    // update the model with new data
+
     val updatedModel = model.update(batchObservations)
 
     // save the model

@@ -40,13 +40,11 @@ case class AdditiveLinearGnocchiModel(metaData: GnocchiModelMetaData,
     AdditiveLinearGnocchiModel(metaData, variantModels, comparisonVariantModels)
   }
 
-  // calls the appropriate version of BuildVariantModel
   def regress(obs: Array[(Double, Array[Double])],
               variant: Variant,
               phenotype: String,
               phaseSetId: Int): AdditiveLinearVariantModel = {
-    AdditiveLinearRegression.applyToSite(obs, variant, metaData.phenotype, phaseSetId)
-      .toVariantModel
+    AdditiveLinearRegression.applyToSite(obs, variant, metaData.phenotype, phaseSetId).toVariantModel
   }
 
   def save(saveTo: String): Unit = {
@@ -60,10 +58,6 @@ case class AdditiveLinearGnocchiModel(metaData: GnocchiModelMetaData,
     }))
       .toDF.write.parquet(saveTo + "/qcModels")
 
-    val metadataPkl = metaData.pickle.value
-    val outputFile = new File(saveTo + "/metaData")
-    val writer = new PrintWriter(outputFile)
-    writer.write(metadataPkl)
-    writer.close()
+    metaData.save(saveTo + "/metaData")
   }
 }

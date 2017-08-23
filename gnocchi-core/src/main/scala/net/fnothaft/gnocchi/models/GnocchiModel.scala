@@ -17,12 +17,15 @@
  */
 package net.fnothaft.gnocchi.models
 
-import java.io.{ File, FileOutputStream, ObjectOutputStream }
-import net.fnothaft.gnocchi.models.variant.{ VariantModel, QualityControlVariantModel }
+import java.io.{ File, FileOutputStream, ObjectOutputStream, PrintWriter }
+
+import net.fnothaft.gnocchi.models.variant.{ QualityControlVariantModel, VariantModel }
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.formats.avro.Variant
 import org.apache.spark.SparkContext._
 import org.apache.spark.sql.SparkSession
+import scala.pickling.Defaults._
+import scala.pickling.json._
 
 import scala.reflect.ClassTag
 
@@ -31,7 +34,16 @@ case class GnocchiModelMetaData(numSamples: Int,
                                 modelType: String,
                                 variables: String,
                                 flaggedVariantModels: List[String],
-                                phenotype: String)
+                                phenotype: String) {
+
+  def save(saveTo: String): Unit = {
+    val metadataPkl = this.pickle.value
+    val outputFile = new File(saveTo)
+    val writer = new PrintWriter(outputFile)
+    writer.write(metadataPkl)
+    writer.close()
+  }
+}
 
 /**
  * A trait that wraps an RDD of variant-specific models that are incrementally

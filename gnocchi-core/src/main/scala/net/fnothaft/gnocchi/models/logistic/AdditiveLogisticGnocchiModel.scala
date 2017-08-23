@@ -57,8 +57,7 @@ case class AdditiveLogisticGnocchiModel(metaData: GnocchiModelMetaData,
       new QualityControlVariantModel[AdditiveLogisticVariantModel](vm, observations)
     }))
       .toDF.write.parquet(saveTo + "/qcModels")
-    val metaDataFileStream = new FileOutputStream(new File(saveTo + "/metaData"))
-    val metaDataObjectStream = new ObjectOutputStream(metaDataFileStream)
-    metaDataObjectStream.writeObject(metaData)
+
+    metaData.save(saveTo + "/metaData")
   }
 }
