@@ -104,7 +104,6 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
-
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -162,7 +161,12 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       }
     }
 
-    val assoc = associations.map(x => (x.uniqueID, x.association.pValue)).withColumnRenamed("_1", "uniqueID").withColumnRenamed("_2", "pValue").sort($"pValue".asc).coalesce(5)
+    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue))
+      .withColumnRenamed("_1", "uniqueID")
+      .withColumnRenamed("_2", "chromosome")
+      .withColumnRenamed("_3", "position")
+      .withColumnRenamed("_4", "pValue")
+      .sort($"pValue".asc).coalesce(5)
 
     // enables saving as parquet or human readable text files
     if (args.saveAsText) {
