@@ -22,9 +22,9 @@ import java.io.File
 import net.fnothaft.gnocchi.algorithms._
 import net.fnothaft.gnocchi.algorithms.siteregression._
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
-import net.fnothaft.gnocchi.sql.GnocchiContext._
+import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
+import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
+import net.fnothaft.gnocchi.sql.GnocchiSession._
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
@@ -32,15 +32,14 @@ import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 
 import scala.math.exp
+import scala.io.StdIn.readLine
 import org.bdgenomics.adam.cli.Vcf2ADAM
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.functions.{ concat, lit }
-import net.fnothaft.gnocchi.rdd.association._
-import net.fnothaft.gnocchi.rdd.genotype.GenotypeState
-import net.fnothaft.gnocchi.rdd.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.association._
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import org.apache.hadoop.fs.Path
-import net.fnothaft.gnocchi.sql.AuxEncoders
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -61,11 +60,17 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Argument(required = true, metaVar = "ASSOCIATION_TYPE", usage = "The type of association to run. Options are ADDITIVE_LINEAR, ADDITIVE_LOGISTIC, DOMINANT_LINEAR, DOMINANT_LOGISTIC", index = 2)
   var associationType: String = _
 
-  @Argument(required = true, metaVar = "ASSOCIATIONS", usage = "The location to save associations to.", index = 3)
-  var associations: String = _
+  @Argument(required = true, metaVar = "OUTPUT", usage = "The location to save associations to.", index = 3)
+  var output: String = _
+
+  @Args4jOption(required = false, name = "-sampleIDName", usage = "The name of the column containing unique ID's for samples")
+  var sampleUID: String = _
 
   @Args4jOption(required = false, name = "-phenoName", usage = "The phenotype to regress.")
   var phenoName: String = _
+
+  @Args4jOption(required = false, name = "-phenoSpaceDelimited", usage = "Set flag if phenotypes file is space delimited, otherwise tab delimited is assumed.")
+  var phenoSpaceDelimiter = false
 
   @Args4jOption(required = false, name = "-covar", usage = "Whether to include covariates.")
   var includeCovariates = false
@@ -109,63 +114,61 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     val sparkSession = SparkSession.builder().getOrCreate()
 
-    val genotypeStates = sc.loadAndFilterGenotypes(args.genotypes, args.associations,
-      args.ploidy, args.mind, args.maf, args.geno, args.overwrite)
+    val delimiter = if (args.phenoSpaceDelimiter) {
+      " "
+    } else {
+      "\t"
+    }
 
-    val phenotypes = sc.loadPhenotypes(args.phenotypes, args.phenoName, args.oneTwo,
-      args.includeCovariates, Option(args.covarFile), Option(args.covarNames))
+    val rawGenotypes = sc.loadGenotypesAsText(args.genotypes)
+    val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
+    val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
 
-    import net.fnothaft.gnocchi.sql.AuxEncoders._
+    val phenotypes = sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList))
+    val broadPhenotype = sc.broadcast(phenotypes)
 
     args.associationType match {
       case "ADDITIVE_LINEAR" => {
-        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLinearRegression.clipOrKeepState)
-        val associations = AdditiveLinearRegression(genoPhenoObs)
-        val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLinearVariantModel]]])
-        logResults[AdditiveLinearVariantModel](assocsDS, sc)
+        val associations = AdditiveLinearRegression(filteredGeno, broadPhenotype)
+        logResults[AdditiveLinearVariantModel](associations, sc)
       }
       case "DOMINANT_LINEAR" => {
-        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, DominantLinearRegression.clipOrKeepState)
-        val associations = DominantLinearRegression(genoPhenoObs)
-        val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLinearVariantModel]]])
-        logResults[AdditiveLinearVariantModel](assocsDS, sc)
+        val associations = DominantLinearRegression(filteredGeno, broadPhenotype)
+        logResults[DominantLinearVariantModel](associations, sc)
       }
       case "ADDITIVE_LOGISTIC" => {
-        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, AdditiveLogisticRegression.clipOrKeepState)
-        val associations = AdditiveLogisticRegression(genoPhenoObs)
-        val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLogisticVariantModel]]])
-        logResults[AdditiveLogisticVariantModel](assocsDS, sc)
+        val associations = AdditiveLogisticRegression(filteredGeno, broadPhenotype)
+        logResults[AdditiveLogisticVariantModel](associations, sc)
       }
       case "DOMINANT_LOGISTIC" => {
-        val genoPhenoObs = sc.formatObservations(genotypeStates, phenotypes, DominantLogisticRegression.clipOrKeepState)
-        val associations = DominantLogisticRegression(genoPhenoObs)
-        val assocsDS = sparkSession.createDataset(associations.asInstanceOf[RDD[Association[AdditiveLogisticVariantModel]]])
-        logResults[AdditiveLogisticVariantModel](assocsDS, sc)
+        val associations = DominantLogisticRegression(filteredGeno, broadPhenotype)
+        logResults[DominantLogisticVariantModel](associations, sc)
       }
     }
   }
 
-  def logResults[A <: VariantModel[A]](associations: Dataset[Association[A]],
+  def logResults[A <: VariantModel[A]](associations: Dataset[A],
                                        sc: SparkContext) = {
     val sparkSession = SparkSession.builder().getOrCreate()
     import sparkSession.implicits._
 
     // save dataset
-    val associationsFile = new Path(args.associations)
+    val associationsFile = new Path(args.output)
     val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
     if (fs.exists(associationsFile)) {
-      fs.delete(associationsFile, true)
+      val input = readLine(s"Specified output file ${args.output} already exists. Overwrite? (y/n)> ")
+      if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
+        fs.delete(associationsFile)
+      }
     }
+
+    val assoc = associations.map(x => (x.uniqueID, x.association.pValue)).withColumnRenamed("_1", "uniqueID").withColumnRenamed("_2", "pValue").sort($"pValue".asc).coalesce(5)
 
     // enables saving as parquet or human readable text files
     if (args.saveAsText) {
-      associations.rdd.keyBy(_.logPValue)
-        .sortBy(_._1)
-        .map(r => "%s, %s, %s".format(r._2.variant.getContigName,
-          r._2.variant.getStart, Math.pow(10, r._2.logPValue).toString))
-        .saveAsTextFile(args.associations)
+      assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(args.output)
     } else {
-      associations.toDF.write.parquet(args.associations)
+      assoc.toDF.write.parquet(args.output)
     }
   }
 }

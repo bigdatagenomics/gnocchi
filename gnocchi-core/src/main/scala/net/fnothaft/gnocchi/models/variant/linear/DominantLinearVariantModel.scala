@@ -18,19 +18,20 @@
 package net.fnothaft.gnocchi.models.variant.linear
 
 import net.fnothaft.gnocchi.algorithms.siteregression.DominantLinearRegression
+import net.fnothaft.gnocchi.primitives.association.LinearAssociation
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.bdgenomics.formats.avro.Variant
 
-case class DominantLinearVariantModel(variantId: String,
-                                      ssDeviations: Double,
-                                      ssResiduals: Double,
-                                      geneticParameterStandardError: Double,
-                                      tStatistic: Double,
-                                      residualDegreesOfFreedom: Int,
-                                      pValue: Double,
-                                      variant: Variant,
-                                      weights: List[Double],
-                                      numSamples: Int,
+import scala.collection.immutable.Map
+
+case class DominantLinearVariantModel(uniqueID: String,
+                                      association: LinearAssociation,
                                       phenotype: String,
+                                      chromosome: Int,
+                                      position: Int,
+                                      referenceAllele: String,
+                                      alternateAllele: String,
                                       phaseSetId: Int = 0)
     extends LinearVariantModel[DominantLinearVariantModel]
     with DominantLinearRegression with Serializable {
@@ -50,9 +51,8 @@ case class DominantLinearVariantModel(variantId: String,
    *                     the primary phenotype being regressed on, and covar1-covarp
    *                     are that sample's values for each covariate.
    */
-  def update(observations: Array[(Double, Array[Double])]): DominantLinearVariantModel = {
-    val batchVariantModel = applyToSite(observations, variant, phenotype, phaseSetId)
-      .toVariantModel
+  def update(genotypes: CalledVariant, phenotypes: Map[String, Phenotype]): DominantLinearVariantModel = {
+    val batchVariantModel = constructVariantModel(uniqueID, applyToSite(phenotypes, genotypes))
     mergeWith(batchVariantModel)
   }
 
@@ -63,21 +63,37 @@ case class DominantLinearVariantModel(variantId: String,
                             updatedtStatistic: Double,
                             updatedResidualDegreesOfFreedom: Int,
                             updatedPValue: Double,
-                            variant: Variant,
                             updatedWeights: List[Double],
                             updatedNumSamples: Int): DominantLinearVariantModel = {
+
+    val updatedAssociation = LinearAssociation(ssDeviations = updatedSsDeviations,
+      ssResiduals = updatedSsResiduals,
+      geneticParameterStandardError = updatedGeneticParameterStandardError,
+      tStatistic = updatedtStatistic,
+      residualDegreesOfFreedom = updatedResidualDegreesOfFreedom,
+      pValue = updatedPValue,
+      weights = updatedWeights,
+      numSamples = updatedNumSamples)
+
     DominantLinearVariantModel(variantID,
-      updatedSsDeviations,
-      updatedSsResiduals,
-      updatedGeneticParameterStandardError,
-      updatedtStatistic,
-      updatedResidualDegreesOfFreedom,
-      updatedPValue,
-      variant,
-      updatedWeights,
-      updatedNumSamples,
+      updatedAssociation,
       phenotype,
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele,
       phaseSetId)
+  }
+
+  def constructVariantModel(variantID: String,
+                            association: LinearAssociation): DominantLinearVariantModel = {
+    DominantLinearVariantModel(variantID,
+      association,
+      phenotype,
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele, phaseSetId)
   }
 
 }

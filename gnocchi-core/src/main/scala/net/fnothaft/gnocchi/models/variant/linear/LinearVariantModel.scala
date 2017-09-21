@@ -1,22 +1,12 @@
 package net.fnothaft.gnocchi.models.variant.linear
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.rdd.association.{ AdditiveLinearAssociation, Association, DominantLinearAssociation }
+import net.fnothaft.gnocchi.primitives.association.LinearAssociation
 import org.apache.commons.math3.distribution.TDistribution
 import org.bdgenomics.formats.avro.Variant
 
 trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] {
-
-  val variantId: String
-  val ssDeviations: Double
-  val ssResiduals: Double
-  val geneticParameterStandardError: Double
-  val tStatistic: Double
-  val residualDegreesOfFreedom: Int
-  val pValue: Double
-  val variant: Variant
-  val weights: List[Double]
-  val numSamples: Int
+  val association: LinearAssociation
 
   /**
    * Returns updated LinearVariantModel of correct subtype
@@ -27,23 +17,22 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
    * @return Returns updated LinearVariantModel of correct subtype
    */
   def mergeWith(variantModel: VM): VM = {
-    val updatedNumSamples = updateNumSamples(variantModel.numSamples)
-    val updatedWeights = updateWeights(variantModel.weights, variantModel.numSamples)
-    val updatedSsDeviations = updateSsDeviations(variantModel.ssDeviations)
-    val updatedSsResiduals = updateSsResiduals(variantModel.ssResiduals)
+    val updatedNumSamples = updateNumSamples(variantModel.association.numSamples)
+    val updatedWeights = updateWeights(variantModel.association.weights, variantModel.association.numSamples)
+    val updatedSsDeviations = updateSsDeviations(variantModel.association.ssDeviations)
+    val updatedSsResiduals = updateSsResiduals(variantModel.association.ssResiduals)
     val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(updatedSsResiduals,
       updatedSsDeviations, updatedNumSamples)
-    val updatedResidualDegreesOfFreedom = updateResidualDegreesOfFreedom(variantModel.numSamples)
+    val updatedResidualDegreesOfFreedom = updateResidualDegreesOfFreedom(variantModel.association.numSamples)
     val updatedtStatistic = calculateTStatistic(updatedWeights, updatedGeneticParameterStandardError)
     val updatedPValue = calculatePValue(updatedtStatistic, updatedResidualDegreesOfFreedom)
-    constructVariantModel(this.variantId,
+    constructVariantModel(this.uniqueID,
       updatedSsDeviations,
       updatedSsResiduals,
       updatedGeneticParameterStandardError,
       updatedtStatistic,
       updatedResidualDegreesOfFreedom,
       updatedPValue,
-      this.variant,
       updatedWeights,
       updatedNumSamples)
     // TODO: implement dominant version of linear model
@@ -73,7 +62,7 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
    *                          the batch from the batch mean.
    */
   def updateSsDeviations(batchSsDeviations: Double): Double = {
-    ssDeviations + batchSsDeviations
+    association.ssDeviations + batchSsDeviations
   }
 
   /**
@@ -86,7 +75,7 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
    * @param batchSsResiduals The sum of squared residuals for the batch
    */
   def updateSsResiduals(batchSsResiduals: Double): Double = {
-    ssResiduals + batchSsResiduals
+    association.ssResiduals + batchSsResiduals
   }
 
   /**
@@ -109,7 +98,7 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
   def computeGeneticParameterStandardError(updatedSsResiduals: Double,
                                            updatedSsDeviations: Double,
                                            updatedNumSamples: Int): Double = {
-    math.sqrt(((1.0 / (updatedNumSamples - weights.length)) * updatedSsResiduals) / (updatedSsDeviations))
+    math.sqrt(((1.0 / (updatedNumSamples - association.weights.length)) * updatedSsResiduals) / (updatedSsDeviations))
   }
 
   /**
@@ -123,7 +112,7 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
    *
    */
   def updateResidualDegreesOfFreedom(batchNumSamples: Int): Int = {
-    residualDegreesOfFreedom + batchNumSamples
+    association.residualDegreesOfFreedom + batchNumSamples
   }
 
   /**
@@ -164,7 +153,6 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
                             updatedtStatistic: Double,
                             updatedResidualDegreesOfFreedom: Int,
                             updatedPValue: Double,
-                            variant: Variant,
                             updatedWeights: List[Double],
                             updatedNumSamples: Int): VM
 

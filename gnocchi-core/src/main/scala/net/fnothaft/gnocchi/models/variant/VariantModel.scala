@@ -17,19 +17,23 @@
  */
 package net.fnothaft.gnocchi.models.variant
 
+import net.fnothaft.gnocchi.primitives.association.Association
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.bdgenomics.formats.avro.Variant
 import org.apache.spark.SparkContext._
 
+import scala.collection.immutable.Map
+
 trait VariantModel[VM <: VariantModel[VM]] {
-  val variantId: String
-  val variant: Variant
-  val numSamples: Int
-  val modelType: String // e.g. Additive Logistic, Dominant Linear, etc.
-  val weights: List[Double] // using a List so that comparison of VariantModels can be done with ==
-  val pValue: Double
-  val geneticParameterStandardError: Double
+  val uniqueID: String
+  val modelType: String
   val phenotype: String
-  val phaseSetId: Int
+  val chromosome: Int
+  val position: Int
+  val referenceAllele: String
+  val alternateAllele: String
+  val association: Association
 
   /**
    * Returns an updated VariantModel given a new batch of data
@@ -42,7 +46,7 @@ trait VariantModel[VM <: VariantModel[VM]] {
    *                     the phenotype being regressed on, and covar1-covarp are that
    *                     sample's values for each covariate.
    */
-  def update(observations: Array[(Double, Array[Double])]): VM
+  def update(genotypes: CalledVariant, phenotypes: Map[String, Phenotype]): VM
 
   /**
    * Returns updated weights for the model taking a weighted average of the previous
@@ -56,9 +60,9 @@ trait VariantModel[VM <: VariantModel[VM]] {
    * @return Returns updated weights
    */
   def updateWeights(batchWeights: List[Double], batchNumSamples: Int): List[Double] = {
-    val updatedWeights = new Array[Double](weights.length)
-    for (i <- weights.indices) {
-      updatedWeights(i) = (batchWeights(i) * batchNumSamples + weights(i) * numSamples) / (batchNumSamples + numSamples)
+    val updatedWeights = new Array[Double](association.weights.length)
+    for (i <- association.weights.indices) {
+      updatedWeights(i) = (batchWeights(i) * batchNumSamples + association.weights(i) * association.numSamples) / (batchNumSamples + association.numSamples)
     }
     updatedWeights.toList
   }
@@ -71,8 +75,7 @@ trait VariantModel[VM <: VariantModel[VM]] {
    * @return Returns updated number of samples
    */
   def updateNumSamples(batchNumSamples: Int): Int = {
-    numSamples + batchNumSamples
+    association.numSamples + batchNumSamples
   }
-
 }
 

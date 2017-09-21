@@ -111,3 +111,5 @@ echo "Using SPARK_SUBMIT=$SPARK_SUBMIT"
   "${SPARK_ARGS[@]}" \
   "$GNOCCHI_CLI_JAR" \
   "${GNOCCHI_ARGS[@]}"
+
+echo "Finished submitting to Gnocchi."

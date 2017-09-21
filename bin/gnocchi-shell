@@ -63,6 +63,11 @@ if [ -z "$SPARK_SHELL" ]; then
   exit 1
 fi
 echo "Using SPARK_SHELL=$SPARK_SHELL"
+echo "Welcome to"
+
+ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+cat "$ABSOLUTE_PATH/logo.txt"
 
 # submit the job to Spark
 "$SPARK_SHELL" \

@@ -17,64 +17,50 @@
  */
 package net.fnothaft.gnocchi.algorithms.siteregression
 
-import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
-import net.fnothaft.gnocchi.rdd.association.{ AdditiveLinearAssociation, Association, DominantLinearAssociation }
+import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
+import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
+import net.fnothaft.gnocchi.models.variant.{ QualityControlVariantModel, VariantModel }
+import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel, LinearVariantModel }
+//import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
+import net.fnothaft.gnocchi.primitives.association.LinearAssociation
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.formats.avro.Variant
+
+import scala.collection.immutable.Map
 import scala.math.log10
 
-trait LinearSiteRegression[VM <: VariantModel[VM], A <: Association[VM]]
-    extends SiteApplication[VM, A] {
+trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[VM] {
 
-  /**
-   * Returns Association object with solution to linear regression.
-   *
-   * Implementation of RegressSite method from [[SiteApplication]] trait. Performs linear regression on a single site.
-   * The Site being regressed in this context is the unique pairing of a [[org.bdgenomics.formats.avro.Variant]] object
-   * to a [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] name. [[org.bdgenomics.formats.avro.Variant]] objects in this
-   * context have contigs defined as CHROM_POS_ALT, which uniquely identify a single base.
-   *
-   * For calculation of the p-value this uses a t-distribution with N-p-1 degrees of freedom. (N = number of samples,
-   * p = number of regressors i.e. genotype+covariates+intercept).
-   *
-   * @param observations Array of tuples. The first element is a coded genotype taken from
-   *                     [[net.fnothaft.gnocchi.rdd.genotype.GenotypeState]]. The second is an array of phenotype values
-   *                     taken from [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]] objects. All genotypes are of the same
-   *                     site and therefore reference the same contig value i.e. all have the same CHROM_POS_ALT
-   *                     identifier. Array of phenotypes has primary phenotype first then covariates.
-   * @param variant [[org.bdgenomics.formats.avro.Variant]] being regressed
-   * @param phenotype [[net.fnothaft.gnocchi.rdd.phenotype.Phenotype]], The name of the phenotype being regressed.
-   * @return [[net.fnothaft.gnocchi.rdd.association.Association]] object containing statistic result for Logistic Regression.
-   */
-  def applyToSite(observations: Array[(Double, Array[Double])],
-                  variant: Variant,
-                  phenotype: String,
-                  phaseSetId: Int): A = {
+  def apply(genotypes: Dataset[CalledVariant],
+            phenotypes: Broadcast[Map[String, Phenotype]],
+            validationStringency: String = "STRICT"): Dataset[VM]
+
+  def applyToSite(phenotypes: Map[String, Phenotype],
+                  genotypes: CalledVariant): LinearAssociation = {
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
-    // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
-    val phenotypesLength = observations(0)._2.length
-    val numObservations = observations.length
-    val x = new Array[Array[Double]](numObservations)
-    val y = new Array[Double](numObservations)
+    val samplesGenotypes = genotypes.samples.map(x => (x.sampleID, List(x.toDouble)))
+    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates))
+    val mergedSampleVector = samplesGenotypes ++ samplesCovariates
+    val groupedSampleVector = mergedSampleVector.groupBy(_._1)
+    val cleanedSampleVector = groupedSampleVector.mapValues(_.map(_._2).toList.flatten)
 
-    // iterate over observations, copying correct elements into sample array and filling the x matrix.
-    // the first element of each sample in x is the coded genotype and the rest are the covariates.
-    var sample = new Array[Double](phenotypesLength)
-    var runningSum = 0.0
-    for (i <- 0 until numObservations) {
-      sample = new Array[Double](phenotypesLength)
-      sample(0) = observations(i)._1.toDouble
-      runningSum += sample(0)
-      observations(i)._2.slice(1, phenotypesLength).copyToArray(sample, 1)
-      x(i) = sample
-      y(i) = observations(i)._2(0)
-    }
-    val mean = runningSum / numObservations.toDouble
+    // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
+    val phenotypesLength = phenotypes.head._2.covariates.length
+    val numObservations = genotypes.samples.length
+    val x = cleanedSampleVector.map(x => x._2.toArray).toArray
+    val y = cleanedSampleVector.map(x => phenotypes(x._1).phenotype.toDouble).toArray
+    val sum = genotypes.samples.map(x => x.toDouble).reduce(_ + _)
+
+    val mean = sum / numObservations.toDouble
 
     try {
       // create linear model
@@ -90,7 +76,7 @@ trait LinearSiteRegression[VM <: VariantModel[VM], A <: Association[VM]]
       val ssResiduals = ols.calculateResidualSumOfSquares()
 
       // calculate sum of squared deviations
-      val ssDeviations = sumOfSquaredDeviations(observations, mean)
+      val ssDeviations = sumOfSquaredDeviations(genotypes, mean)
 
       // calculate Rsquared
       val rSquared = ols.calculateRSquared()
@@ -109,83 +95,67 @@ trait LinearSiteRegression[VM <: VariantModel[VM], A <: Association[VM]]
         a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
         https://en.wikipedia.org/wiki/T-statistic
       */
-      val residualDegreesOfFreedom = numObservations - phenotypesLength - 1
+      val residualDegreesOfFreedom = numObservations - phenotypesLength
       val tDist = new TDistribution(residualDegreesOfFreedom)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
 
-      val statistics = Map("rSquared" -> rSquared,
-        "weights" -> beta,
-        "intercept" -> beta(0),
-        "numSamples" -> numObservations,
-        "ssDeviations" -> ssDeviations,
-        "ssResiduals" -> ssResiduals,
-        "tStatistic" -> t,
-        "residualDegreesOfFreedom" -> residualDegreesOfFreedom)
-      constructAssociation(variant.getContigName,
-        numObservations,
-        "Linear",
-        beta,
+      LinearAssociation(
+        ssDeviations,
+        ssResiduals,
         genoSE,
-        variant,
-        phenotype,
-        logPValue,
+        t,
+        residualDegreesOfFreedom,
         pvalue,
-        phaseSetId,
-        statistics)
+        beta.toList,
+        numObservations)
     } catch {
-      case _: SingularMatrixException => constructAssociation(variant.getContigName,
-        numObservations,
-        "Linear",
-        Array(0.0),
-        0.0,
-        variant,
-        phenotype,
-        0.0,
-        0.0,
-        0,
-        Map())
+      case _: breeze.linalg.MatrixSingularException => {
+        throw new SingularMatrixException()
+      }
     }
   }
 
-  def sumOfSquaredDeviations(observations: Array[(Double, Array[Double])], mean: Double): Double = {
-    val squaredDeviations = observations.map(p => math.pow(p._1.toDouble - mean, 2))
+  protected def sumOfSquaredDeviations(genotypes: CalledVariant, mean: Double): Double = {
+    val squaredDeviations = genotypes.samples.map(x => math.pow(x.toDouble - mean, 2))
     squaredDeviations.sum
   }
 
-  def constructAssociation(variantId: String,
-                           numSamples: Int,
-                           modelType: String,
-                           weights: Array[Double],
-                           geneticParameterStandardError: Double,
-                           variant: Variant,
-                           phenotype: String,
-                           logPValue: Double,
-                           pValue: Double,
-                           phaseSetId: Int,
-                           statistics: Map[String, Any]): A
+  protected def constructVM(variant: CalledVariant,
+                            phenotype: Phenotype,
+                            association: LinearAssociation): VM
 }
 
 object AdditiveLinearRegression extends AdditiveLinearRegression {
   val regressionName = "additiveLinearRegression"
 }
 
-trait AdditiveLinearRegression extends LinearSiteRegression[AdditiveLinearVariantModel, AdditiveLinearAssociation]
-    with Additive {
-  def constructAssociation(variantId: String,
-                           numSamples: Int,
-                           modelType: String,
-                           weights: Array[Double],
-                           geneticParameterStandardError: Double,
-                           variant: Variant,
-                           phenotype: String,
-                           logPValue: Double,
-                           pValue: Double,
-                           phaseSetId: Int,
-                           statistics: Map[String, Any]): AdditiveLinearAssociation = {
-    new AdditiveLinearAssociation(variantId, numSamples, modelType, weights,
-      geneticParameterStandardError, variant, phenotype,
-      logPValue, pValue, phaseSetId, statistics)
+trait AdditiveLinearRegression extends LinearSiteRegression[AdditiveLinearVariantModel] with Additive {
+  val sparkSession = SparkSession.builder().getOrCreate()
+  import sparkSession.implicits._
+
+  def apply(genotypes: Dataset[CalledVariant],
+            phenotypes: Broadcast[Map[String, Phenotype]],
+            validationStringency: String = "STRICT"): Dataset[AdditiveLinearVariantModel] = {
+
+    //ToDo: Singular Matrix Exceptions
+    genotypes.map((genos: CalledVariant) => {
+      val association = applyToSite(phenotypes.value, genos)
+      constructVM(genos, phenotypes.value.head._2, association)
+    })
+  }
+
+  protected def constructVM(variant: CalledVariant,
+                            phenotype: Phenotype,
+                            association: LinearAssociation): AdditiveLinearVariantModel = {
+    AdditiveLinearVariantModel(variant.uniqueID,
+      association,
+      phenotype.phenoName,
+      variant.chromosome,
+      variant.position,
+      variant.referenceAllele,
+      variant.alternateAllele,
+      phaseSetId = 0)
   }
 }
 
@@ -193,21 +163,31 @@ object DominantLinearRegression extends DominantLinearRegression {
   val regressionName = "dominantLinearRegression"
 }
 
-trait DominantLinearRegression extends LinearSiteRegression[DominantLinearVariantModel, DominantLinearAssociation]
-    with Dominant {
-  def constructAssociation(variantId: String,
-                           numSamples: Int,
-                           modelType: String,
-                           weights: Array[Double],
-                           geneticParameterStandardError: Double,
-                           variant: Variant,
-                           phenotype: String,
-                           logPValue: Double,
-                           pValue: Double,
-                           phaseSetId: Int,
-                           statistics: Map[String, Any]): DominantLinearAssociation = {
-    new DominantLinearAssociation(variantId, numSamples, modelType, weights,
-      geneticParameterStandardError, variant, phenotype,
-      logPValue, pValue, phaseSetId, statistics)
+trait DominantLinearRegression extends LinearSiteRegression[DominantLinearVariantModel] with Dominant {
+  val sparkSession = SparkSession.builder().getOrCreate()
+  import sparkSession.implicits._
+
+  def apply(genotypes: Dataset[CalledVariant],
+            phenotypes: Broadcast[Map[String, Phenotype]],
+            validationStringency: String = "STRICT"): Dataset[DominantLinearVariantModel] = {
+
+    //ToDo: Singular Matrix Exceptions
+    genotypes.map((genos: CalledVariant) => {
+      val association = applyToSite(phenotypes.value, genos)
+      constructVM(genos, phenotypes.value.head._2, association)
+    })
+  }
+
+  protected def constructVM(variant: CalledVariant,
+                            phenotype: Phenotype,
+                            association: LinearAssociation): DominantLinearVariantModel = {
+    DominantLinearVariantModel(variant.uniqueID,
+      association,
+      phenotype.phenoName,
+      variant.chromosome,
+      variant.position,
+      variant.referenceAllele,
+      variant.alternateAllele,
+      phaseSetId = 0)
   }
 }

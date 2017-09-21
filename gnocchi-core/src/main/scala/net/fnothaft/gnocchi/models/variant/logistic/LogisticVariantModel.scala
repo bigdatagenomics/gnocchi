@@ -18,10 +18,12 @@
 package net.fnothaft.gnocchi.models.variant.logistic
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
+import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
 import org.bdgenomics.formats.avro.Variant
 
 trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[VM] {
+  val association: LogisticAssociation
 
   /**
    * Returns updated LogisticVariantModel of correct subtype
@@ -32,13 +34,12 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
    * @return Returns updated LogisticVariantModel of correct subtype
    */
   def mergeWith(variantModel: VM): VM = {
-    val updatedNumSamples = updateNumSamples(variantModel.numSamples)
-    val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(variantModel.geneticParameterStandardError, variantModel.numSamples)
-    val updatedWeights = updateWeights(variantModel.weights, variantModel.numSamples)
+    val updatedNumSamples = updateNumSamples(variantModel.association.numSamples)
+    val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(variantModel.association.geneticParameterStandardError, variantModel.association.numSamples)
+    val updatedWeights = updateWeights(variantModel.association.weights, variantModel.association.numSamples)
     val updatedWaldStatistic = calculateWaldStatistic(updatedGeneticParameterStandardError, updatedWeights)
     val updatedPValue = calculatePvalue(updatedWaldStatistic)
-    constructVariantModel(this.variantId,
-      this.variant,
+    constructVariantModel(this.uniqueID,
       updatedGeneticParameterStandardError,
       updatedPValue,
       updatedWeights,
@@ -57,7 +58,7 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
    * @param batchNumSamples Number of samples in the update batch
    */
   def computeGeneticParameterStandardError(batchStandardError: Double, batchNumSamples: Int): Double = {
-    (batchStandardError * batchNumSamples.toDouble + geneticParameterStandardError * numSamples.toDouble) / ((batchNumSamples + numSamples).toDouble)
+    (batchStandardError * batchNumSamples.toDouble + association.geneticParameterStandardError * association.numSamples.toDouble) / (batchNumSamples + association.numSamples).toDouble
 
   }
 
@@ -88,7 +89,6 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
   }
 
   def constructVariantModel(variantId: String,
-                            variant: Variant,
                             updatedGeneticParameterStandardError: Double,
                             updatedPValue: Double,
                             updatedWeights: List[Double],

@@ -18,16 +18,21 @@
 package net.fnothaft.gnocchi.models.variant.logistic
 
 import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLogisticRegression
+import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
+import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
+import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.bdgenomics.formats.avro.Variant
 
-case class AdditiveLogisticVariantModel(variantId: String,
-                                        variant: Variant,
-                                        weights: List[Double],
-                                        geneticParameterStandardError: Double,
-                                        pValue: Double,
-                                        numSamples: Int,
+import scala.collection.immutable.Map
+
+case class AdditiveLogisticVariantModel(uniqueID: String,
+                                        association: LogisticAssociation,
                                         phenotype: String,
+                                        chromosome: Int,
+                                        position: Int,
+                                        referenceAllele: String,
+                                        alternateAllele: String,
                                         phaseSetId: Int = 0)
     extends LogisticVariantModel[AdditiveLogisticVariantModel]
     with AdditiveLogisticRegression with Serializable {
@@ -46,44 +51,45 @@ case class AdditiveLogisticVariantModel(variantId: String,
    *                     the primary phenotype being regressed on, and covar1-covarp
    *                     are that sample's values for each covariate.
    */
-  def update(observations: Array[(Double, Array[Double])]): AdditiveLogisticVariantModel = {
+  def update(genotypes: CalledVariant, phenotypes: Map[String, Phenotype]): AdditiveLogisticVariantModel = {
 
     //TODO: add validation stringency here rather than just creating empty association object
-    println((new Array[Double](observations.head._2.length)).toList)
     val batchVariantModel = try {
-      applyToSite(observations, variant, phenotype, phaseSetId)
-        .toVariantModel
+      constructVariantModel(uniqueID, applyToSite(phenotypes, genotypes))
     } catch {
-      case error: SingularMatrixException => {
-        AdditiveLogisticRegression.constructAssociation(variantId,
-          1,
-          "",
-          new Array[Double](observations.head._2.length + 1),
-          0.0,
-          variant,
-          "",
-          0.0,
-          0.0,
-          0,
-          Map(("", ""))).toVariantModel
-      }
+      case error: SingularMatrixException => throw new SingularMatrixException()
     }
     mergeWith(batchVariantModel)
   }
 
   def constructVariantModel(variantId: String,
-                            variant: Variant,
                             updatedGeneticParameterStandardError: Double,
                             updatedPValue: Double,
                             updatedWeights: List[Double],
                             updatedNumSamples: Int): AdditiveLogisticVariantModel = {
+
+    val association = LogisticAssociation(weights = updatedWeights,
+      geneticParameterStandardError = updatedGeneticParameterStandardError,
+      pValue = updatedPValue,
+      numSamples = updatedNumSamples)
+
     AdditiveLogisticVariantModel(variantId,
-      variant,
-      updatedWeights,
-      updatedGeneticParameterStandardError,
-      updatedPValue,
-      updatedNumSamples,
+      association,
       phenotype,
-      phaseSetId)
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele, phaseSetId)
+  }
+
+  def constructVariantModel(variantId: String,
+                            association: LogisticAssociation): AdditiveLogisticVariantModel = {
+    AdditiveLogisticVariantModel(variantId,
+      association,
+      phenotype,
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele, phaseSetId)
   }
 }
