@@ -27,6 +27,6 @@ case class CalledVariant(chromosome: Int,
     val sampleValues: List[String] = samples.flatMap(_.value.split("/|\\|"))
     val missingCount = sampleValues.count(_ == ".")
 
-    missingCount.toDouble / (ploidy * sampleValues.length).toDouble
+    missingCount.toDouble / sampleValues.length.toDouble
   }
 }

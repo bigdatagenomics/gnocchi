@@ -54,7 +54,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     val cleanedSampleVector = groupedSampleVector.mapValues(_.map(_._2).toList.flatten)
 
     // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
-    val covariatesLength = phenotypes.head._2.covariates.length
+    val phenotypesLength = phenotypes.head._2.covariates.length + 1
     val numObservations = genotypes.samples.length
     val XandY = cleanedSampleVector.map(x => (x._2.toArray, phenotypes(x._1).phenotype.toDouble)).toList
     val x = XandY.map(_._1).toArray
@@ -97,7 +97,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
         a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
         https://en.wikipedia.org/wiki/T-statistic
       */
-      val residualDegreesOfFreedom = numObservations - (covariatesLength + 2) - 1
+      val residualDegreesOfFreedom = numObservations - phenotypesLength - 1
       val tDist = new TDistribution(residualDegreesOfFreedom)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
