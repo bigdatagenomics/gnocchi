@@ -47,17 +47,19 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
-    val samplesGenotypes = genotypes.samples.map(x => (x.sampleID, List(x.toDouble)))
+    val samplesGenotypes = genotypes.samples.map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
     val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates))
     val mergedSampleVector = samplesGenotypes ++ samplesCovariates
     val groupedSampleVector = mergedSampleVector.groupBy(_._1)
     val cleanedSampleVector = groupedSampleVector.mapValues(_.map(_._2).toList.flatten)
 
     // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
-    val phenotypesLength = phenotypes.head._2.covariates.length
+    val covariatesLength = phenotypes.head._2.covariates.length
     val numObservations = genotypes.samples.length
-    val x = cleanedSampleVector.map(x => x._2.toArray).toArray
-    val y = cleanedSampleVector.map(x => phenotypes(x._1).phenotype.toDouble).toArray
+    val XandY = cleanedSampleVector.map(x => (x._2.toArray, phenotypes(x._1).phenotype.toDouble)).toList
+    val x = XandY.map(_._1).toArray
+    val y = XandY.map(_._2).toArray
+
     val sum = genotypes.samples.map(x => x.toDouble).reduce(_ + _)
 
     val mean = sum / numObservations.toDouble
@@ -95,7 +97,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
         a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
         https://en.wikipedia.org/wiki/T-statistic
       */
-      val residualDegreesOfFreedom = numObservations - phenotypesLength
+      val residualDegreesOfFreedom = numObservations - (covariatesLength + 2) - 1
       val tDist = new TDistribution(residualDegreesOfFreedom)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)

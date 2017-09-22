@@ -48,7 +48,7 @@ trait SiteRegression[VM <: VariantModel[VM]] extends Serializable with Logging {
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double
+  def clipOrKeepState(gs: Double): Double
 }
 
 trait Additive {
@@ -60,8 +60,8 @@ trait Additive {
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double = {
-    gs.toDouble
+  def clipOrKeepState(gs: Double): Double = {
+    gs
   }
 }
 
@@ -73,7 +73,7 @@ trait Dominant {
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double = {
-    if (gs.toDouble == 0) 0.0 else 1.0
+  def clipOrKeepState(gs: Double): Double = {
+    if (gs == 0) 0.0 else 1.0
   }
 }

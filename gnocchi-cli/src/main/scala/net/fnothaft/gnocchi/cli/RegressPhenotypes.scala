@@ -120,27 +120,31 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     }
 
     val rawGenotypes = sc.loadGenotypesAsText(args.genotypes)
-    val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
-    val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
+    val filteredGeno = sc.filterVariants(rawGenotypes, geno = args.geno, maf = args.maf)
+    val sampleFiltered = sc.filterSamples(filteredGeno, mind = args.mind, ploidy = args.ploidy)
 
-    val phenotypes = sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList))
+    val phenotypes = if (args.covarFile != null) {
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList))
+    } else {
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter)
+    }
     val broadPhenotype = sc.broadcast(phenotypes)
 
     args.associationType match {
       case "ADDITIVE_LINEAR" => {
-        val associations = AdditiveLinearRegression(filteredGeno, broadPhenotype)
+        val associations = AdditiveLinearRegression(sampleFiltered, broadPhenotype)
         logResults[AdditiveLinearVariantModel](associations, sc)
       }
       case "DOMINANT_LINEAR" => {
-        val associations = DominantLinearRegression(filteredGeno, broadPhenotype)
+        val associations = DominantLinearRegression(sampleFiltered, broadPhenotype)
         logResults[DominantLinearVariantModel](associations, sc)
       }
       case "ADDITIVE_LOGISTIC" => {
-        val associations = AdditiveLogisticRegression(filteredGeno, broadPhenotype)
+        val associations = AdditiveLogisticRegression(sampleFiltered, broadPhenotype)
         logResults[AdditiveLogisticVariantModel](associations, sc)
       }
       case "DOMINANT_LOGISTIC" => {
-        val associations = DominantLogisticRegression(filteredGeno, broadPhenotype)
+        val associations = DominantLogisticRegression(sampleFiltered, broadPhenotype)
         logResults[DominantLogisticVariantModel](associations, sc)
       }
     }
