@@ -47,7 +47,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
-    val samplesGenotypes = genotypes.samples.map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
+    val samplesGenotypes = genotypes.samples.filter(x => x != "./.").map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
     val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates))
     val mergedSampleVector = samplesGenotypes ++ samplesCovariates
     val groupedSampleVector = mergedSampleVector.groupBy(_._1)
@@ -55,7 +55,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
 
     // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
     val phenotypesLength = phenotypes.head._2.covariates.length + 1
-    val numObservations = genotypes.samples.length
+    val numObservations = genotypes.samples.count(x => x.value != "./.")
     val XandY = cleanedSampleVector.map(x => (x._2.toArray, phenotypes(x._1).phenotype.toDouble)).toList
     val x = XandY.map(_._1).toArray
     val y = XandY.map(_._2).toArray
