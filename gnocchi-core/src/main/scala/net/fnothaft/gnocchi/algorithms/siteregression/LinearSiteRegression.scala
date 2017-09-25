@@ -54,7 +54,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
     val phenotypesLength = phenotypes.head._2.covariates.length + 1
     val numObservations = genotypes.samples.count(x => !x.value.contains("."))
-    val XandY = cleanedSampleVector.map(x => (x._2, phenotypes(x._1).phenotype.toDouble)).toList
+    val XandY = cleanedSampleVector.toList.map(x => (x._2, phenotypes(x._1).phenotype.toDouble))
     val x = XandY.map(_._1.toArray).toArray
     val y = XandY.map(_._2).toArray
 

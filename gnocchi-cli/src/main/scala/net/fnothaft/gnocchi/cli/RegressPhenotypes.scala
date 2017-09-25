@@ -165,11 +165,13 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       }
     }
 
-    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue))
+    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
       .withColumnRenamed("_1", "uniqueID")
       .withColumnRenamed("_2", "chromosome")
       .withColumnRenamed("_3", "position")
       .withColumnRenamed("_4", "pValue")
+      .withColumnRenamed("_5", "beta")
+      .withColumnRenamed("_6", "numSamples")
       .sort($"pValue".asc).coalesce(5)
 
     // enables saving as parquet or human readable text files

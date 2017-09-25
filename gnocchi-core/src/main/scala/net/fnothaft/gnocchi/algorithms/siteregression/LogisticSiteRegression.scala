@@ -47,11 +47,9 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
   def applyToSite(phenotypes: Map[String, Phenotype],
                   genotypes: CalledVariant): LogisticAssociation = {
 
-    val samplesGenotypes = genotypes.samples.map(x => (x.sampleID, List(x.toDouble)))
-    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates))
-    val mergedSampleVector = samplesGenotypes ++ samplesCovariates
-    val groupedSampleVector = mergedSampleVector.groupBy(_._1)
-    val cleanedSampleVector = groupedSampleVector.mapValues(_.map(_._2).toList.flatten)
+    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
+    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
+    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
 
     val lp: Array[LabeledPoint] =
       cleanedSampleVector.map(
@@ -64,7 +62,7 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
     val xixiT = xiVectors.map(x => x * x.t)
 
     val phenotypesLength = phenotypes.head._2.covariates.length + 1
-    val numObservations = genotypes.samples.length
+    val numObservations = genotypes.samples.count(x => !x.value.contains("."))
 
     var iter = 0
     val maxIter = 1000
