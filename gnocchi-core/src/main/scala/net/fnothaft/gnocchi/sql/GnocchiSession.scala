@@ -266,7 +266,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       joinedDF.withColumn("covariates", array(covarNames.get.head, covarNames.get.tail: _*))
         .select("sampleId", "phenotype", "covariates")
     } else {
-      phenotypesDF.withColumn("covariates", lit(null).cast(ArrayType(DoubleType)))
+      phenotypesDF.withColumn("covariates", lit(List[Double]()).cast(ArrayType(DoubleType)))
     }
 
     phenoCovarDF.withColumn("phenoName", lit(phenoName)).as[Phenotype].collect().map(x => (x.sampleId, x)).toMap

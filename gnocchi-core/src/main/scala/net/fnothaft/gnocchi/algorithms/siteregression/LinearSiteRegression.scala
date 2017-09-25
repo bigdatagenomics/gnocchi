@@ -47,20 +47,18 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
-    val samplesGenotypes = genotypes.samples.filter(x => x != "./.").map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
-    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates))
-    val mergedSampleVector = samplesGenotypes ++ samplesCovariates
-    val groupedSampleVector = mergedSampleVector.groupBy(_._1)
-    val cleanedSampleVector = groupedSampleVector.mapValues(_.map(_._2).toList.flatten)
+    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
+    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
+    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
 
     // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
     val phenotypesLength = phenotypes.head._2.covariates.length + 1
-    val numObservations = genotypes.samples.count(x => x.value != "./.")
-    val XandY = cleanedSampleVector.map(x => (x._2.toArray, phenotypes(x._1).phenotype.toDouble)).toList
-    val x = XandY.map(_._1).toArray
+    val numObservations = genotypes.samples.count(x => !x.value.contains("."))
+    val XandY = cleanedSampleVector.map(x => (x._2, phenotypes(x._1).phenotype.toDouble)).toList
+    val x = XandY.map(_._1.toArray).toArray
     val y = XandY.map(_._2).toArray
 
-    val sum = genotypes.samples.map(x => x.toDouble).reduce(_ + _)
+    val sum = genotypes.samples.filter(x => !x.value.contains(".")).map(x => x.toDouble).reduce(_ + _)
 
     val mean = sum / numObservations.toDouble
 
