@@ -4,7 +4,8 @@ import java.io.Serializable
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
+import net.fnothaft.gnocchi.models.{GnocchiModel, GnocchiModelMetaData}
+import org.bdgenomics.formats.avro.GenotypeAllele
 //import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
 //import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
 import net.fnothaft.gnocchi.models.variant.QualityControlVariantModel
@@ -26,6 +27,7 @@ import org.bdgenomics.adam.rdd.ADAMContext._
 import htsjdk.samtools.ValidationStringency
 
 import scala.io.Source.fromFile
+import scala.collection.JavaConversions._
 
 object GnocchiSession {
 
@@ -157,43 +159,63 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     mafFiltered
   }
 
-  def loadGenotypesAsText(genotypesPath: String): Dataset[CalledVariant] = {
+  def loadGenotypesAsText(genotypesPath: String, fromAdam: Boolean = false): Dataset[CalledVariant] = {
+    if (fromAdam) {
+      val vcRdd = sc.loadVcf(genotypesPath)
+      vcRdd.rdd.map(vc => {
+        val variant = vc.variant.variant
+        CalledVariant(variant.getContigName.toInt,
+          variant.getStart.intValue(),
+          variant.getNames.get(0),
+          variant.getReferenceAllele,
+          variant.getAlternateAllele,
+          "", // quality score
+          "", // filter
+          "", // info
+          "", // format
+          vc.genotypes.map(geno => GenotypeState(geno.getSampleId, geno.getAlleles.map {
+            case GenotypeAllele.REF                            => "0"
+            case GenotypeAllele.ALT | GenotypeAllele.OTHER_ALT => "1"
+            case GenotypeAllele.NO_CALL | _                    => "."
+          }.mkString("/"))).toList)
+      }).toDS
+    } else {
+      // ToDo: Deal with multiple Alts
+      val stringVariantDS = sparkSession.read.textFile(genotypesPath).filter(row => !row.startsWith("##"))
 
-    // ToDo: Deal with multiple Alts
-    val stringVariantDS = sparkSession.read.textFile(genotypesPath).filter(row => !row.startsWith("##"))
+      val variantDF = sparkSession.read.format("csv")
+        .option("header", "true")
+        .option("inferSchema", "true")
+        .option("delimiter", "\t")
+        .csv(stringVariantDS)
 
-    val variantDF = sparkSession.read.format("csv")
-      .option("header", "true")
-      .option("inferSchema", "true")
-      .option("delimiter", "\t")
-      .csv(stringVariantDS)
+      // drop the variant level metadata
+      val samples = variantDF.schema.fields.drop(9).map(x => x.name)
 
-    // drop the variant level metadata
-    val samples = variantDF.schema.fields.drop(9).map(x => x.name)
+      val groupedSamples = variantDF
+        .select($"ID", array(samples.head, samples.tail: _*))
+        .as[(String, Array[String])]
+      val typedGroupedSamples = groupedSamples
+        .map(row => (row._1, samples.zip(row._2).map(x => GenotypeState(x._1, x._2))))
+        .toDF("ID", "samples")
+        .as[(String, Array[GenotypeState])]
 
-    val groupedSamples = variantDF
-      .select($"ID", array(samples.head, samples.tail: _*))
-      .as[(String, Array[String])]
-    val typedGroupedSamples = groupedSamples
-      .map(row => (row._1, samples.zip(row._2).map(x => GenotypeState(x._1, x._2))))
-      .toDF("ID", "samples")
-      .as[(String, Array[GenotypeState])]
+      val formattedRawDS = variantDF.drop(samples: _*).join(typedGroupedSamples, "ID")
 
-    val formattedRawDS = variantDF.drop(samples: _*).join(typedGroupedSamples, "ID")
+      val formattedVariantDS = formattedRawDS.toDF(
+        "uniqueID",
+        "chromosome",
+        "position",
+        "referenceAllele",
+        "alternateAllele",
+        "qualityScore",
+        "filter",
+        "info",
+        "format",
+        "samples")
 
-    val formattedVariantDS = formattedRawDS.toDF(
-      "uniqueID",
-      "chromosome",
-      "position",
-      "referenceAllele",
-      "alternateAllele",
-      "qualityScore",
-      "filter",
-      "info",
-      "format",
-      "samples")
-
-    formattedVariantDS.as[CalledVariant]
+      formattedVariantDS.as[CalledVariant]
+    }
   }
 
   /**
