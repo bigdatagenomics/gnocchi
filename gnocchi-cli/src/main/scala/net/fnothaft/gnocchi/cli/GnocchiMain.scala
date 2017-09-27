@@ -23,11 +23,9 @@ import org.bdgenomics.utils.cli._
 
 object GnocchiMain {
 
-  private val commands = List(ComputeSampleSimilarity,
-    FillIn,
-    ReduceDimensions,
-    RegressPhenotypes,
-    EvaluateModel)
+  private val commands = List(
+    RegressPhenotypes)
+  //    BuildGnocchiModel)
 
   private def printCommands() {
     println("\n")
