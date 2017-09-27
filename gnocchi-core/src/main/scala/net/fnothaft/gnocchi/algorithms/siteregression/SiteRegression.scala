@@ -68,12 +68,25 @@ trait Additive {
 trait Dominant {
 
   /**
-   * Formats a GenotypeState object by taking any non-zero as positive response, zero response otherwise.
+   * 1/0 or 0/1 or 1/1 ==> response
    *
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
   def clipOrKeepState(gs: Double): Double = {
-    if (gs == 0) 0.0 else 1.0
+    if (gs == 0.0) 0.0 else 1.0
+  }
+}
+
+trait Recessive {
+
+  /**
+   * 1/1 ==> response
+   *
+   * @param gs GenotypeState object to be clipped
+   * @return Formatted GenotypeState object
+   */
+  def clipOrKeepState(gs: Double): Double = {
+    if (gs == 2.0) 1.0 else 0.0
   }
 }

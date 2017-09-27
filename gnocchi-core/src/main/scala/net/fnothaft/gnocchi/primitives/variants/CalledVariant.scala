@@ -19,7 +19,7 @@ case class CalledVariant(chromosome: Int,
     val missingCount = sampleValues.count(_ == ".")
     val alleleCount = sampleValues.filter(_ != ".").map(_.toDouble).sum
 
-    alleleCount / (ploidy * sampleValues.length - missingCount)
+    alleleCount / (sampleValues.length - missingCount)
   }
 
   def geno: Double = {
@@ -28,5 +28,9 @@ case class CalledVariant(chromosome: Int,
     val missingCount = sampleValues.count(_ == ".")
 
     missingCount.toDouble / sampleValues.length.toDouble
+  }
+
+  def numValidSamples: Int = {
+    samples.count(x => !x.value.contains("."))
   }
 }

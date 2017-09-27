@@ -58,7 +58,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     val x = XandY.map(_._1.toArray).toArray
     val y = XandY.map(_._2).toArray
 
-    val sum = genotypes.samples.filter(x => !x.value.contains(".")).map(x => x.toDouble).reduce(_ + _)
+    val sum = genotypes.samples.filter(x => !x.value.contains(".")).map(x => clipOrKeepState(x.toDouble)).reduce(_ + _)
 
     val mean = sum / numObservations.toDouble
 

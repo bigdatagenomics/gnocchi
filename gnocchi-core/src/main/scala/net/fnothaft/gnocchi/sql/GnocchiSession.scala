@@ -4,7 +4,7 @@ import java.io.Serializable
 
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.models.{GnocchiModel, GnocchiModelMetaData}
+import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
 import org.bdgenomics.formats.avro.GenotypeAllele
 //import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
 //import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
@@ -150,13 +150,39 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
   }
 
   def filterVariants(genotypes: Dataset[CalledVariant], geno: Double, maf: Double): Dataset[CalledVariant] = {
-    def filtersDF = genotypes.map(x => (x.uniqueID, x.maf, x.geno)).toDF("uniqueID", "maf", "geno")
-    def mafFiltered = genotypes.join(filtersDF, "uniqueID")
+    val filtersDF = genotypes.map(x => (x.uniqueID, x.maf, x.geno)).toDF("uniqueID", "maf", "geno")
+    val mafFiltered = genotypes.join(filtersDF, "uniqueID")
       .filter($"maf" >= maf && lit(1) - $"maf" >= maf && $"geno" <= geno)
       .drop("maf", "geno")
       .as[CalledVariant]
 
     mafFiltered
+  }
+
+  def recodeMajorAllele(genotypes: Dataset[CalledVariant]): Dataset[CalledVariant] = {
+    val minorAlleleF = genotypes.map(x => (x.uniqueID, x.maf)).toDF("uniqueID", "maf")
+    val genoWithMaf = genotypes.join(minorAlleleF, "uniqueID")
+    val toRecode = genoWithMaf.filter($"maf" > 0.5).drop("maf").as[CalledVariant]
+    val recoded = toRecode.map(
+      x => {
+        CalledVariant(x.chromosome,
+          x.position,
+          x.uniqueID,
+          x.alternateAllele,
+          x.referenceAllele,
+          x.qualityScore,
+          x.filter,
+          x.info,
+          x.format,
+          x.samples.map(geno => GenotypeState(geno.sampleID, geno.allelesAsList.map {
+            case "0" => "1"
+            case "1" => "0"
+            case "." => "."
+          }.mkString("/"))))
+      }).as[CalledVariant]
+    // Note: the below .map(a => a) is a hack solution to the fact that spark cannot union two
+    // datasets of the same type, but reordered columns. See issue: https://issues.apache.org/jira/browse/SPARK-21109
+    genoWithMaf.filter($"maf" <= 0.5).drop("maf").as[CalledVariant].map(a => a).union(recoded)
   }
 
   def loadGenotypesAsText(genotypesPath: String, fromAdam: Boolean = false): Dataset[CalledVariant] = {

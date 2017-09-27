@@ -52,13 +52,13 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
     val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
 
     val lp: Array[LabeledPoint] =
-      cleanedSampleVector.map(
+      cleanedSampleVector.toList.map(
         x => new LabeledPoint(
           phenotypes(x._1).phenotype.toDouble,
           new org.apache.spark.mllib.linalg.DenseVector(x._2.toArray)))
         .toArray
 
-    val xiVectors = cleanedSampleVector.map(x => DenseVector(1.0 +: x._2.toArray)).toArray
+    val xiVectors = cleanedSampleVector.toList.map(x => DenseVector(1.0 +: x._2.toArray)).toArray
     val xixiT = xiVectors.map(x => x * x.t)
 
     val phenotypesLength = phenotypes.head._2.covariates.length + 1
@@ -120,7 +120,7 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
 
       // calculate Wald statistic for each parameter in the regression model
       val zScores: DenseVector[Double] = DenseVector(beta) /:/ standardErrors
-      val waldStats = zScores :* zScores
+      val waldStats = zScores *:* zScores
 
       // calculate cumulative probs
       val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
