@@ -5,4 +5,8 @@ case class GenotypeState(sampleID: String,
   def toDouble: Double = {
     value.split("/|\\|").filter(_ != ".").map(_.toDouble).sum
   }
+
+  def allelesAsList: List[String] = {
+    value.split("/|\\|").toList
+  }
 }

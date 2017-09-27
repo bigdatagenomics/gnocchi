@@ -21,7 +21,6 @@ import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLinearRegression
 import net.fnothaft.gnocchi.primitives.association.LinearAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
-import org.bdgenomics.formats.avro.Variant
 
 import scala.collection.immutable.Map
 

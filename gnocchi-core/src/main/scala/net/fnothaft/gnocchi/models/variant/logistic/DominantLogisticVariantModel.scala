@@ -23,7 +23,6 @@ import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.commons.math3.linear.SingularMatrixException
-import org.bdgenomics.formats.avro.Variant
 
 import scala.collection.immutable.Map
 

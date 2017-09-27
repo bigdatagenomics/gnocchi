@@ -3,7 +3,6 @@ package net.fnothaft.gnocchi.models.variant.linear
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.primitives.association.LinearAssociation
 import org.apache.commons.math3.distribution.TDistribution
-import org.bdgenomics.formats.avro.Variant
 
 trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] {
   val association: LinearAssociation

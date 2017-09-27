@@ -17,19 +17,14 @@
  */
 package net.fnothaft.gnocchi.models.linear
 
-import java.io.{ File, FileOutputStream, ObjectOutputStream }
-
-import net.fnothaft.gnocchi.algorithms.siteregression.{ Dominant, DominantLinearRegression, LinearSiteRegression }
+import net.fnothaft.gnocchi.algorithms.siteregression.DominantLinearRegression
 import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.models.variant.QualityControlVariantModel
 import net.fnothaft.gnocchi.models.variant.linear.DominantLinearVariantModel
-import net.fnothaft.gnocchi.primitives.association.LinearAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.formats.avro.Variant
 
 object DominantLinearGnocchiModelFactory {
 

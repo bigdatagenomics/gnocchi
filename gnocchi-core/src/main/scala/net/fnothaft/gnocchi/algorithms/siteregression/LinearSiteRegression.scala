@@ -17,11 +17,7 @@
  */
 package net.fnothaft.gnocchi.algorithms.siteregression
 
-import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
-import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
-import net.fnothaft.gnocchi.models.variant.{ QualityControlVariantModel, VariantModel }
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel, LinearVariantModel }
-//import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
 import net.fnothaft.gnocchi.primitives.association.LinearAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
@@ -29,9 +25,7 @@ import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.formats.avro.Variant
 
 import scala.collection.immutable.Map
 import scala.math.log10
@@ -47,18 +41,18 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
     // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
-    val samplesGenotypes = genotypes.samples.map(x => (x.sampleID, List(x.toDouble)))
-    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates))
-    val mergedSampleVector = samplesGenotypes ++ samplesCovariates
-    val groupedSampleVector = mergedSampleVector.groupBy(_._1)
-    val cleanedSampleVector = groupedSampleVector.mapValues(_.map(_._2).toList.flatten)
+    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
+    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
+    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
 
     // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
-    val phenotypesLength = phenotypes.head._2.covariates.length
-    val numObservations = genotypes.samples.length
-    val x = cleanedSampleVector.map(x => x._2.toArray).toArray
-    val y = cleanedSampleVector.map(x => phenotypes(x._1).phenotype.toDouble).toArray
-    val sum = genotypes.samples.map(x => x.toDouble).reduce(_ + _)
+    val phenotypesLength = phenotypes.head._2.covariates.length + 1
+    val numObservations = genotypes.samples.count(x => !x.value.contains("."))
+    val XandY = cleanedSampleVector.toList.map(x => (x._2, phenotypes(x._1).phenotype.toDouble))
+    val x = XandY.map(_._1.toArray).toArray
+    val y = XandY.map(_._2).toArray
+
+    val sum = genotypes.samples.filter(x => !x.value.contains(".")).map(x => clipOrKeepState(x.toDouble)).reduce(_ + _)
 
     val mean = sum / numObservations.toDouble
 
@@ -95,7 +89,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
         a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
         https://en.wikipedia.org/wiki/T-statistic
       */
-      val residualDegreesOfFreedom = numObservations - phenotypesLength
+      val residualDegreesOfFreedom = numObservations - phenotypesLength - 1
       val tDist = new TDistribution(residualDegreesOfFreedom)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)

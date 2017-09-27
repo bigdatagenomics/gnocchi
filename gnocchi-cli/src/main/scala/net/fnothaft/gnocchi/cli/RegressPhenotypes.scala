@@ -17,29 +17,18 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.File
-
-import net.fnothaft.gnocchi.algorithms._
 import net.fnothaft.gnocchi.algorithms.siteregression._
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import net.fnothaft.gnocchi.sql.GnocchiSession._
-import org.bdgenomics.adam.rdd.ADAMContext._
+import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 
-import scala.math.exp
 import scala.io.StdIn.readLine
-import org.bdgenomics.adam.cli.Vcf2ADAM
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.functions.{ concat, lit }
-import net.fnothaft.gnocchi.primitives.association._
-import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
-import org.apache.hadoop.fs.Path
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
@@ -104,7 +93,6 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
-
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -121,10 +109,15 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     }
 
     val rawGenotypes = sc.loadGenotypesAsText(args.genotypes)
-    val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
+    val recoded = sc.recodeMajorAllele(rawGenotypes)
+    val sampleFiltered = sc.filterSamples(recoded, mind = args.mind, ploidy = args.ploidy)
     val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
 
-    val phenotypes = sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList))
+    val phenotypes = if (args.covarFile != null) {
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList))
+    } else {
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter)
+    }
     val broadPhenotype = sc.broadcast(phenotypes)
 
     args.associationType match {
@@ -162,7 +155,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
       }
     }
 
-    val assoc = associations.map(x => (x.uniqueID, x.association.pValue)).withColumnRenamed("_1", "uniqueID").withColumnRenamed("_2", "pValue").sort($"pValue".asc).coalesce(5)
+    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
+      .withColumnRenamed("_1", "uniqueID")
+      .withColumnRenamed("_2", "chromosome")
+      .withColumnRenamed("_3", "position")
+      .withColumnRenamed("_4", "pValue")
+      .withColumnRenamed("_5", "beta")
+      .withColumnRenamed("_6", "numSamples")
+      .sort($"pValue".asc).coalesce(5)
 
     // enables saving as parquet or human readable text files
     if (args.saveAsText) {

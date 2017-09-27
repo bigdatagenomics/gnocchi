@@ -17,16 +17,10 @@
  */
 package net.fnothaft.gnocchi.algorithms.siteregression
 
-import org.apache.commons.math3.linear.SingularMatrixException
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.primitives.association.Association
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
-import net.fnothaft.gnocchi.primitives.genotype.GenotypeState
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
-import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.apache.spark.rdd.RDD
-import org.apache.spark.broadcast.Broadcast
-import org.bdgenomics.formats.avro.Variant
 import org.bdgenomics.utils.misc.Logging
 
 import scala.collection.immutable.Map
@@ -48,7 +42,7 @@ trait SiteRegression[VM <: VariantModel[VM]] extends Serializable with Logging {
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double
+  def clipOrKeepState(gs: Double): Double
 }
 
 trait Additive {
@@ -60,20 +54,33 @@ trait Additive {
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double = {
-    gs.toDouble
+  def clipOrKeepState(gs: Double): Double = {
+    gs
   }
 }
 
 trait Dominant {
 
   /**
-   * Formats a GenotypeState object by taking any non-zero as positive response, zero response otherwise.
+   * 1/0 or 0/1 or 1/1 ==> response
    *
    * @param gs GenotypeState object to be clipped
    * @return Formatted GenotypeState object
    */
-  def clipOrKeepState(gs: GenotypeState): Double = {
-    if (gs.toDouble == 0) 0.0 else 1.0
+  def clipOrKeepState(gs: Double): Double = {
+    if (gs == 0.0) 0.0 else 1.0
+  }
+}
+
+trait Recessive {
+
+  /**
+   * 1/1 ==> response
+   *
+   * @param gs GenotypeState object to be clipped
+   * @return Formatted GenotypeState object
+   */
+  def clipOrKeepState(gs: Double): Double = {
+    if (gs == 2.0) 1.0 else 0.0
   }
 }

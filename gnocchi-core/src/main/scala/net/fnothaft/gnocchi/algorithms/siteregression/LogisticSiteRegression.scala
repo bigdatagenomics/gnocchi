@@ -19,21 +19,15 @@ package net.fnothaft.gnocchi.algorithms.siteregression
 
 import breeze.linalg._
 import breeze.numerics.{ log10, _ }
-import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
-import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
-import net.fnothaft.gnocchi.models.variant.{ QualityControlVariantModel, VariantModel }
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel, LogisticVariantModel }
-import net.fnothaft.gnocchi.primitives.association.{ LinearAssociation, LogisticAssociation }
+import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.apache.commons.math3.linear
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.formats.avro.Variant
 
 import scala.collection.immutable.Map
 
@@ -47,24 +41,22 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
   def applyToSite(phenotypes: Map[String, Phenotype],
                   genotypes: CalledVariant): LogisticAssociation = {
 
-    val samplesGenotypes = genotypes.samples.map(x => (x.sampleID, List(x.toDouble)))
-    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates))
-    val mergedSampleVector = samplesGenotypes ++ samplesCovariates
-    val groupedSampleVector = mergedSampleVector.groupBy(_._1)
-    val cleanedSampleVector = groupedSampleVector.mapValues(_.map(_._2).toList.flatten)
+    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
+    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
+    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
 
     val lp: Array[LabeledPoint] =
-      cleanedSampleVector.map(
+      cleanedSampleVector.toList.map(
         x => new LabeledPoint(
           phenotypes(x._1).phenotype.toDouble,
           new org.apache.spark.mllib.linalg.DenseVector(x._2.toArray)))
         .toArray
 
-    val xiVectors = cleanedSampleVector.map(x => DenseVector(1.0 +: x._2.toArray)).toArray
+    val xiVectors = cleanedSampleVector.toList.map(x => DenseVector(1.0 +: x._2.toArray)).toArray
     val xixiT = xiVectors.map(x => x * x.t)
 
     val phenotypesLength = phenotypes.head._2.covariates.length + 1
-    val numObservations = genotypes.samples.length
+    val numObservations = genotypes.samples.count(x => !x.value.contains("."))
 
     var iter = 0
     val maxIter = 1000
@@ -122,7 +114,7 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
 
       // calculate Wald statistic for each parameter in the regression model
       val zScores: DenseVector[Double] = DenseVector(beta) /:/ standardErrors
-      val waldStats = zScores :* zScores
+      val waldStats = zScores *:* zScores
 
       // calculate cumulative probs
       val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
