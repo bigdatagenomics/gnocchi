@@ -17,19 +17,14 @@
  */
 package net.fnothaft.gnocchi.models.logistic
 
-import java.io.{ File, FileOutputStream, ObjectOutputStream }
-
-import net.fnothaft.gnocchi.algorithms.siteregression.{ Dominant, DominantLogisticRegression, LogisticSiteRegression }
+import net.fnothaft.gnocchi.algorithms.siteregression.DominantLogisticRegression
 import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.models.variant.QualityControlVariantModel
 import net.fnothaft.gnocchi.models.variant.logistic.DominantLogisticVariantModel
-import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.formats.avro.Variant
 
 object DominantLogisticGnocchiModelFactory {
 

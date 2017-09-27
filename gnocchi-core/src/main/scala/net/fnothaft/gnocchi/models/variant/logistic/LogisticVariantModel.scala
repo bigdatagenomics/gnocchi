@@ -20,7 +20,6 @@ package net.fnothaft.gnocchi.models.variant.logistic
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.bdgenomics.formats.avro.Variant
 
 trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[VM] {
   val association: LogisticAssociation

@@ -17,20 +17,14 @@
  */
 package net.fnothaft.gnocchi.models
 
-import java.io.{ File, FileOutputStream, ObjectOutputStream, PrintWriter }
+import java.io.{ File, PrintWriter }
 
 import net.fnothaft.gnocchi.models.variant.{ QualityControlVariantModel, VariantModel }
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
-import net.fnothaft.gnocchi.primitives.variants.CalledVariant
-import org.apache.spark.rdd.RDD
-import org.bdgenomics.formats.avro.Variant
-import org.apache.spark.SparkContext._
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.{ Dataset, SparkSession }
+import org.apache.spark.sql.Dataset
 
 import scala.pickling.Defaults._
 import scala.pickling.json._
-import scala.reflect.ClassTag
 
 case class GnocchiModelMetaData(modelType: String,
                                 phenotype: String,

@@ -2,129 +2,28 @@ package net.fnothaft.gnocchi.sql
 
 import java.io.Serializable
 
-import net.fnothaft.gnocchi.models.variant.VariantModel
-import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
 import org.bdgenomics.formats.avro.GenotypeAllele
-//import net.fnothaft.gnocchi.models.linear.{ AdditiveLinearGnocchiModel, DominantLinearGnocchiModel }
-//import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
-import net.fnothaft.gnocchi.models.variant.QualityControlVariantModel
-//import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
-//import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import net.fnothaft.gnocchi.primitives.genotype.GenotypeState
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
-import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Column, DataFrame, Dataset, SparkSession }
-import org.apache.spark.sql.functions.{ array, col, concat, lit, sum, typedLit, udf, when }
-import org.apache.spark.sql.types.{ ArrayType, DoubleType }
-import org.bdgenomics.adam.cli.Vcf2ADAM
-import org.bdgenomics.formats.avro.{ Contig, Variant }
-import org.bdgenomics.utils.misc.Logging
+import org.apache.spark.sql.functions.{ array, lit, udf }
+import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.adam.rdd.ADAMContext._
-import htsjdk.samtools.ValidationStringency
+import org.bdgenomics.utils.misc.Logging
 
-import scala.io.Source.fromFile
 import scala.collection.JavaConversions._
 
 object GnocchiSession {
-
   // Add GnocchiContext methods
-  implicit def sparkContextToGnocchiContext(sc: SparkContext): GnocchiSession =
+  implicit def sparkContextToGnocchiSession(sc: SparkContext): GnocchiSession =
     new GnocchiSession(sc)
-
 }
 
 class GnocchiSession(@transient val sc: SparkContext) extends Serializable with Logging {
 
   val sparkSession = SparkSession.builder().getOrCreate()
   import sparkSession.implicits._
-
-  //  def convertVCF(vcfPath: String,
-  //                 destination: String,
-  //                 overwrite: Boolean): Path = {
-  //
-  //    val adamDestination = new Path(destination)
-  //    val parquetFiles = new Path(vcfPath)
-  //    val fs = adamDestination.getFileSystem(sc.hadoopConfiguration)
-  //
-  //    if (!fs.exists(parquetFiles)) {
-  //      val cmdLine: Array[String] = Array[String](vcfPath, destination)
-  //      Vcf2ADAM(cmdLine).run(sc)
-  //    } else if (overwrite) {
-  //      fs.delete(parquetFiles, true)
-  //      val cmdLine: Array[String] = Array[String](vcfPath, destination)
-  //      Vcf2ADAM(cmdLine).run(sc)
-  //    }
-  //
-  //    adamDestination
-  //  }
-
-  //    def loadGenotypesAsTextWithADAM(genotypesPath: String,
-  //                                    ploidy: Int,
-  //                                    mind: Option[Double],
-  //                                    maf: Option[Double],
-  //                                    geno: Option[Double]): DataFrame = {
-  //
-  //      val validationStringency = ValidationStringency.valueOf("STRICT")
-  //      val variantContextRDD = sc.loadVcf(genotypesPath, validationStringency)
-  //
-
-  // import sparkSession.implicits._
-  //
-  //      val genotypes = sparkSession.read.format("parquet").load(genotypesPath)
-  //
-  //      val genotypeDF = toGenotypeStateDataFrame(genotypes, ploidy)
-  //
-  //      val genoStatesWithNames = genotypeDF.select(
-  //        $"contigName" as "chromosome",
-  //        $"start" as "position",
-  //        genotypeDF("end"),
-  //        genotypeDF("ref"),
-  //        genotypeDF("alt"),
-  //        genotypeDF("sampleId"),
-  //        genotypeDF("genotypeState"),
-  //        genotypeDF("missingGenotypes"),
-  //        genotypeDF("phaseSetId"))
-
-  //    val sampleFilteredDF = filterSamples(genoStatesWithNames, mind)
-  //
-  //    val genoFilteredDF = filterVariants(sampleFilteredDF, geno, maf)
-
-  //    genoFilteredDF
-
-  //    val finalGenotypeStatesRdd = genoFilteredDF.filter($"missingGenotypes" != 2)
-
-  //    finalGenotypeStatesRdd
-  //    }
-
-  //  private def toGenotypeStateDataFrame(gtFrame: DataFrame, ploidy: Int): DataFrame = {
-  //    // generate expression
-  //    val genotypeState = (0 until ploidy).map(i => {
-  //      val c: Column = when(gtFrame("alleles").getItem(i) === "REF", 1).otherwise(0)
-  //      c
-  //    }).reduce(_ + _)
-  //
-  //    val missingGenotypes = (0 until ploidy).map(i => {
-  //      val c: Column = when(gtFrame("alleles").getItem(i) === "NO_CALL", 1).otherwise(0)
-  //      c
-  //    }).reduce(_ + _)
-  //
-  //    // is this correct? or should we change the column to nullable?
-  //    val phaseSetId: Column = when(gtFrame("phaseSetId").isNull, 0).otherwise(gtFrame("phaseSetId"))
-  //
-  //    gtFrame.select(gtFrame("variant.contigName").as("contigName"),
-  //      gtFrame("variant.start").as("start"),
-  //      gtFrame("variant.end").as("end"),
-  //      gtFrame("variant.referenceAllele").as("ref"),
-  //      gtFrame("variant.alternateAllele").as("alt"),
-  //      gtFrame("sampleId"),
-  //      genotypeState.as("genotypeState"),
-  //      missingGenotypes.as("missingGenotypes"),
-  //      phaseSetId.as("phaseSetId"))
-  //  }
 
   def filterSamples(genotypes: Dataset[CalledVariant], mind: Double, ploidy: Double): Dataset[CalledVariant] = {
     val sampleIds = genotypes.first.samples.map(x => x.sampleID)

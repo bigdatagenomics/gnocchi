@@ -20,8 +20,6 @@ package net.fnothaft.gnocchi.models.variant
 import net.fnothaft.gnocchi.primitives.association.Association
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
-import org.bdgenomics.formats.avro.Variant
-import org.apache.spark.SparkContext._
 
 import scala.collection.immutable.Map
 

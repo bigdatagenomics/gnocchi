@@ -17,16 +17,10 @@
  */
 package net.fnothaft.gnocchi.algorithms.siteregression
 
-import org.apache.commons.math3.linear.SingularMatrixException
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.primitives.association.Association
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
-import net.fnothaft.gnocchi.primitives.genotype.GenotypeState
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
-import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.apache.spark.rdd.RDD
-import org.apache.spark.broadcast.Broadcast
-import org.bdgenomics.formats.avro.Variant
 import org.bdgenomics.utils.misc.Logging
 
 import scala.collection.immutable.Map

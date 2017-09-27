@@ -17,23 +17,16 @@
  */
 package net.fnothaft.gnocchi.models.linear
 
-import java.io.{ File, FileOutputStream, ObjectOutputStream, PrintWriter }
-
-import net.fnothaft.gnocchi.algorithms.siteregression.{ Additive, AdditiveLinearRegression, LinearSiteRegression }
+import net.fnothaft.gnocchi.algorithms.siteregression.AdditiveLinearRegression
 import net.fnothaft.gnocchi.models._
 import net.fnothaft.gnocchi.models.variant.QualityControlVariantModel
 import net.fnothaft.gnocchi.models.variant.linear.AdditiveLinearVariantModel
-import net.fnothaft.gnocchi.primitives.association.LinearAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.formats.avro.Variant
 
 import scala.collection.immutable.Map
-import scala.pickling.Defaults._
-import scala.pickling.json._
 
 object AdditiveLinearGnocchiModelFactory {
 

@@ -19,21 +19,15 @@ package net.fnothaft.gnocchi.algorithms.siteregression
 
 import breeze.linalg._
 import breeze.numerics.{ log10, _ }
-import net.fnothaft.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData }
-import net.fnothaft.gnocchi.models.logistic.{ AdditiveLogisticGnocchiModel, DominantLogisticGnocchiModel }
-import net.fnothaft.gnocchi.models.variant.{ QualityControlVariantModel, VariantModel }
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel, LogisticVariantModel }
-import net.fnothaft.gnocchi.primitives.association.{ LinearAssociation, LogisticAssociation }
+import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.apache.commons.math3.linear
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.formats.avro.Variant
 
 import scala.collection.immutable.Map
 

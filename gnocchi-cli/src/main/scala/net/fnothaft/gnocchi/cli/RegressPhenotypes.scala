@@ -17,29 +17,18 @@
  */
 package net.fnothaft.gnocchi.cli
 
-import java.io.File
-
-import net.fnothaft.gnocchi.algorithms._
 import net.fnothaft.gnocchi.algorithms.siteregression._
 import net.fnothaft.gnocchi.models.variant.VariantModel
 import net.fnothaft.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
 import net.fnothaft.gnocchi.sql.GnocchiSession._
-import org.bdgenomics.adam.rdd.ADAMContext._
+import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 
-import scala.math.exp
 import scala.io.StdIn.readLine
-import org.bdgenomics.adam.cli.Vcf2ADAM
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.functions.{ concat, lit }
-import net.fnothaft.gnocchi.primitives.association._
-import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
-import org.apache.hadoop.fs.Path
 
 object RegressPhenotypes extends BDGCommandCompanion {
   val commandName = "regressPhenotypes"
