@@ -13,24 +13,40 @@ case class CalledVariant(chromosome: Int,
                          format: String,
                          samples: List[GenotypeState]) extends Product {
 
+  /**
+   * @return the minor allele frequency across all samples for this variant
+   */
   def maf: Double = {
-    val ploidy = samples.head.value.split("/|\\|").length
-    val sampleValues: List[String] = samples.flatMap(_.value.split("/|\\|"))
+    val ploidy = samples.head.toList.length
+    val sampleValues: List[String] = samples.flatMap(_.toList)
     val missingCount = sampleValues.count(_ == ".")
     val alleleCount = sampleValues.filter(_ != ".").map(_.toDouble).sum
 
     alleleCount / (sampleValues.length - missingCount)
   }
 
+  /**
+   * @return The fraction of missing values for this variant values across all samples
+   */
   def geno: Double = {
-    val ploidy = samples.head.value.split("/|\\|").length
-    val sampleValues: List[String] = samples.flatMap(_.value.split("/|\\|"))
+    val ploidy = samples.head.toList.length
+    val sampleValues: List[String] = samples.flatMap(_.toList)
     val missingCount = sampleValues.count(_ == ".")
 
     missingCount.toDouble / sampleValues.length.toDouble
   }
 
+  /**
+   * @return Number of samples that have all valid values (none missing)
+   */
   def numValidSamples: Int = {
     samples.count(x => !x.value.contains("."))
+  }
+
+  /**
+   * @return Number of samples that have some valid values (could be some missing)
+   */
+  def numSemiValidSamples: Int = {
+    samples.count(x => x.toList.count(_ != ".") > 0)
   }
 }

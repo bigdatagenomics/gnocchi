@@ -73,7 +73,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
           x.filter,
           x.info,
           x.format,
-          x.samples.map(geno => GenotypeState(geno.sampleID, geno.allelesAsList.map {
+          x.samples.map(geno => GenotypeState(geno.sampleID, geno.toList.map {
             case "0" => "1"
             case "1" => "0"
             case "." => "."
@@ -84,86 +84,34 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     genoWithMaf.filter($"maf" <= 0.5).drop("maf").as[CalledVariant].map(a => a).union(recoded)
   }
 
-  def loadGenotypesAsText(genotypesPath: String, fromAdam: Boolean = false): Dataset[CalledVariant] = {
-    if (fromAdam) {
-      val vcRdd = sc.loadVcf(genotypesPath)
-      vcRdd.rdd.map(vc => {
-        val variant = vc.variant.variant
-        CalledVariant(variant.getContigName.toInt,
-          variant.getStart.intValue(),
-          variant.getNames.get(0),
-          variant.getReferenceAllele,
-          variant.getAlternateAllele,
-          "", // quality score
-          "", // filter
-          "", // info
-          "", // format
-          vc.genotypes.map(geno => GenotypeState(geno.getSampleId, geno.getAlleles.map {
-            case GenotypeAllele.REF                            => "0"
-            case GenotypeAllele.ALT | GenotypeAllele.OTHER_ALT => "1"
-            case GenotypeAllele.NO_CALL | _                    => "."
-          }.mkString("/"))).toList)
-      }).toDS
-    } else {
-      // ToDo: Deal with multiple Alts
-      val stringVariantDS = sparkSession.read.textFile(genotypesPath).filter(row => !row.startsWith("##"))
-
-      val variantDF = sparkSession.read.format("csv")
-        .option("header", "true")
-        .option("inferSchema", "true")
-        .option("delimiter", "\t")
-        .csv(stringVariantDS)
-
-      // drop the variant level metadata
-      val samples = variantDF.schema.fields.drop(9).map(x => x.name)
-
-      val groupedSamples = variantDF
-        .select($"ID", array(samples.head, samples.tail: _*))
-        .as[(String, Array[String])]
-      val typedGroupedSamples = groupedSamples
-        .map(row => (row._1, samples.zip(row._2).map(x => GenotypeState(x._1, x._2))))
-        .toDF("ID", "samples")
-        .as[(String, Array[GenotypeState])]
-
-      val formattedRawDS = variantDF.drop(samples: _*).join(typedGroupedSamples, "ID")
-
-      val formattedVariantDS = formattedRawDS.toDF(
-        "uniqueID",
-        "chromosome",
-        "position",
-        "referenceAllele",
-        "alternateAllele",
-        "qualityScore",
-        "filter",
-        "info",
-        "format",
-        "samples")
-
-      formattedVariantDS.as[CalledVariant]
-    }
+  def loadGenotypes(genotypesPath: String): Dataset[CalledVariant] = {
+    val vcRdd = sc.loadVcf(genotypesPath)
+    vcRdd.rdd.map(vc => {
+      val variant = vc.variant.variant
+      CalledVariant(variant.getContigName.toInt,
+        variant.getEnd.intValue(),
+        variant.getNames.get(0),
+        variant.getReferenceAllele,
+        variant.getAlternateAllele,
+        "", // quality score
+        "", // filter
+        "", // info
+        "", // format
+        vc.genotypes.map(geno => GenotypeState(geno.getSampleId, geno.getAlleles.map {
+          case GenotypeAllele.REF                            => "0"
+          case GenotypeAllele.ALT | GenotypeAllele.OTHER_ALT => "1"
+          case GenotypeAllele.NO_CALL | _                    => "."
+        }.mkString("/"))).toList)
+    }).toDS
   }
 
-  /**
-   *
-   * @note assume all covarNames are in covariate file
-   * @note assume phenoName is in phenotype file
-   * @note assume that
-   *
-   *
-   * @param phenotypesPath
-   * @param phenoName
-   * @param oneTwo
-   * @param delimiter
-   * @param covarPath
-   * @param covarNames
-   * @return
-   */
   def loadPhenotypes(phenotypesPath: String,
                      primaryID: String,
                      phenoName: String,
                      delimiter: String,
                      covarPath: Option[String] = None,
-                     covarNames: Option[List[String]] = None): Map[String, Phenotype] = {
+                     covarNames: Option[List[String]] = None,
+                     covarDelimiter: String = "\t"): Map[String, Phenotype] = {
 
     logInfo("Loading phenotypes from %s.".format(phenotypesPath))
 
@@ -189,7 +137,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       val prelimCovarDF = sparkSession.read.format("csv")
         .option("header", "true")
         .option("inferSchema", "true")
-        .option("delimiter", delimiter)
+        .option("delimiter", covarDelimiter)
         .load(covarPath.get)
 
       val covarHeader = prelimCovarDF.schema.fields.map(_.name)
