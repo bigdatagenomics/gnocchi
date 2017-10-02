@@ -32,11 +32,11 @@ trait GnocchiFunSuite extends SparkFunSuite {
   val random = scala.util.Random
 
   def createSampleGenotypeStates(num: Int = 10,
-                                 maf: Double = 0.1,
-                                 geno: Double = 0.1,
+                                 maf: Double = 0.0,
+                                 geno: Double = 0.0,
                                  ploidy: Int = 2): List[GenotypeState] = {
     val iids = random.shuffle(1000 to 9999 + num).take(num)
-    val gsString = List.fill((num*ploidy*maf).toInt)("1") ++ List.fill((num*ploidy*geno).toInt)(".") ++ List.fill((num*ploidy*(1 - maf - geno)).toInt)("0")
+    val gsString = List.fill((num * ploidy * maf).toInt)("1") ++ List.fill((num * ploidy * geno).toInt)(".") ++ List.fill((num * ploidy * (1 - maf - geno)).toInt)("0")
     val gsVect = random.shuffle(gsString).grouped(2).toList.map(_.mkString("/"))
 
     gsVect.zip(iids).map(x => GenotypeState(x._2.toString, x._1))
@@ -62,7 +62,7 @@ trait GnocchiFunSuite extends SparkFunSuite {
     val fil = if (filter.isEmpty) "." else filter.get
     val inf = if (info.isEmpty) "." else info.get
     val form = if (format.isEmpty) "." else format.get
-    val sam = if (samples.isEmpty) createSampleGenotypeStates(num=50) else samples.get
+    val sam = if (samples.isEmpty) createSampleGenotypeStates(num = 50) else samples.get
 
     CalledVariant(chrom, pos, uid, ref, alt, qs, fil, inf, form, sam)
   }
