@@ -1,6 +1,7 @@
 package net.fnothaft.gnocchi.primitives.variants
 
 import net.fnothaft.gnocchi.GnocchiFunSuite
+import net.fnothaft.gnocchi.primitives.genotype.GenotypeState
 
 class CalledVariantSuite extends GnocchiFunSuite {
 
@@ -46,21 +47,23 @@ class CalledVariantSuite extends GnocchiFunSuite {
 
   // num valid samples tests
 
-  ignore("CalledVariant.numValidSamples should only count samples with no missing values") {
+  sparkTest("CalledVariant.numValidSamples should only count samples with no missing values") {
+    val iids = random.shuffle(1000 to 9999).take(20)
+    val genos = List.fill(5)("./.") ++ List.fill(5)("./1") ++ List.fill(10)("1/1")
+    val genosStates = genos.zip(iids).map(x => GenotypeState(x._2.toString, x._1))
 
-  }
-
-  ignore("CalledVariant.numValidSamples should return an Int") {
-
+    val calledVariant = createSampleCalledVariant(samples = Option(genosStates))
+    assert(calledVariant.numValidSamples == 10, "Number of valid samples miscounted.")
   }
 
   // num semi valid samples tests
 
-  ignore("CalledVariant.numSemiValidSamples should count the number of samples that have some valid values.") {
+  sparkTest("CalledVariant.numSemiValidSamples should count the number of samples that have some valid values.") {
+    val iids = random.shuffle(1000 to 9999).take(20)
+    val genos = List.fill(5)("./.") ++ List.fill(5)("./1") ++ List.fill(10)("1/1")
+    val genosStates = genos.zip(iids).map(x => GenotypeState(x._2.toString, x._1))
 
-  }
-
-  ignore("CalledVariant.numSemiValidSamples should return an Int") {
-
+    val calledVariant = createSampleCalledVariant(samples = Option(genosStates))
+    assert(calledVariant.numSemiValidSamples == 15, "Number of valid samples miscounted.")
   }
 }
