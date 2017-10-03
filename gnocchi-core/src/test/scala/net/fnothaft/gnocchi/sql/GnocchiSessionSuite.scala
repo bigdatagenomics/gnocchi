@@ -36,14 +36,13 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
   sparkTest("sc.loadGenotypes should produce a dataset of CalledVariant objects.") {
     val genoPath = testFile("small1.vcf")
     val genotypes = sc.loadGenotypes(genoPath)
-    assert(genotypes.isInstanceOf[Dataset[CalledVariant]], "LoadGenotypes should produce a" +
-      " Dataset[CalledVariant]")
+    assert(genotypes.isInstanceOf[Dataset[CalledVariant]], "sc.loadGenotypes does not produce as Dataset[CalledVariant]")
   }
 
   sparkTest("sc.loadGenotypes should map fields correctly.") {
     val genoPath = testFile("1Sample1Variant.vcf")
     val genotypes = sc.loadGenotypes(genoPath)
-    val firstCalledVariant = genotypes.orderBy("position").head
+    val firstCalledVariant = genotypes.head
 
     assert(firstCalledVariant.uniqueID.equals("rs3131972"))
     assert(firstCalledVariant.chromosome === 1)
@@ -53,8 +52,14 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(firstCalledVariant.samples.equals(List(GenotypeState("sample1", "0/1"))))
   }
 
-  ignore("sc.loadGenotypes should gracefully exit when a non-existing file path is passed in.") {
-
+  sparkTest("sc.loadGenotypes should gracefully exit when a non-existing file path is passed in.") {
+    val fakeFilePath = "fake/file/path.vcf"
+    try {
+      sc.loadGenotypes(fakeFilePath)
+      fail("sc.loadGenotypes does not fail on a fake file path.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
   ignore("sc.loadGenotypes should have no overlapping values in the `uniqueID` field.") {
@@ -67,32 +72,74 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // load phenotypes tests
 
-  ignore("sc.loadPhenotypes should gracefully exit when a non-existing file path is passed in.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when a non-existing file path is passed in.") {
+    val fakeFilePath = "fake/file/path.vcf"
+    try {
+      sc.loadPhenotypes(fakeFilePath, "IID", "pheno", "\t")
+      fail("sc.loadPhenotypes does not fail on a fake file path.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when the specified primaryID is not a column in the phenotypes file.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when the specified primaryID is not a column in the phenotypes file.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "IID", "pheno", "\t")
+      fail("sc.loadPhenotypes does not fail on a non-present primary sample ID.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when passed an invalid phenotype delimiter.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when passed an invalid phenotype delimiter.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "SampleID", "pheno1", ",")
+      fail("sc.loadPhenotypes does not fail on invalid delimiter.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when passed an invalid covariate delimiter.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when passed an invalid covariate delimiter.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno2", "pheno3")), covarDelimiter = ",")
+      fail("sc.loadPhenotypes does not fail on invalid covariate delimiter.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when the primary phenotype is listed as a covariate.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when the primary phenotype is listed as a covariate.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno1", "pheno3")), covarDelimiter = "\t")
+      fail("sc.loadPhenotypes does not fail on primary phenotype listed as a covariate.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when a covariates path is passed in without covariate names.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when a covariates path is passed in without covariate names.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), covarDelimiter = "\t")
+      fail("sc.loadPhenotypes does not fail on a covariates path is passed in without covariate names.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when covariate names are passed in without a covariates path.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when covariate names are passed in without a covariates path.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", covarNames = Option(List("pheno1", "pheno3")), covarDelimiter = "\t")
+      fail("sc.loadPhenotypes does not fail on covariate names passed in without covariates path.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
   ignore("sc.loadPhenotypes should gracefully exit when a covariate name is not a column in the covariate file.") {

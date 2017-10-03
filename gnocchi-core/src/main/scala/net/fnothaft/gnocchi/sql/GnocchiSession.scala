@@ -12,6 +12,7 @@ import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.utils.misc.Logging
 
+import java.nio.file.{ Paths, Files }
 import scala.collection.JavaConversions._
 
 object GnocchiSession {
@@ -80,11 +81,19 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
           }.mkString("/"))))
       }).as[CalledVariant]
     // Note: the below .map(a => a) is a hack solution to the fact that spark cannot union two
-    // datasets of the same type, but reordered columns. See issue: https://issues.apache.org/jira/browse/SPARK-21109
+    // datasets of the same type that have reordered columns. See issue: https://issues.apache.org/jira/browse/SPARK-21109
     genoWithMaf.filter($"maf" <= 0.5).drop("maf").as[CalledVariant].map(a => a).union(recoded)
   }
 
+  /**
+   * @note currently this does not enforce that the uniqueID is, in fact, unique across the dataset. Checking uniqueness
+   *       would require a shuffle, which adds overhead that might not be necessary right now.
+   *
+   * @param genotypesPath A string specifying the location in the file system of the genotypes file to load in.
+   * @return a [[Dataset]] of [[CalledVariant]] objects loaded from a vcf file
+   */
   def loadGenotypes(genotypesPath: String): Dataset[CalledVariant] = {
+    require(Files.exists(Paths.get(genotypesPath)), s"Specified genotypes file path does not exits: ${genotypesPath}")
     val vcRdd = sc.loadVcf(genotypesPath)
     vcRdd.rdd.map(vc => {
       val variant = vc.variant.variant
@@ -113,6 +122,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
                      covarNames: Option[List[String]] = None,
                      covarDelimiter: String = "\t"): Map[String, Phenotype] = {
 
+    require(Files.exists(Paths.get(phenotypesPath)), s"Specified genotypes file path does not exits: ${phenotypesPath}")
     logInfo("Loading phenotypes from %s.".format(phenotypesPath))
 
     // ToDo: keeps these operations on one machine, because phenotypes are small.
@@ -124,6 +134,8 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
 
     val phenoHeader = prelimPhenotypesDF.schema.fields.map(_.name)
 
+    require(phenoHeader.length > 1,
+      s"The specified delimiter '$delimiter' does not separate fields in the specified file, '$phenotypesPath'")
     require(phenoHeader.contains(phenoName),
       s"The primary phenotype, '$phenoName' does not exist in the specified file, '$phenotypesPath'")
     require(phenoHeader.contains(primaryID),
@@ -133,7 +145,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       .select(primaryID, phenoName)
       .toDF("sampleId", "phenotype")
 
-    val covariateDF = if (covarPath.isDefined) {
+    val covariateDF = if (covarPath.isDefined && covarNames.isDefined) {
       val prelimCovarDF = sparkSession.read.format("csv")
         .option("header", "true")
         .option("inferSchema", "true")
@@ -142,6 +154,8 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
 
       val covarHeader = prelimCovarDF.schema.fields.map(_.name)
 
+      require(covarHeader.length > 1,
+        s"The specified delimiter '$delimiter' does not separate fields in the specified file, '$phenotypesPath'")
       require(covarNames.get.forall(covarHeader.contains(_)),
         s"One of the covariates, '%s' does not exist in the specified file, '%s'".format(covarNames.get.toString(), covarPath.get))
       require(covarHeader.contains(primaryID),
@@ -153,6 +167,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
         .select(primaryID, covarNames.get: _*)
         .toDF("sampleId" :: covarNames.get: _*))
     } else {
+      require(covarPath.isEmpty && covarNames.isEmpty, "Covariate path needs to be specified with covariate names.")
       None
     }
 

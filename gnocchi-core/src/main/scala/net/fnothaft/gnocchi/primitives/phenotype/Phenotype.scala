@@ -19,11 +19,11 @@ package net.fnothaft.gnocchi.primitives.phenotype
 
 case class Phenotype(sampleId: String,
                      phenoName: String,
-                     phenotype: String,
+                     phenotype: Double,
                      covariates: List[Double] = List[Double]()) extends Product {
 
   /**
    * @return primary phenotype at head and covariates at the tail of a list
    */
-  def toDouble: List[Double] = phenotype.toDouble :: covariates
+  def toList: List[Double] = phenotype.toDouble :: covariates
 }

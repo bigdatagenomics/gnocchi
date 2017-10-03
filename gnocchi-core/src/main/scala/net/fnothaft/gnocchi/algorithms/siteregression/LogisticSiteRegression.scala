@@ -48,7 +48,7 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
     val lp: Array[LabeledPoint] =
       cleanedSampleVector.toList.map(
         x => new LabeledPoint(
-          phenotypes(x._1).phenotype.toDouble,
+          phenotypes(x._1).phenotype,
           new org.apache.spark.mllib.linalg.DenseVector(x._2.toArray)))
         .toArray
 
