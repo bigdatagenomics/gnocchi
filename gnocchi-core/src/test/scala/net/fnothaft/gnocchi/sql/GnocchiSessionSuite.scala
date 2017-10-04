@@ -135,38 +135,60 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
   sparkTest("sc.loadPhenotypes should gracefully exit when covariate names are passed in without a covariates path.") {
     val path = testFile("first5samples5phenotypes2covars.txt")
     try {
-      sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", covarNames = Option(List("pheno1", "pheno3")), covarDelimiter = "\t")
+      sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", covarNames = Option(List("pheno2", "pheno3")), covarDelimiter = "\t")
       fail("sc.loadPhenotypes does not fail on covariate names passed in without covariates path.")
     } catch {
       case e: java.lang.IllegalArgumentException =>
     }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when a covariate name is not a column in the covariate file.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when a covariate name is not a column in the covariate file.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("notPresentPhenotype", "pheno3")), covarDelimiter = "\t")
+      fail("sc.loadPhenotypes does not fail when a covariate name is not a column in the covariate file.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should gracefully exit when primary phenotype is not a column in the phenotype file.") {
-
+  sparkTest("sc.loadPhenotypes should gracefully exit when primary phenotype is not a column in the phenotype file.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    try {
+      sc.loadPhenotypes(path, "SampleID", "notPresentPhenotype", "\t", Option(path), Option(List("pheno2", "pheno3")), covarDelimiter = "\t")
+      fail("sc.loadPhenotypes does not fail when a covariate name is not a column in the covariate file.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.loadPhenotypes should produce a scala `Map[String, Phenotype]`.") {
-
+  sparkTest("sc.loadPhenotypes should produce a scala `Map[String, Phenotype]`.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno2", "pheno3")), covarDelimiter = "\t")
+    assert(pheno.isInstanceOf[Map[String, Phenotype]], "sc.loadPhenotypes does not produce a `Map[String, Phenotype]`")
   }
 
-  ignore("sc.loadPhenotypes should properly load in covariates.") {
-
+  sparkTest("sc.loadPhenotypes should properly load in covariates.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno4", "pheno5")), covarDelimiter = "\t")
+    assert(pheno("sample1").covariates == List(0.8404, 2.9080), "sc.loadPhenotypes does not load in proper covariates: sample1")
+    assert(pheno("sample2").covariates == List(-0.8880, 0.8252), "sc.loadPhenotypes does not load in proper covariates: sample2")
+    assert(pheno("sample3").covariates == List(0.1001, 1.3790), "sc.loadPhenotypes does not load in proper covariates: sample3")
+    assert(pheno("sample4").covariates == List(-0.5445, -1.0582), "sc.loadPhenotypes does not load in proper covariates: sample4")
+    assert(pheno("sample5").covariates == List(0.3035, -0.4686), "sc.loadPhenotypes does not load in proper covariates: sample5")
   }
 
-  ignore("sc.loadPhenotypes should create empty lists in the covariate field of the Phenotype objects if there are no covariates.") {
-
+  sparkTest("sc.loadPhenotypes should create empty lists in the covariate field of the Phenotype objects if there are no covariates.") {
+    val path = testFile("first5samples5phenotypes2covars.txt")
+    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t")
+    assert(pheno("sample1").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample1")
+    assert(pheno("sample2").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample2")
+    assert(pheno("sample3").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample3")
+    assert(pheno("sample4").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample4")
+    assert(pheno("sample5").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample5")
   }
 
   ignore("sc.loadPhenotypes should filter out samples with missing phenotype values.") {
-
-  }
-
-  ignore("sc.loadPhenotypes should correctly match covariates to phenotypes based off of primaryID.") {
 
   }
 
@@ -249,8 +271,16 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(filteredSamples.collect.forall(targetcalledVariantsDS.collect().contains(_)), "Filtered dataset did not match expected dataset.")
   }
 
-  ignore("sc.filterSamples should not allow for mind < 0.") {
-
+  sparkTest("sc.filterSamples exit gracefully when mind < 0.") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val dataset = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    try {
+      sc.filterSamples(dataset, -0.4, 2)
+      fail("sc.filterSamples does not fail on missingness per individual < 0.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
   ignore("sc.filterSamples should remove samples from return dataset if they do not have a phenotype.") {
@@ -259,48 +289,135 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // filter variants tests
 
-  ignore("sc.filterVariants should maf _ > 1") {
+  sparkTest("sc.filterVariants exit gracefully when maf _ > 1") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val dataset = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    try {
+      sc.filterVariants(dataset, geno = 0.0, maf = 1.2)
+      fail("sc.filterVariants does not fail on minor allele frequency > 1.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
+  }
+
+  sparkTest("sc.filterVariants should filter out all samples when maf == 1") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val dataset = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    val leftOver = sc.filterVariants(dataset, geno = 0.0, maf = 1.0)
+    assert(leftOver.count() == 0, "Minor allele frequency filter at 1.0 should filter out all variants.")
+  }
+
+  sparkTest("sc.filterVariants should properly filter out variants when  0 < maf < 1") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+
+    val mafs = List(0.2, 0.4, 0.6, 0.8)
+      .map(x => createSampleGenotypeStates(num = 10, maf = x))
+      .map(x => createSampleCalledVariant(samples = Option(x)))
+    val dataset = sparkSession.createDataset(mafs)
+
+    def maf1 = sc.filterVariants(dataset, maf = 0.2, geno = 0.0)
+    def maf2 = sc.filterVariants(dataset, maf = 0.4, geno = 0.0)
+
+    assert(maf1.count() == 3, "Minor allele frequency filtered out wrong number.")
+    assert(maf2.count() == 2, "Minor allele frequency filtered out wrong number.")
+  }
+
+  ignore("sc.filterVariants should filter out everything when maf > 0.5") {
 
   }
 
-  ignore("sc.filterVariants should maf _ == 1") {
+  sparkTest("sc.filterVariants should not filter out any variants when maf == 0") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
 
+    val mafs = List(0.2, 0.4, 0.6, 0.8)
+      .map(x => createSampleGenotypeStates(num = 5, maf = x))
+      .map(x => createSampleCalledVariant(samples = Option(x)))
+    val dataset = sparkSession.createDataset(mafs)
+
+    assert(sc.filterVariants(dataset, maf = 0.0, geno = 0.0).count == 4, "sc.filterVariants filters out variants when maf == 0.0")
   }
 
-  ignore("sc.filterVariants should maf 1 > _ > 0") {
-
-  }
-
-  ignore("sc.filterVariants should maf _ == 0") {
-
-  }
-
-  ignore("sc.filterVariants should maf _ < 0") {
-
+  sparkTest("sc.filterVariants should exit gracefully when maf < 0") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val dataset = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    try {
+      sc.filterVariants(dataset, geno = 0.0, maf = -0.2)
+      fail("sc.filterVariants does not fail on minor allele frequency < 0.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
   ignore("sc.filterVariants should maf correct") {
 
   }
 
-  ignore("sc.filterVariants should geno _ > 1") {
-
+  sparkTest("sc.filterVariants should exit gracefully when geno > 1") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val dataset = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    try {
+      sc.filterVariants(dataset, geno = 1.2, maf = 0.0)
+      fail("sc.filterVariants does not fail on minor allele frequency < 0.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
-  ignore("sc.filterVariants should geno _ == 1") {
+  sparkTest("sc.filterVariants should not filter out any variants when geno == 1") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
 
+    val genos = List(0.2, 0.4, 0.6, 0.8)
+      .map(x => createSampleGenotypeStates(num = 5, geno = x))
+      .map(x => createSampleCalledVariant(samples = Option(x)))
+    val dataset = sparkSession.createDataset(genos)
+
+    assert(sc.filterVariants(dataset, maf = 0.0, geno = 1.0).count == 4, "sc.filterVariants filters out variants when geno == 1.0")
   }
 
-  ignore("sc.filterVariants should geno 1 > _ > 0") {
+  sparkTest("sc.filterVariants should work properly for  0 < geno < 1") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
 
+    val genos = List(0.2, 0.4, 0.6, 0.8)
+      .map(x => createSampleGenotypeStates(num = 5, geno = x))
+      .map(x => createSampleCalledVariant(samples = Option(x)))
+    val dataset = sparkSession.createDataset(genos)
+
+    assert(sc.filterVariants(dataset, geno = 0.8, maf = 0.0).count == 4, "sc.filterVariants incorrectly filtered at geno = 0.8")
+    assert(sc.filterVariants(dataset, geno = 0.6, maf = 0.0).count == 3, "sc.filterVariants incorrectly filtered at geno = 0.6")
+    assert(sc.filterVariants(dataset, geno = 0.4, maf = 0.0).count == 2, "sc.filterVariants incorrectly filtered at geno = 0.4")
+    assert(sc.filterVariants(dataset, geno = 0.2, maf = 0.0).count == 1, "sc.filterVariants incorrectly filtered at geno = 0.2")
   }
 
-  ignore("sc.filterVariants should geno _ == 0") {
+  sparkTest("sc.filterVariants should geno _ == 0") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
 
+    val genos = List(0.2, 0.4, 0.6, 0.8)
+      .map(x => createSampleGenotypeStates(num = 5, geno = x))
+      .map(x => createSampleCalledVariant(samples = Option(x)))
+    val dataset = sparkSession.createDataset(genos)
+
+    assert(sc.filterVariants(dataset, geno = 0.0, maf = 0.0).count == 0, "sc.filterVariants incorrectly filtered at geno = 0.0")
   }
 
-  ignore("sc.filterVariants should geno _ < 0") {
-
+  sparkTest("sc.filterVariants should gracefully exit when geno < 0") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val dataset = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    try {
+      sc.filterVariants(dataset, geno = -0.2, maf = 0.0)
+      fail("sc.filterVariants does not fail on minor allele frequency < 0.")
+    } catch {
+      case e: java.lang.IllegalArgumentException =>
+    }
   }
 
   ignore("sc.filterVariants should geno correct") {

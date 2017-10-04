@@ -36,8 +36,9 @@ trait GnocchiFunSuite extends SparkFunSuite {
                                  geno: Double = 0.0,
                                  ploidy: Int = 2): List[GenotypeState] = {
     val iids = random.shuffle(1000 to 9999 + num).take(num)
-    val gsString = List.fill((num * ploidy * maf).toInt)("1") ++ List.fill((num * ploidy * geno).toInt)(".") ++ List.fill((num * ploidy * (1 - maf - geno)).toInt)("0")
-    val gsVect = random.shuffle(gsString).grouped(2).toList.map(_.mkString("/"))
+    val gsString = List.fill((num * ploidy * maf).toInt)("1") ++ List.fill((num * ploidy * geno).toInt)(".")
+    val gsString2 = gsString ++ List.fill((num * ploidy) - gsString.length)("0")
+    val gsVect = random.shuffle(gsString2).grouped(2).toList.map(_.mkString("/"))
 
     gsVect.zip(iids).map(x => GenotypeState(x._2.toString, x._1))
   }
