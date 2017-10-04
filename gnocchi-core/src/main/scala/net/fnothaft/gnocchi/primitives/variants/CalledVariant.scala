@@ -22,7 +22,7 @@ case class CalledVariant(chromosome: Int,
     val missingCount = sampleValues.count(_ == ".")
     val alleleCount = sampleValues.filter(_ != ".").map(_.toDouble).sum
 
-    assert(sampleValues.length > missingCount, "Variant has entirely missing row.")
+    assert(sampleValues.length > missingCount, "Variant has entirely missing row. Fix by filtering variants with geno = 1.0")
 
     alleleCount / (sampleValues.length - missingCount)
   }

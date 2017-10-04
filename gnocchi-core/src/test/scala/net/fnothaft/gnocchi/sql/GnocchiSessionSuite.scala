@@ -436,36 +436,120 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // recode major allele tests
 
-  ignore("sc.recodeMajorAllele should maf _ > 1") {
+  sparkTest("sc.recodeMajorAllele should maf _ == 1") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val sampleVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 5, maf = 1.0)))
+    val recoded = sc.recodeMajorAllele(sparkSession.createDataset(List(sampleVar))).head
 
+    assert(recoded.chromosome == sampleVar.chromosome, "sc.recodeMajorAllele incorrectly changed the chromosome value of variants to be recoded.")
+    assert(recoded.position == sampleVar.position, "sc.recodeMajorAllele incorrectly changed the position value of variants to be recoded.")
+    assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
+    assert(recoded.alternateAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly did not change the alternate allele value of variants to be recoded.")
+    assert(recoded.referenceAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly did not change the reference allele value of variants to be recoded.")
+    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
+    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
+    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
+    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
+
+    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.toList.map {
+      case "0" => "1"
+      case "1" => "0"
+      case "." => "."
+    }.mkString("/")))
+
+    assert(recodedSamples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
 
-  ignore("sc.recodeMajorAllele should maf _ == 1") {
+  sparkTest("sc.recodeMajorAllele should flip the minor and major allele when maf 1 > _ > 0.5") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val sampleVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 5, maf = 0.75)))
+    val recoded = sc.recodeMajorAllele(sparkSession.createDataset(List(sampleVar))).head
 
+    assert(recoded.chromosome == sampleVar.chromosome, "sc.recodeMajorAllele incorrectly changed the chromosome value of variants to be recoded.")
+    assert(recoded.position == sampleVar.position, "sc.recodeMajorAllele incorrectly changed the position value of variants to be recoded.")
+    assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
+    assert(recoded.alternateAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly did not change the alternate allele value of variants to be recoded.")
+    assert(recoded.referenceAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly did not change the reference allele value of variants to be recoded.")
+    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
+    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
+    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
+    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
+
+    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.toList.map {
+      case "0" => "1"
+      case "1" => "0"
+      case "." => "."
+    }.mkString("/")))
+
+    assert(recodedSamples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
 
-  ignore("sc.recodeMajorAllele should maf 1 > _ > 0.5") {
+  sparkTest("sc.recodeMajorAllele should not recode the variant when maf == 0.5") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val sampleVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 5, maf = 0.5)))
+    val recoded = sc.recodeMajorAllele(sparkSession.createDataset(List(sampleVar))).head
 
+    assert(recoded.chromosome == sampleVar.chromosome, "sc.recodeMajorAllele incorrectly changed the chromosome value of variants to be recoded.")
+    assert(recoded.position == sampleVar.position, "sc.recodeMajorAllele incorrectly changed the position value of variants to be recoded.")
+    assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
+    assert(recoded.referenceAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly changed the reference allele value of variants to be recoded.")
+    assert(recoded.alternateAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly changed the alternate allele value of variants to be recoded.")
+    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
+    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
+    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
+    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
+
+    assert(sampleVar.samples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
 
-  ignore("sc.recodeMajorAllele should maf  _ == 0.5") {
+  sparkTest("sc.recodeMajorAllele should not recode the variant when 0 < maf < 0.5") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val sampleVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 5, maf = 0.25)))
+    val recoded = sc.recodeMajorAllele(sparkSession.createDataset(List(sampleVar))).head
 
+    assert(recoded.chromosome == sampleVar.chromosome, "sc.recodeMajorAllele incorrectly changed the chromosome value of variants to be recoded.")
+    assert(recoded.position == sampleVar.position, "sc.recodeMajorAllele incorrectly changed the position value of variants to be recoded.")
+    assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
+    assert(recoded.referenceAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly changed the reference allele value of variants to be recoded.")
+    assert(recoded.alternateAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly changed the alternate allele value of variants to be recoded.")
+    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
+    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
+    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
+    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
+
+    assert(sampleVar.samples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
 
-  ignore("sc.recodeMajorAllele should maf 0.5 > _ > 0") {
+  sparkTest("sc.recodeMajorAllele should maf _ == 0") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val sampleVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 5, maf = 0.0)))
+    val recoded = sc.recodeMajorAllele(sparkSession.createDataset(List(sampleVar))).head
 
+    assert(recoded.chromosome == sampleVar.chromosome, "sc.recodeMajorAllele incorrectly changed the chromosome value of variants to be recoded.")
+    assert(recoded.position == sampleVar.position, "sc.recodeMajorAllele incorrectly changed the position value of variants to be recoded.")
+    assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
+    assert(recoded.referenceAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly changed the reference allele value of variants to be recoded.")
+    assert(recoded.alternateAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly changed the alternate allele value of variants to be recoded.")
+    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
+    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
+    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
+    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
+
+    assert(sampleVar.samples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
 
-  ignore("sc.recodeMajorAllele should maf _ == 0") {
+  sparkTest("sc.recodeMajorAllele should return `Dataset[CalledVariant]` type.") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+    val sampleVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 5, maf = 0.0)))
+    val recoded = sc.recodeMajorAllele(sparkSession.createDataset(List(sampleVar)))
 
-  }
-
-  ignore("sc.recodeMajorAllele should maf _ < 0") {
-
-  }
-
-  ignore("sc.recodeMajorAllele should return `Dataset[CalledVariant]` type.") {
-
+    assert(recoded.isInstanceOf[Dataset[CalledVariant]], "sc.recodeMajorAllele does not produce a `Dataset[CalledVariant]`")
   }
 
   // phenotype missing tests
