@@ -17,6 +17,14 @@
  */
 package net.fnothaft.gnocchi.primitives.phenotype
 
+/**
+ * @
+ *
+ * @param sampleId Unique identifier of the sample who's phenotype this object represents
+ * @param phenoName Name of the primary phenotype that is being used for association
+ * @param phenotype Value of the primary phenotype that is being used for association
+ * @param covariates List of covariate values that are being included in this association
+ */
 case class Phenotype(sampleId: String,
                      phenoName: String,
                      phenotype: Double,

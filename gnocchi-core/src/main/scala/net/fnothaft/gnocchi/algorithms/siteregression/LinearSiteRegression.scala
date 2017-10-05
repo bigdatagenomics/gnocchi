@@ -38,23 +38,12 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
 
   def applyToSite(phenotypes: Map[String, Phenotype],
                   genotypes: CalledVariant): LinearAssociation = {
-    // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-    // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
 
-    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
-    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
-    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
-
-    // transform the data in to design matrix and y matrix compatible with OLSMultipleLinearRegression
-    val phenotypesLength = phenotypes.head._2.covariates.length + 1
-    val numObservations = genotypes.samples.count(x => !x.value.contains("."))
-    val XandY = cleanedSampleVector.toList.map(x => (x._2, phenotypes(x._1).phenotype))
+    val XandY = prepareDesignMatrix(phenotypes, genotypes)
     val x = XandY.map(_._1.toArray).toArray
     val y = XandY.map(_._2).toArray
 
-    val sum = genotypes.samples.filter(x => !x.value.contains(".")).map(x => clipOrKeepState(x.toDouble)).reduce(_ + _)
-
-    val mean = sum / numObservations.toDouble
+    val phenotypesLength = phenotypes.head._2.covariates.length + 1
 
     try {
       // create linear model
@@ -70,10 +59,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
       val ssResiduals = ols.calculateResidualSumOfSquares()
 
       // calculate sum of squared deviations
-      val ssDeviations = sumOfSquaredDeviations(genotypes, mean)
-
-      // calculate Rsquared
-      val rSquared = ols.calculateRSquared()
+      val ssDeviations = sumOfSquaredDeviations(genotypes)
 
       // compute the regression parameters standard errors
       val standardErrors = ols.estimateRegressionParametersStandardErrors()
@@ -89,7 +75,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
         a t-distribution with N-p-1 degrees of freedom. (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
         https://en.wikipedia.org/wiki/T-statistic
       */
-      val residualDegreesOfFreedom = numObservations - phenotypesLength - 1
+      val residualDegreesOfFreedom = genotypes.numValidSamples - phenotypesLength - 1
       val tDist = new TDistribution(residualDegreesOfFreedom)
       val pvalue = 2 * tDist.cumulativeProbability(-math.abs(t))
       val logPValue = log10(pvalue)
@@ -102,7 +88,7 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
         residualDegreesOfFreedom,
         pvalue,
         beta.toList,
-        numObservations)
+        genotypes.numValidSamples)
     } catch {
       case _: breeze.linalg.MatrixSingularException => {
         throw new SingularMatrixException()
@@ -110,7 +96,21 @@ trait LinearSiteRegression[VM <: LinearVariantModel[VM]] extends SiteRegression[
     }
   }
 
-  protected def sumOfSquaredDeviations(genotypes: CalledVariant, mean: Double): Double = {
+  private def prepareDesignMatrix(phenotypes: Map[String, Phenotype],
+                                  genotypes: CalledVariant): List[(List[Double], Double)] = {
+
+    // class for ols: org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
+    // see http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/regression/OLSMultipleLinearRegression.html
+    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
+    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
+    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
+
+    cleanedSampleVector.toList.map(x => (x._2, phenotypes(x._1).phenotype.toDouble))
+  }
+
+  protected def sumOfSquaredDeviations(genotypes: CalledVariant): Double = {
+    val sum = genotypes.samples.filter(x => !x.value.contains(".")).map(x => clipOrKeepState(x.toDouble)).sum
+    val mean = sum / genotypes.numValidSamples
     val squaredDeviations = genotypes.samples.map(x => math.pow(x.toDouble - mean, 2))
     squaredDeviations.sum
   }
