@@ -294,7 +294,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     //      assert(regressionResult.logPValue >= expectedLogPVal - 0.005)
   }
 
-  ignore("LinearSiteRegression.applyToSite should singular matrix.") {
+  ignore("LinearSiteRegression.applyToSite should break gracefully on a singular matrix") {
 
   }
 
@@ -308,7 +308,35 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
 
   }
 
-  ignore("LinearSiteRegression.applyToSite ") {
+  ignore("LinearSiteRegression.applyToSite should create a new `OLSMultipleLinearRegression`") {
+
+  }
+
+  ignore("LinearSiteRegression.applyToSite should call `OLSMultipleLinearRegression.newSampleData`") {
+
+  }
+
+  ignore("LinearSiteRegression.applyToSite should call `OLSMultipleLinearRegression.estimateRegressionParameters`") {
+
+  }
+
+  ignore("LinearSiteRegression.applyToSite should call `OLSMultipleLinearRegression.calculateResidualSumOfSquares`") {
+
+  }
+
+  ignore("LinearSiteRegression.applyToSite should call `OLSMultipleLinearRegression.estimateRegressionParametersStandardErrors`") {
+
+  }
+
+  ignore("LinearSiteRegression.applyToSite should create an apache math commons `TDistribution`") {
+
+  }
+
+  ignore("LinearSiteRegression.applyToSite should call `TDistribution.cumulativeProbability`") {
+
+  }
+
+  ignore("LinearSiteRegression.applyToSite should return a `LinearAssociation`") {
 
   }
 
@@ -350,9 +378,17 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
 
   }
 
-  ignore("AdditiveLinearRegression.constructVM should create an AdditiveLinearVariantModel from a calledVariant and a LinearAssociation.")
+  ignore("AdditiveLinearRegression.constructVM should create an AdditiveLinearVariantModel from a calledVariant and a LinearAssociation.") {
 
-  ignore("")
+  }
+
+  ignore("AdditiveLinearRegression.constructVM should call the clip or keep state from the `Additive` trait.") {
+
+  }
+
+  ignore("AdditiveLinearRegression should have regressionName set to `additiveLinearRegression`") {
+
+  }
 
   // DominantLinearRegression tests
 
@@ -364,4 +400,15 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
 
   }
 
+  ignore("DominantLinearRegression.constructVM should create an DominantLinearVariantModel from a calledVariant and a LinearAssociation.") {
+
+  }
+
+  ignore("DominantLinearRegression.constructVM should call the clip or keep state from the `Dominant` trait.") {
+
+  }
+
+  ignore("DominantLinearRegression should have regressionName set to `dominantLinearRegression`") {
+
+  }
 }
