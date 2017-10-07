@@ -41,71 +41,22 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
   def applyToSite(phenotypes: Map[String, Phenotype],
                   genotypes: CalledVariant): LogisticAssociation = {
 
-    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
-    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
-    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
-
-    val lp: Array[LabeledPoint] =
-      cleanedSampleVector.toList.map(
-        x => new LabeledPoint(
-          phenotypes(x._1).phenotype,
-          new org.apache.spark.mllib.linalg.DenseVector(x._2.toArray)))
-        .toArray
-
-    val xiVectors = cleanedSampleVector.toList.map(x => DenseVector(1.0 +: x._2.toArray)).toArray
-    val xixiT = xiVectors.map(x => x * x.t)
+    val (data, labels) = prepareDesignMatrix(phenotypes, genotypes)
 
     val phenotypesLength = phenotypes.head._2.covariates.length + 1
     val numObservations = genotypes.samples.count(x => !x.value.contains("."))
 
-    var iter = 0
+    val iter = 0
     val maxIter = 1000
     val tolerance = 1e-6
-    var singular = false
-    var convergence = false
-    val beta = Array.fill[Double](phenotypesLength + 1)(0.0)
-    var hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
-    val data = lp
-    var pi = 0.0
 
-    /* Use Newton-Raphson to solve logistic regression */
-    while ((iter < maxIter) && !convergence && !singular) {
-      try {
-        val logitArray = applyWeights(data, beta)
-        val score = DenseVector.zeros[Double](phenotypesLength + 1)
-        hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
-
-        for (i <- 0 until numObservations) {
-          pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
-          hessian += -xixiT(i) * pi * (1.0 - pi)
-          score += xiVectors(i) * (lp(i).label - pi)
-        }
-
-        val update = -inv(hessian) * score
-        if (max(abs(update)) <= tolerance) {
-          convergence = true
-        }
-
-        for (j <- beta.indices) {
-          beta(j) += update(j)
-        }
-
-        if (beta.exists(_.isNaN)) {
-          logError("LOG_REG - Broke on iteration: " + iter)
-          iter = maxIter
-        }
-      } catch {
-        case _: breeze.linalg.MatrixSingularException => {
-          singular = true
-          throw new SingularMatrixException()
-        }
-      }
-      iter += 1
+    val (beta, hessian) = try {
+      findBeta(X = data, Y = labels, beta = DenseVector.ones(data.rows)[Double], iter = iter, maxIter = maxIter, tolerance = tolerance)
+    } catch {
+      case e: breeze.linalg.MatrixSingularException => logError(e.toString)
     }
 
     /* Use Hessian and weights to calculate the Wald Statistic, or p-value */
-    var matrixSingular = false
-
     try {
       val fisherInfo = -hessian
       val fishInv = inv(fisherInfo)
@@ -136,6 +87,46 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
         throw new SingularMatrixException()
       }
     }
+  }
+
+  private def findBeta(X: DenseMatrix[Double],
+                       Y: DenseVector[Double],
+                       beta: DenseVector[Double],
+                       iter: Int = 0,
+                       maxIter: Int = 1000,
+                       tolerance: Double = 1e-6): (Array[Double], DenseMatrix[Double]) = {
+
+    val logitArray = X * beta
+
+    val p = logitArray.map(x => Math.exp(-softmax(Array(0.0, -x))))
+
+    val hessian = p.toArray.zipWithIndex.map{ case (pi, i) => -X(i, ::).t * X(i, ::) * pi * (1.0 - pi) }.reduce(_ + _)
+    val sampleScore =  { X *:* tile(Y - p, 1, X.cols) }
+    val score = sum(sampleScore(::, *)).t
+
+    val update = -inv(hessian) * score
+    val updatedBeta = beta + update
+
+    if (updatedBeta.exists(_.isNaN)) logError("LOG_REG - Broke on iteration: " + iter)
+    if (max(abs(update)) <= tolerance || iter + 1 == maxIter) return (updatedBeta.toArray, hessian)
+
+    findBeta(X, Y, updatedBeta, iter = iter + 1, maxIter = maxIter, tolerance = tolerance)
+  }
+
+  private def prepareDesignMatrix(phenotypes: Map[String, Phenotype],
+                                  genotypes: CalledVariant): (DenseMatrix[Double], DenseVector[Double])  = {
+
+    val samplesGenotypes = genotypes.samples
+      .filter { case genotypeState => ! genotypeState.value.contains(".") }
+      .map    { case genotypeState => (genotypeState.sampleID, List(clipOrKeepState(genotypeState.toDouble))) }
+
+    val cleanedSampleVector = samplesGenotypes
+      .map { case (sampleID, genotype) => (sampleID, (genotype ++ phenotypes(sampleID).covariates).toList) }
+
+    val XandY = cleanedSampleVector.map{ case (sampleID, sampleVector) => (DenseVector(1.0 +: sampleVector.toArray), phenotypes(sampleID).phenotype) }
+    val X = DenseMatrix(XandY.map{ case (sampleVector, sampleLabel) => sampleVector}: _*)
+    val Y = DenseVector(XandY.map{ case (sampleVector, sampleLabel) => sampleLabel}: _*)
+    (X, Y)
   }
 
   /**

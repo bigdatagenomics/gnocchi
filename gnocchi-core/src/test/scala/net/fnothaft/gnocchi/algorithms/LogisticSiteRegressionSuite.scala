@@ -20,6 +20,7 @@ package net.fnothaft.gnocchi.algorithms
 import net.fnothaft.gnocchi.GnocchiFunSuite
 
 class LogisticSiteRegressionSuite extends GnocchiFunSuite {
+
   //
   //  sparkTest("Test logisticRegression on binary data") {
   //    // read in the data from binary.csv
@@ -81,6 +82,26 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
   }
 
+  ignore("LogisticSiteRegression.applyToSite should create a LabeledPoint array from design matrix output and corresponding phenotypes.")
 
+  // LinearSiteRegression.prepareDesignMatrix tests
+
+  ignore("LogisticSiteRegression.prepareDesignMatrix should produce a map with missing values filtered out.") {
+
+  }
+
+  ignore("LogisticSiteRegression.prepareDesignMatrix should place the genotype value in the first column of the design matrix.") {
+
+  }
+
+  ignore("LogisticSiteRegression.prepareDesignMatrix should place the covariates in columns 1-n in the design matrix") {
+
+  }
+
+  ignore("LogisticSiteRegression.prepareDesignMatrix should produce a `List[(List[Double], Double)]`") {
+
+  }
+
+  ignore("")
 
 }
