@@ -40,18 +40,15 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
                   genotypes: CalledVariant): LogisticAssociation = {
 
     val (data, labels) = prepareDesignMatrix(phenotypes, genotypes)
-
-    val phenotypesLength = phenotypes.head._2.covariates.length + 1
     val numObservations = genotypes.samples.count(x => !x.value.contains("."))
 
-    val iter = 0
     val maxIter = 1000
     val tolerance = 1e-6
     val initBeta = DenseVector.zeros[Double](data.cols)
 
-    val (beta, hessian) = findBeta(data, labels, initBeta, iter = iter, maxIter = maxIter, tolerance = tolerance)
+    val (beta, hessian) = findBeta(data, labels, initBeta, maxIter = maxIter, tolerance = tolerance)
 
-    /* Use Hessian and weights to calculate the Wald Statistic, or p-value */
+    // Use Hessian and weights to calculate the Wald Statistic, or p-value
     val fisherInfo = -hessian
     val fishInv = inv(fisherInfo)
     val standardErrors = sqrt(abs(diag(fishInv)))
@@ -83,10 +80,18 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
 
     val logitArray = X * beta
 
+    // column vector containing probabilities of samples being in class 1 (a case / affected / a positive indicator)
     val p = logitArray.map(x => Math.exp(-softmax(Array(0.0, -x))))
 
+    // (Xi is a single sample's row) Xi.T * Xi * pi * (1 - pi) is a nXn matrix, that we sum across all i
     val hessian = p.toArray.zipWithIndex.map { case (pi, i) => -X(i, ::).t * X(i, ::) * pi * (1.0 - pi) }.reduce(_ + _)
+
+    // subtract predicted probability from actual response and multiply each row by the error for that sample. Acheived
+    // by getting error (Y-p) and copying it columnwise N times (N = number of columns in X) and using *:* to pointwise
+    // multiply the resulting matrix with X
     val sampleScore = { X *:* tile(Y - p, 1, X.cols) }
+
+    // sum into one column
     val score = sum(sampleScore(::, *)).t
 
     val update = -inv(hessian) * score
@@ -172,6 +177,8 @@ trait DominantLogisticRegression extends LogisticSiteRegression[DominantLogistic
             phenotypes: Broadcast[Map[String, Phenotype]],
             validationStringency: String = "STRICT"): Dataset[DominantLogisticVariantModel] = {
 
+    // Note: we would like to use a map below, but need some way to deal with singular matrix exceptions being thrown
+    // by applyToSite. flatMap unpacks the Some/None objects into the correct product case classes.
     genotypes.flatMap((genos: CalledVariant) => {
       try {
         val association = applyToSite(phenotypes.value, genos)
