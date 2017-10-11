@@ -278,7 +278,7 @@
         <version>3.6.1</version>
       </dependency>
       <dependency>
-        <groupId>org.bdgenomics</groupId>
+        <groupId>org.bdgenomics.gnocchi</groupId>
         <artifactId>gnocchi-core_2.10</artifactId>
         <version>${project.version}</version>
       </dependency>
