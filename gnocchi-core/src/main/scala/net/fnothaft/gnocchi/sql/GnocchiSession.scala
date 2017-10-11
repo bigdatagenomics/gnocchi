@@ -96,7 +96,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    * @return a [[Dataset]] of [[CalledVariant]] objects loaded from a vcf file
    */
   def loadGenotypes(genotypesPath: String): Dataset[CalledVariant] = {
-    require(Files.exists(Paths.get(genotypesPath)), s"Specified genotypes file path does not exits: ${genotypesPath}")
+    require(Files.exists(Paths.get(genotypesPath)), s"Specified genotypes file path does not exist: ${genotypesPath}")
     val vcRdd = sc.loadVcf(genotypesPath)
     vcRdd.rdd.map(vc => {
       val variant = vc.variant.variant

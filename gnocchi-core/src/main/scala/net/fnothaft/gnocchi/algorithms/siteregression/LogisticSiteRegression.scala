@@ -18,17 +18,16 @@
 package net.fnothaft.gnocchi.algorithms.siteregression
 
 import breeze.linalg._
-import breeze.numerics.{ log10, _ }
+import breeze.numerics._
 import net.fnothaft.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel, LogisticVariantModel }
 import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
 import net.fnothaft.gnocchi.primitives.phenotype.Phenotype
 import net.fnothaft.gnocchi.primitives.variants.CalledVariant
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.sql.{ Dataset, SparkSession }
 
+import scala.annotation.tailrec
 import scala.collection.immutable.Map
 
 trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegression[VM] {
@@ -37,136 +36,113 @@ trait LogisticSiteRegression[VM <: LogisticVariantModel[VM]] extends SiteRegress
             phenotypes: Broadcast[Map[String, Phenotype]],
             validationStringency: String = "STRICT"): Dataset[VM]
 
-  @throws(classOf[SingularMatrixException])
   def applyToSite(phenotypes: Map[String, Phenotype],
                   genotypes: CalledVariant): LogisticAssociation = {
 
-    val samplesGenotypes = genotypes.samples.filter(x => !x.value.contains(".")).map(x => (x.sampleID, List(clipOrKeepState(x.toDouble))))
-    val samplesCovariates = phenotypes.map(x => (x._1, x._2.covariates)).toMap
-    val cleanedSampleVector = samplesGenotypes.map(x => (x._1, (x._2 ++ samplesCovariates(x._1)).toList)).toMap
-
-    val lp: Array[LabeledPoint] =
-      cleanedSampleVector.toList.map(
-        x => new LabeledPoint(
-          phenotypes(x._1).phenotype,
-          new org.apache.spark.mllib.linalg.DenseVector(x._2.toArray)))
-        .toArray
-
-    val xiVectors = cleanedSampleVector.toList.map(x => DenseVector(1.0 +: x._2.toArray)).toArray
-    val xixiT = xiVectors.map(x => x * x.t)
-
-    val phenotypesLength = phenotypes.head._2.covariates.length + 1
+    val (data, labels) = prepareDesignMatrix(phenotypes, genotypes)
     val numObservations = genotypes.samples.count(x => !x.value.contains("."))
 
-    var iter = 0
     val maxIter = 1000
     val tolerance = 1e-6
-    var singular = false
-    var convergence = false
-    val beta = Array.fill[Double](phenotypesLength + 1)(0.0)
-    var hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
-    val data = lp
-    var pi = 0.0
+    val initBeta = DenseVector.zeros[Double](data.cols)
 
-    /* Use Newton-Raphson to solve logistic regression */
-    while ((iter < maxIter) && !convergence && !singular) {
-      try {
-        val logitArray = applyWeights(data, beta)
-        val score = DenseVector.zeros[Double](phenotypesLength + 1)
-        hessian = DenseMatrix.zeros[Double](phenotypesLength + 1, phenotypesLength + 1)
+    val (beta, hessian) = findBeta(data, labels, initBeta, maxIter = maxIter, tolerance = tolerance)
 
-        for (i <- 0 until numObservations) {
-          pi = Math.exp(-logSumOfExponentials(Array(0.0, -logitArray(i))))
-          hessian += -xixiT(i) * pi * (1.0 - pi)
-          score += xiVectors(i) * (lp(i).label - pi)
-        }
+    // Use Hessian and weights to calculate the Wald Statistic, or p-value
+    val fisherInfo = -hessian
+    val fishInv = inv(fisherInfo)
+    val standardErrors = sqrt(abs(diag(fishInv)))
+    val genoStandardError = standardErrors(1)
 
-        val update = -inv(hessian) * score
-        if (max(abs(update)) <= tolerance) {
-          convergence = true
-        }
+    // calculate Wald statistic for each parameter in the regression model
+    val zScores: DenseVector[Double] = DenseVector(beta) /:/ standardErrors
+    val waldStats = zScores *:* zScores
 
-        for (j <- beta.indices) {
-          beta(j) += update(j)
-        }
+    // calculate cumulative probs
+    val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
+    val probs = waldStats.map(zi => chiDist.cumulativeProbability(zi))
 
-        if (beta.exists(_.isNaN)) {
-          logError("LOG_REG - Broke on iteration: " + iter)
-          iter = maxIter
-        }
-      } catch {
-        case _: breeze.linalg.MatrixSingularException => {
-          singular = true
-          throw new SingularMatrixException()
-        }
-      }
-      iter += 1
-    }
+    val waldTests = 1d - probs
 
-    /* Use Hessian and weights to calculate the Wald Statistic, or p-value */
-    var matrixSingular = false
-
-    try {
-      val fisherInfo = -hessian
-      val fishInv = inv(fisherInfo)
-      val standardErrors = sqrt(abs(diag(fishInv)))
-      val genoStandardError = standardErrors(1)
-
-      // calculate Wald statistic for each parameter in the regression model
-      val zScores: DenseVector[Double] = DenseVector(beta) /:/ standardErrors
-      val waldStats = zScores *:* zScores
-
-      // calculate cumulative probs
-      val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
-      val probs = waldStats.map(zi => {
-        chiDist.cumulativeProbability(zi)
-      })
-
-      val waldTests = 1d - probs
-
-      val logWaldTests = waldTests.map(t => log10(t))
-
-      LogisticAssociation(
-        beta.toList,
-        genoStandardError,
-        waldTests(1),
-        numObservations)
-    } catch {
-      case _: breeze.linalg.MatrixSingularException => {
-        throw new SingularMatrixException()
-      }
-    }
+    LogisticAssociation(
+      beta.toList,
+      genoStandardError,
+      waldTests(1),
+      numObservations)
   }
 
   /**
-   * Apply the weights to data
+   * Tail recursive training function that finds the optimal weights vector given the input training data.
    *
-   * @param lpArray Labeled point array that contains training data
-   * @param b       Weights vector
-   * @return result of multiplying the training data be the weights
+   * @note DO NOT place any statements after the final recursive call to itself, or it will break tail recursive speed
+   *       up provided by the scala compiler.
+   *
+   * @param X [[breeze.linalg.DenseMatrix]] design matrix of [[Double]] that contains training data
+   * @param Y [[breeze.linalg.DenseVector]] of labels that contain labels for parameter X
+   * @param beta Weights vector
+   * @param iter current iteration, used for recursive tracking
+   * @param maxIter maximum number of iterations to be used for recursive depth limiting
+   * @param tolerance smallest allowable step size before function
+   * @return tuple where first item are weight values, beta, as [[Array]]
+   *         and second is Hessian matrix as [[DenseMatrix]]
    */
-  def applyWeights(lpArray: Array[LabeledPoint], b: Array[Double]): Array[Double] = {
-    val logitResults = new Array[Double](lpArray.length)
-    val bDense = DenseVector(b)
-    for (j <- logitResults.indices) {
-      val lp = lpArray(j)
-      logitResults(j) = DenseVector(1.0 +: lp.features.toArray) dot bDense
-    }
-    logitResults
+  @tailrec
+  final def findBeta(X: DenseMatrix[Double],
+                     Y: DenseVector[Double],
+                     beta: DenseVector[Double],
+                     iter: Int = 0,
+                     maxIter: Int = 1000,
+                     tolerance: Double = 1e-6): (Array[Double], DenseMatrix[Double]) = {
+
+    val logitArray = X * beta
+
+    // column vector containing probabilities of samples being in class 1 (a case / affected / a positive indicator)
+    val p = logitArray.map(x => Math.exp(-softmax(Array(0.0, -x))))
+
+    // (Xi is a single sample's row) Xi.T * Xi * pi * (1 - pi) is a nXn matrix, that we sum across all i
+    val hessian = p.toArray.zipWithIndex.map { case (pi, i) => -X(i, ::).t * X(i, ::) * pi * (1.0 - pi) }.reduce(_ + _)
+
+    // subtract predicted probability from actual response and multiply each row by the error for that sample. Achieved
+    // by getting error (Y-p) and copying it columnwise N times (N = number of columns in X) and using *:* to pointwise
+    // multiply the resulting matrix with X
+    val sampleScore = { X *:* tile(Y - p, 1, X.cols) }
+
+    // sum into one column
+    val score = sum(sampleScore(::, *)).t
+
+    val update = -inv(hessian) * score
+    val updatedBeta = beta + update
+
+    if (updatedBeta.exists(_.isNaN)) logError("LOG_REG - Broke on iteration: " + iter)
+    if (max(abs(update)) <= tolerance || iter + 1 == maxIter) return (updatedBeta.toArray, hessian)
+
+    findBeta(X, Y, updatedBeta, iter = iter + 1, maxIter = maxIter, tolerance = tolerance)
   }
 
-  def logSumOfExponentials(exps: Array[Double]): Double = {
-    if (exps.length == 1) {
-      exps(0)
-    }
-    val maxExp = max(exps)
-    var sums = 0.0
-    for (i <- exps.indices) {
-      if (exps(i) != 1.2340980408667956E-4) {
-        sums += java.lang.Math.exp(exps(i) - maxExp)
-      }
-    }
-    maxExp + Math.log(sums)
+  /**
+   * Data preparation function that converts the gnocchi models into breeze linear algebra primitives BLAS/LAPACK
+   * optimizations.
+   *
+   * @param phenotypes [[Phenotype]]s map that contains the labels (primary phenotype) and part of the design matrix
+   *                  (covariates)
+   * @param genotypes [[CalledVariant]] object to convert into a breeze design matrix
+   * @return tuple where first element is the [[DenseMatrix]] design matrix and second element
+   *         is [[DenseVector]] of labels
+   */
+  def prepareDesignMatrix(phenotypes: Map[String, Phenotype],
+                          genotypes: CalledVariant): (DenseMatrix[Double], DenseVector[Double]) = {
+
+    val samplesGenotypes = genotypes.samples
+      .filter { case genotypeState => !genotypeState.value.contains(".") }
+      .map { case genotypeState => (genotypeState.sampleID, List(clipOrKeepState(genotypeState.toDouble))) }
+
+    val cleanedSampleVector = samplesGenotypes
+      .map { case (sampleID, genotype) => (sampleID, (genotype ++ phenotypes(sampleID).covariates).toList) }
+
+    val XandY = cleanedSampleVector.map { case (sampleID, sampleVector) => (DenseVector(1.0 +: sampleVector.toArray), phenotypes(sampleID).phenotype) }
+    val X = DenseMatrix(XandY.map { case (sampleVector, sampleLabel) => sampleVector }: _*)
+    val Y = DenseVector(XandY.map { case (sampleVector, sampleLabel) => sampleLabel }: _*)
+    (X, Y)
   }
 
   protected def constructVM(variant: CalledVariant,
@@ -186,9 +162,18 @@ trait AdditiveLogisticRegression extends LogisticSiteRegression[AdditiveLogistic
             phenotypes: Broadcast[Map[String, Phenotype]],
             validationStringency: String = "STRICT"): Dataset[AdditiveLogisticVariantModel] = {
 
-    genotypes.map((genos: CalledVariant) => {
-      val association = applyToSite(phenotypes.value, genos)
-      constructVM(genos, phenotypes.value.head._2, association)
+    // Note: we would like to use a map below, but need some way to deal with singular matrix exceptions being thrown
+    // by applyToSite. flatMap unpacks the Some/None objects into the correct product case classes.
+    genotypes.flatMap((genos: CalledVariant) => {
+      try {
+        val association = applyToSite(phenotypes.value, genos)
+        Some(constructVM(genos, phenotypes.value.head._2, association))
+      } catch {
+        case e: breeze.linalg.MatrixSingularException => {
+          logError(e.toString)
+          None: Option[AdditiveLogisticVariantModel]
+        }
+      }
     })
   }
 
@@ -218,9 +203,18 @@ trait DominantLogisticRegression extends LogisticSiteRegression[DominantLogistic
             phenotypes: Broadcast[Map[String, Phenotype]],
             validationStringency: String = "STRICT"): Dataset[DominantLogisticVariantModel] = {
 
-    genotypes.map((genos: CalledVariant) => {
-      val association = applyToSite(phenotypes.value, genos)
-      constructVM(genos, phenotypes.value.head._2, association)
+    // Note: we would like to use a map below, but need some way to deal with singular matrix exceptions being thrown
+    // by applyToSite. flatMap unpacks the Some/None objects into the correct product case classes.
+    genotypes.flatMap((genos: CalledVariant) => {
+      try {
+        val association = applyToSite(phenotypes.value, genos)
+        Some(constructVM(genos, phenotypes.value.head._2, association))
+      } catch {
+        case e: breeze.linalg.MatrixSingularException => {
+          logError(e.toString)
+          None: Option[DominantLogisticVariantModel]
+        }
+      }
     })
   }
 

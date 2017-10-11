@@ -17,9 +17,17 @@
  */
 package net.fnothaft.gnocchi.algorithms
 
+import breeze.linalg
+import breeze.linalg.{ DenseMatrix, DenseVector, MatrixSingularException }
 import net.fnothaft.gnocchi.GnocchiFunSuite
+import net.fnothaft.gnocchi.algorithms.siteregression.{ AdditiveLogisticRegression, DominantLogisticRegression }
+import net.fnothaft.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import net.fnothaft.gnocchi.primitives.association.LogisticAssociation
+import org.apache.spark.sql.SparkSession
+import org.mockito.{ ArgumentMatchers, Mockito }
 
 class LogisticSiteRegressionSuite extends GnocchiFunSuite {
+
   //
   //  sparkTest("Test logisticRegression on binary data") {
   //    // read in the data from binary.csv
@@ -67,8 +75,42 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
   // LogisticSiteRegression Correctness tests
 
-  ignore("LogisticSiteRegression.applyToSite should break gracefully on a singular matrix") {
+  sparkTest("LogisticSiteRegression.applyToSite[Additive] should break gracefully on a singular matrix") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
 
+    // This should produce a singular hessian matrix as all the rows will be identical
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.0, geno = 0.0, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+
+    val cvDS = sparkSession.createDataset(List(cv))
+    val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv)))
+
+    val assoc = AdditiveLogisticRegression(cvDS, phenos).collect
+
+    // Note: due to lazy compute, the error won't actually
+    // materialize till an action is called on the dataset, hence the collect
+
+    assert(assoc.length == 0, "Singular Matrix test broken...(either a singular matrix was not created properly or it was not filtered out.)")
+  }
+
+  sparkTest("LogisticSiteRegression.applyToSite[Dominant] should break gracefully on a singular matrix") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+
+    // This should produce a singular hessian matrix as all the rows will be identical
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.0, geno = 0.0, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+
+    val cvDS = sparkSession.createDataset(List(cv))
+    val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv)))
+
+    val assoc = DominantLogisticRegression(cvDS, phenos).collect
+
+    // Note: due to lazy compute, the error won't actually
+    // materialize till an action is called on the dataset, hence the collect
+
+    assert(assoc.length == 0, "Singular Matrix test broken...(either a singular matrix was not created properly or it was not filtered out.)")
   }
 
   // LogisticSiteRegression.applyToSite input validation tests
@@ -77,10 +119,110 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
   }
 
+  // currently breaks due to an unwanted singular matrix, that filters out the sample.
   ignore("LogisticSiteRegression.applyToSite should not break with missing covariates.") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+
+    // This should produce a singular hessian matrix as all the rows will be identical
+    val gs = createSampleGenotypeStates(maf = 0.35, num = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+
+    val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv), numCovariate = 0))
+    val cvDS = sparkSession.createDataset(List(cv))
+    val assoc = AdditiveLogisticRegression(cvDS, phenos).collect
+
+    assert(assoc.length != 0, "LogisticSiteRegression.applyToSite breaks on missing covariates.")
+  }
+
+  // currently breaks due to an unwanted singular matrix, that filters out the sample.
+  ignore("LogisticSiteRegression.applyToSite should return an AdditiveLogisticVariantModel") {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    import sparkSession.implicits._
+
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.35, geno = 0.0, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+
+    val cvDS = sparkSession.createDataset(List(cv))
+    val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv), numCovariate = 10))
+
+    val assoc = AdditiveLogisticRegression(cvDS, phenos).collect
+
+    assert(assoc.head.isInstanceOf[AdditiveLogisticVariantModel], "LogisticSiteRegression.applyToSite does not return a AdditiveLogisticVariantModel")
+  }
+
+  // LogisticSiteRegression.prepareDesignMatrix tests
+
+  sparkTest("LogisticSiteRegression.prepareDesignMatrix should filter out missing values and produce a label vector and a design matrix.") {
+    // This should produce a singular hessian matrix as all the rows will be identical
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+    val phenos = createSamplePhenotype(calledVariant = Option(cv))
+
+    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+
+    assert(data.rows == cv.numValidSamples, "LogisticSiteRegression.prepareDesignMatrix doesn't filter out missing values properly, design matrix.")
+    assert(data.isInstanceOf[DenseMatrix[Double]], "LogisticSiteRegression.prepareDesignMatrix doesn't produce a `breeze.linalg.DenseMatrix[Double]`.")
+    assert(label.length == cv.numValidSamples, "LogisticSiteRegression.prepareDesignMatrix doesn't filter out missing values properly, labels.")
+    assert(label.isInstanceOf[DenseVector[Double]], "LogisticSiteRegression.prepareDesignMatrix doesn't produce a `breeze.linalg.DenseVector[Double]`.")
+  }
+
+  sparkTest("LogisticSiteRegression.prepareDesignMatrix should place the genotype value in the second column of the design matrix.") {
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+    val phenos = createSamplePhenotype(calledVariant = Option(cv))
+
+    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+
+    val genos = DenseVector(cv.samples.filter(!_.toList.contains(".")).map(_.toDouble): _*)
+    assert(data(::, 1) == genos, "LogisticSiteRegression.prepareDesignMatrix places genos in the wrong place")
+  }
+
+  sparkTest("LogisticSiteRegression.prepareDesignMatrix should place the covariates in columns 1 through n in the design matrix") {
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+    val phenos = createSamplePhenotype(calledVariant = Option(cv), numCovariate = 3)
+
+    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+
+    val covs = data(::, 2 to -1)
+    val rows = phenos.filter(x => cv.samples.filter(!_.toList.contains(".")).map(_.sampleID).contains(x._1))
+      .map(_._2.covariates)
+      .toList
+    val otherCovs = DenseMatrix(rows: _*)
+
+    for (i <- 0 until covs.cols) assert(covs(::, i).toArray.toList.sorted == otherCovs(::, i).toArray.toList.sorted, "Covariates are wrong.")
+  }
+
+  sparkTest("LogisticSiteRegression.prepareDesignMatrix should produce a `(DenseMatrix[Double], DenseVector[Double])`") {
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+    val phenos = createSamplePhenotype(calledVariant = Option(cv), numCovariate = 3)
+
+    val XandY = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+
+    assert(XandY.isInstanceOf[(DenseMatrix[Double], DenseVector[Double])], "LogisticSiteRegression.prepareDesignMatrix returned an incorrect type.")
+  }
+
+  // LogisticSiteRegression.findBeta tests
+
+  ignore("LogisticSiteRegression.findBeta should break after the correct number of iterations.") {
 
   }
 
+  sparkTest("LogisticSiteRegression.findBeta should throw a singular matrix exception when hessian is noninvertible.") {
+    val gs = createSampleGenotypeStates(num = 10, maf = 0.0, geno = 0.0, ploidy = 2)
+    val cv = createSampleCalledVariant(samples = Option(gs))
+    val phenos = createSamplePhenotype(calledVariant = Option(cv))
 
+    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+    val beta = DenseVector.zeros[Double](data.cols)
 
+    try {
+      AdditiveLogisticRegression.findBeta(data, label, beta)
+      fail("LogisticSiteRegression.findBeta does not break on singular hessian.")
+    } catch {
+      case e: breeze.linalg.MatrixSingularException =>
+    }
+  }
 }

@@ -1,7 +1,7 @@
 import net.fnothaft.gnocchi.sql.GnocchiSession._
 val genotypesPath1 = "testData/time_genos_1.vcf"
 val phenotypesPath1 = "testData/tab_time_phenos_1.txt"
-val geno1 = sc.loadGenotypesAsText(genotypesPath1, fromAdam = true)
+val geno1 = sc.loadGenotypes(genotypesPath1)
 val pheno1 = sc.loadPhenotypes(phenotypesPath1, "IID", "pheno_1", "\t")
 
 val sampleFiltered1 = sc.filterSamples(geno1, mind = 0.1, ploidy = 2)
