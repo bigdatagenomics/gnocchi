@@ -10,7 +10,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>net.fnothaft</groupId>
+  <groupId>org.bdgenomics.gnocchi</groupId>
   <artifactId>gnocchi-parent_2.10</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
@@ -278,7 +278,7 @@
         <version>3.6.1</version>
       </dependency>
       <dependency>
-        <groupId>net.fnothaft</groupId>
+        <groupId>org.bdgenomics.gnocchi</groupId>
         <artifactId>gnocchi-core_2.10</artifactId>
         <version>${project.version}</version>
       </dependency>

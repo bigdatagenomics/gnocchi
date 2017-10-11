@@ -1,4 +1,4 @@
-import net.fnothaft.gnocchi.sql.GnocchiSession._
+import org.bdgenomics.gnocchi.sql.GnocchiSession._
 val genotypesPath = "testData/time_phenos.vcf"
 val phenotypesPath = "testData/tab_time_phenos.txt"
 val geno = sc.loadGenotypesAsText(genotypesPath)
