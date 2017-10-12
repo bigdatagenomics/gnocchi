@@ -5,12 +5,12 @@
 
   <parent>
     <groupId>org.bdgenomics.gnocchi</groupId>
-    <artifactId>gnocchi-parent_2.10</artifactId>
+    <artifactId>gnocchi-parent_${scala.version.prefix}</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>gnocchi-core_2.10</artifactId>
+  <artifactId>gnocchi-core_${scala.version.prefix}</artifactId>
   <packaging>jar</packaging>
   <name>gnocchi-core: Core APIs and queries</name>
 

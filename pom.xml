@@ -11,7 +11,7 @@
   </parent>
 
   <groupId>org.bdgenomics.gnocchi</groupId>
-  <artifactId>gnocchi-parent_2.10</artifactId>
+  <artifactId>gnocchi-parent_${scala.version.prefix}</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>gnocchi: Genotype store and query engine</name>
@@ -279,7 +279,7 @@
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.gnocchi</groupId>
-        <artifactId>gnocchi-core_2.10</artifactId>
+        <artifactId>gnocchi-core_${scala.version.prefix}</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
