@@ -5,14 +5,14 @@
 
   <parent>
     <groupId>org.bdgenomics.gnocchi</groupId>
-    <artifactId>gnocchi-parent_2.10</artifactId>
+    <artifactId>gnocchi-parent_2.11</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>gnocchi-core_2.10</artifactId>
+  <artifactId>gnocchi-core_2.11</artifactId>
   <packaging>jar</packaging>
-  <name>gnocchi-core: Core APIs and queries</name>
+  <name>gnocchi_${scala.version.prefix}: Core</name>
 
   <build>
     <plugins>
@@ -45,7 +45,7 @@
               As explained here: http://stackoverflow.com/questions/1660441/java-flag-to-enable-extended-serialization-debugging-info
               The second option allows us better debugging for serialization-based errors.
           -->
-          <argLine>-Xmx1024m -Dsun.io.serialization.extendedDebugInfo=true</argLine>
+          <argLine>-Xmx1024m -Dsun.io.serialization.extendedDebugInfo=true -Djava.io.tmpdir=/var/folders/66/8r2ldh5d0xq4zcglwgjf6gv80000gn/T/gnocchiTestMvnXXXXXXX.PDuErZrK -Djava.io.tmpdir=/var/folders/66/8r2ldh5d0xq4zcglwgjf6gv80000gn/T/gnocchiTestMvnXXXXXXX.d1mt6vD9 -Djava.io.tmpdir=/var/folders/66/8r2ldh5d0xq4zcglwgjf6gv80000gn/T/gnocchiTestMvnXXXXXXX.eRmiFaTc -Djava.io.tmpdir=/var/folders/66/8r2ldh5d0xq4zcglwgjf6gv80000gn/T/gnocchiTestMvnXXXXXXX.u9bHWT1h -Djava.io.tmpdir=/var/folders/66/8r2ldh5d0xq4zcglwgjf6gv80000gn/T/gnocchiTestMvnXXXXXXX.J5tKjn9N -Djava.io.tmpdir=/var/folders/66/8r2ldh5d0xq4zcglwgjf6gv80000gn/T/gnocchiTestMvnXXXXXXX.PyTFRsyh</argLine>
           <stdout>F</stdout>
         </configuration>
         <executions>
@@ -59,6 +59,7 @@
       </plugin>
     </plugins>
   </build>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.parquet</groupId>
@@ -77,19 +78,6 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.bdgenomics.utils</groupId>
-      <artifactId>utils-misc_${scala.version.prefix}</artifactId>
-      <version>${bdg-utils.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.spark</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.version.prefix}</artifactId>
       <scope>test</scope>
@@ -97,7 +85,7 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>2.10.0</version>
+      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -87,7 +87,7 @@ GNOCCHI_CLI_JAR="${ASSEMBLY_DIR}/${ASSEMBLY_JARS}"
 
 # Allow main class to be overridden
 if [ -z "$GNOCCHI_MAIN" ]; then
-  GNOCCHI_MAIN="net.fnothaft.gnocchi.cli.GnocchiMain"
+  GNOCCHI_MAIN="org.bdgenomics.gnocchi.cli.GnocchiMain"
 fi
 echo "Using GNOCCHI_MAIN=$GNOCCHI_MAIN"
 

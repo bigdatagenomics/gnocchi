@@ -43,7 +43,7 @@ gnocchi-submit regressPhenotypes testData/5snps10samples.vcf testData/10samples5
 
 ## Phenotype Input
 
-Format phenotypes in a CSV. Both comma and tabs are accepted as delimiters.
+Format your phenotypes files as CSV or tab-delimited text, and include a header. 
 
 ```
 SampleID    pheno1    pheno2
