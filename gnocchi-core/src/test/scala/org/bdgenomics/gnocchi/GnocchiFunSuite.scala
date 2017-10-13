@@ -93,4 +93,3 @@ trait GnocchiFunSuite extends SparkFunSuite {
     phenos.toMap
   }
 }
-
