@@ -19,11 +19,11 @@ package org.bdgenomics.gnocchi.algorithms
 
 import breeze.linalg
 import breeze.linalg.{ DenseMatrix, DenseVector, MatrixSingularException }
-import org.bdgenomics.gnocchi.algorithms.siteregression.{ AdditiveLogisticRegression, DominantLogisticRegression }
-import org.bdgenomics.gnocchi.models.variant.logistic.AdditiveLogisticVariantModel
+import org.bdgenomics.gnocchi.algorithms.siteregression.LogisticSiteRegression
 import org.bdgenomics.gnocchi.primitives.association.LogisticAssociation
 import org.apache.spark.sql.SparkSession
 import org.bdgenomics.gnocchi.GnocchiFunSuite
+import org.bdgenomics.gnocchi.models.variant.LogisticVariantModel
 import org.mockito.{ ArgumentMatchers, Mockito }
 
 class LogisticSiteRegressionSuite extends GnocchiFunSuite {
@@ -86,7 +86,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cvDS = sparkSession.createDataset(List(cv))
     val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv)))
 
-    val assoc = AdditiveLogisticRegression(cvDS, phenos).collect
+    val assoc = LogisticSiteRegression(cvDS, phenos).collect
 
     // Note: due to lazy compute, the error won't actually
     // materialize till an action is called on the dataset, hence the collect
@@ -105,7 +105,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cvDS = sparkSession.createDataset(List(cv))
     val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv)))
 
-    val assoc = DominantLogisticRegression(cvDS, phenos).collect
+    val assoc = LogisticSiteRegression(cvDS, phenos, "DOMINANT").collect
 
     // Note: due to lazy compute, the error won't actually
     // materialize till an action is called on the dataset, hence the collect
@@ -130,7 +130,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
     val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv), numCovariate = 0))
     val cvDS = sparkSession.createDataset(List(cv))
-    val assoc = AdditiveLogisticRegression(cvDS, phenos).collect
+    val assoc = LogisticSiteRegression(cvDS, phenos).collect
 
     assert(assoc.length != 0, "LogisticSiteRegression.applyToSite breaks on missing covariates.")
   }
@@ -146,9 +146,9 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cvDS = sparkSession.createDataset(List(cv))
     val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv), numCovariate = 10))
 
-    val assoc = AdditiveLogisticRegression(cvDS, phenos).collect
+    val assoc = LogisticSiteRegression(cvDS, phenos).collect
 
-    assert(assoc.head.isInstanceOf[AdditiveLogisticVariantModel], "LogisticSiteRegression.applyToSite does not return a AdditiveLogisticVariantModel")
+    assert(assoc.head.isInstanceOf[LogisticVariantModel], "LogisticSiteRegression.applyToSite does not return a AdditiveLogisticVariantModel")
   }
 
   // LogisticSiteRegression.prepareDesignMatrix tests
@@ -159,7 +159,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cv = createSampleCalledVariant(samples = Option(gs))
     val phenos = createSamplePhenotype(calledVariant = Option(cv))
 
-    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+    val (data, label) = LogisticSiteRegression.prepareDesignMatrix(phenos, cv, "ADDITIVE")
 
     assert(data.rows == cv.numValidSamples, "LogisticSiteRegression.prepareDesignMatrix doesn't filter out missing values properly, design matrix.")
     assert(data.isInstanceOf[DenseMatrix[Double]], "LogisticSiteRegression.prepareDesignMatrix doesn't produce a `breeze.linalg.DenseMatrix[Double]`.")
@@ -172,7 +172,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cv = createSampleCalledVariant(samples = Option(gs))
     val phenos = createSamplePhenotype(calledVariant = Option(cv))
 
-    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+    val (data, label) = LogisticSiteRegression.prepareDesignMatrix(phenos, cv, "ADDITIVE")
 
     val genos = DenseVector(cv.samples.filter(!_.toList.contains(".")).map(_.toDouble): _*)
     assert(data(::, 1) == genos, "LogisticSiteRegression.prepareDesignMatrix places genos in the wrong place")
@@ -183,7 +183,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cv = createSampleCalledVariant(samples = Option(gs))
     val phenos = createSamplePhenotype(calledVariant = Option(cv), numCovariate = 3)
 
-    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+    val (data, label) = LogisticSiteRegression.prepareDesignMatrix(phenos, cv, "ADDITIVE")
 
     val covs = data(::, 2 to -1)
     val rows = phenos.filter(x => cv.samples.filter(!_.toList.contains(".")).map(_.sampleID).contains(x._1))
@@ -199,7 +199,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cv = createSampleCalledVariant(samples = Option(gs))
     val phenos = createSamplePhenotype(calledVariant = Option(cv), numCovariate = 3)
 
-    val XandY = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+    val XandY = LogisticSiteRegression.prepareDesignMatrix(phenos, cv, "ADDITIVE")
 
     assert(XandY.isInstanceOf[(DenseMatrix[Double], DenseVector[Double])], "LogisticSiteRegression.prepareDesignMatrix returned an incorrect type.")
   }
@@ -215,11 +215,11 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val cv = createSampleCalledVariant(samples = Option(gs))
     val phenos = createSamplePhenotype(calledVariant = Option(cv))
 
-    val (data, label) = AdditiveLogisticRegression.prepareDesignMatrix(phenos, cv)
+    val (data, label) = LogisticSiteRegression.prepareDesignMatrix(phenos, cv, "ADDITIVE")
     val beta = DenseVector.zeros[Double](data.cols)
 
     try {
-      AdditiveLogisticRegression.findBeta(data, label, beta)
+      LogisticSiteRegression.findBeta(data, label, beta)
       fail("LogisticSiteRegression.findBeta does not break on singular hessian.")
     } catch {
       case e: breeze.linalg.MatrixSingularException =>

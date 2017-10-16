@@ -1,11 +1,47 @@
-package org.bdgenomics.gnocchi.models.variant.linear
+/**
+ * Licensed to Big Data Genomics (BDG) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The BDG licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.bdgenomics.gnocchi.models.variant
 
-import org.bdgenomics.gnocchi.models.variant.VariantModel
-import org.bdgenomics.gnocchi.primitives.association.LinearAssociation
 import org.apache.commons.math3.distribution.TDistribution
+import org.bdgenomics.gnocchi.algorithms.siteregression.LinearSiteRegression
+import org.bdgenomics.gnocchi.primitives.association.LinearAssociation
+import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
+import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 
-trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] {
-  val association: LinearAssociation
+import scala.collection.immutable.Map
+
+case class LinearVariantModel(uniqueID: String,
+                              association: LinearAssociation,
+                              phenotype: String,
+                              chromosome: Int,
+                              position: Int,
+                              referenceAllele: String,
+                              alternateAllele: String,
+                              allelicAssumption: String,
+                              phaseSetId: Int = 0) extends VariantModel[LinearVariantModel] with LinearSiteRegression {
+
+  val modelType: String = "Linear Variant Model"
+  val regressionName = "Linear Regression"
+
+  def update(genotypes: CalledVariant, phenotypes: Map[String, Phenotype]): LinearVariantModel = {
+    val batchVariantModel = constructVariantModel(uniqueID, applyToSite(phenotypes, genotypes, allelicAssumption))
+    mergeWith(batchVariantModel)
+  }
 
   /**
    * Returns updated LinearVariantModel of correct subtype
@@ -15,7 +51,7 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
    *
    * @return Returns updated LinearVariantModel of correct subtype
    */
-  def mergeWith(variantModel: VM): VM = {
+  def mergeWith(variantModel: LinearVariantModel): LinearVariantModel = {
     val updatedNumSamples = updateNumSamples(variantModel.association.numSamples)
     val updatedWeights = updateWeights(variantModel.association.weights, variantModel.association.numSamples)
     val updatedSsDeviations = updateSsDeviations(variantModel.association.ssDeviations)
@@ -153,6 +189,39 @@ trait LinearVariantModel[VM <: LinearVariantModel[VM]] extends VariantModel[VM] 
                             updatedResidualDegreesOfFreedom: Int,
                             updatedPValue: Double,
                             updatedWeights: List[Double],
-                            updatedNumSamples: Int): VM
+                            updatedNumSamples: Int): LinearVariantModel = {
+
+    val updatedAssociation = LinearAssociation(ssDeviations = updatedSsDeviations,
+      ssResiduals = updatedSsResiduals,
+      geneticParameterStandardError = updatedGeneticParameterStandardError,
+      tStatistic = updatedtStatistic,
+      residualDegreesOfFreedom = updatedResidualDegreesOfFreedom,
+      pValue = updatedPValue,
+      weights = updatedWeights,
+      numSamples = updatedNumSamples)
+
+    LinearVariantModel(variantID,
+      updatedAssociation,
+      phenotype,
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele,
+      allelicAssumption,
+      phaseSetId)
+  }
+
+  def constructVariantModel(variantID: String,
+                            association: LinearAssociation): LinearVariantModel = {
+    LinearVariantModel(variantID,
+      association,
+      phenotype,
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele,
+      allelicAssumption,
+      phaseSetId)
+  }
 
 }

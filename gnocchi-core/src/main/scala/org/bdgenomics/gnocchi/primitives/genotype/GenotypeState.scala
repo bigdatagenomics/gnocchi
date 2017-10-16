@@ -18,4 +18,16 @@ case class GenotypeState(sampleID: String,
   def toList: List[String] = {
     value.split("/|\\|").toList
   }
+
+  def additive: Double = {
+    toDouble
+  }
+
+  def dominant: Double = {
+    if (toDouble == 0.0) 0.0 else 1.0
+  }
+
+  def recessive: Double = {
+    if (toDouble == 2.0) 1.0 else 0.0
+  }
 }

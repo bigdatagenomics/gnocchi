@@ -19,7 +19,6 @@
 package org.bdgenomics.gnocchi.sql
 
 import org.bdgenomics.gnocchi.GnocchiFunSuite
-import org.bdgenomics.gnocchi.algorithms.siteregression.{ AdditiveLinearRegression, DominantLinearRegression }
 import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant

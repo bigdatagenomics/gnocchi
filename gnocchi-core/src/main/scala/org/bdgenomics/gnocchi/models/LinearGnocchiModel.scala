@@ -15,20 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.bdgenomics.gnocchi.models.linear
+package org.bdgenomics.gnocchi.models
 
-import org.bdgenomics.gnocchi.algorithms.siteregression.DominantLinearRegression
-import org.bdgenomics.gnocchi.models._
-import org.bdgenomics.gnocchi.models.variant.QualityControlVariantModel
-import org.bdgenomics.gnocchi.models.variant.linear.DominantLinearVariantModel
-import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
-import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.{ Dataset, SparkSession }
+import org.bdgenomics.gnocchi.algorithms.siteregression.LinearSiteRegression
+import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, QualityControlVariantModel }
+import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
+import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 
-object DominantLinearGnocchiModelFactory {
+object LinearGnocchiModelFactory {
 
-  val regressionName = "dominantLinearRegression"
+  val regressionName = "LinearRegression"
   val sparkSession = SparkSession.builder().getOrCreate()
   import sparkSession.implicits._
 
@@ -37,10 +35,10 @@ object DominantLinearGnocchiModelFactory {
             phenotypeNames: Option[List[String]],
             QCVariantIDs: Option[Set[String]] = None,
             QCVariantSamplingRate: Double = 0.1,
-            validationStringency: String = "STRICT"): DominantLinearGnocchiModel = {
+            validationStringency: String = "STRICT"): LinearGnocchiModel = {
 
     // ToDo: sampling QC Variants better.
-    val variantModels = DominantLinearRegression(genotypes, phenotypes, validationStringency)
+    val variantModels = LinearSiteRegression(genotypes, phenotypes, validationStringency)
 
     // Create QCVariantModels
     val comparisonVariants = if (QCVariantIDs.isEmpty) {
@@ -53,7 +51,7 @@ object DominantLinearGnocchiModelFactory {
       .joinWith(comparisonVariants, variantModels("uniqueID") === comparisonVariants("uniqueID"), "inner")
       .withColumnRenamed("_1", "variantModel")
       .withColumnRenamed("_2", "variant")
-      .as[QualityControlVariantModel[DominantLinearVariantModel]]
+      .as[QualityControlVariantModel[LinearVariantModel]]
 
     val phenoNames = if (phenotypeNames.isEmpty) {
       List(phenotypes.value.head._2.phenoName) ++ (1 to phenotypes.value.head._2.covariates.length).map(x => "covar_" + x)
@@ -68,23 +66,23 @@ object DominantLinearGnocchiModelFactory {
       genotypes.count().toInt,
       flaggedVariantModels = Option(QCVariantModels.select("variant.uniqueID").as[String].collect().toList))
 
-    DominantLinearGnocchiModel(metaData = metadata,
+    LinearGnocchiModel(metaData = metadata,
       variantModels = variantModels,
       QCVariantModels = QCVariantModels,
       QCPhenotypes = phenotypes.value)
   }
 }
 
-case class DominantLinearGnocchiModel(metaData: GnocchiModelMetaData,
-                                      variantModels: Dataset[DominantLinearVariantModel],
-                                      QCVariantModels: Dataset[QualityControlVariantModel[DominantLinearVariantModel]],
-                                      QCPhenotypes: Map[String, Phenotype])
-    extends GnocchiModel[DominantLinearVariantModel, DominantLinearGnocchiModel] {
+case class LinearGnocchiModel(metaData: GnocchiModelMetaData,
+                              variantModels: Dataset[LinearVariantModel],
+                              QCVariantModels: Dataset[QualityControlVariantModel[LinearVariantModel]],
+                              QCPhenotypes: Map[String, Phenotype])
+    extends GnocchiModel[LinearVariantModel, LinearGnocchiModel] {
 
   val sparkSession = SparkSession.builder().getOrCreate()
   import sparkSession.implicits._
 
-  def mergeGnocchiModel(otherModel: GnocchiModel[DominantLinearVariantModel, DominantLinearGnocchiModel]): GnocchiModel[DominantLinearVariantModel, DominantLinearGnocchiModel] = {
+  def mergeGnocchiModel(otherModel: GnocchiModel[LinearVariantModel, LinearGnocchiModel]): GnocchiModel[LinearVariantModel, LinearGnocchiModel] = {
 
     require(otherModel.metaData.modelType == metaData.modelType,
       "Models being merged are not the same type. Type equality is required to merge two models correctly.")
@@ -100,17 +98,17 @@ case class DominantLinearGnocchiModel(metaData: GnocchiModelMetaData,
     val mergedQCVariantModels = mergedVMs.joinWith(mergedQCVariants, mergedVMs("uniqueID") === mergedQCVariants("uniqueID"), "inner")
       .withColumnRenamed("_1", "variantModel")
       .withColumnRenamed("_2", "variant")
-      .as[QualityControlVariantModel[DominantLinearVariantModel]]
+      .as[QualityControlVariantModel[LinearVariantModel]]
     val mergedQCPhenotypes = QCPhenotypes ++ otherModel.QCPhenotypes
 
-    DominantLinearGnocchiModel(updatedMetaData, mergedVMs, mergedQCVariantModels, mergedQCPhenotypes)
+    LinearGnocchiModel(updatedMetaData, mergedVMs, mergedQCVariantModels, mergedQCPhenotypes)
   }
 
-  def mergeVariantModels(newVariantModels: Dataset[DominantLinearVariantModel]): Dataset[DominantLinearVariantModel] = {
+  def mergeVariantModels(newVariantModels: Dataset[LinearVariantModel]): Dataset[LinearVariantModel] = {
     variantModels.joinWith(newVariantModels, variantModels("uniqueID") === newVariantModels("uniqueID")).map(x => x._1.mergeWith(x._2))
   }
 
-  def mergeQCVariants(newQCVariantModels: Dataset[QualityControlVariantModel[DominantLinearVariantModel]]): Dataset[CalledVariant] = {
+  def mergeQCVariants(newQCVariantModels: Dataset[QualityControlVariantModel[LinearVariantModel]]): Dataset[CalledVariant] = {
     val variants1 = QCVariantModels.map(_.variant)
     val variants2 = newQCVariantModels.map(_.variant)
 

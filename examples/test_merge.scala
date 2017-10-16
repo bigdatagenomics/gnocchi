@@ -1,6 +1,6 @@
 import org.bdgenomics.gnocchi.sql.GnocchiSession._
-val genotypesPath1 = "testData/time_genos_1.vcf"
-val phenotypesPath1 = "testData/tab_time_phenos_1.txt"
+val genotypesPath1 = "examples/testData/time_genos_1.vcf"
+val phenotypesPath1 = "examples/testData/tab_time_phenos_1.txt"
 val geno1 = sc.loadGenotypes(genotypesPath1)
 val pheno1 = sc.loadPhenotypes(phenotypesPath1, "IID", "pheno_1", "\t")
 
@@ -19,7 +19,7 @@ val broadPheno1 = sc.broadcast(pheno1)
 
 // val broadPheno2 = sc.broadcast(pheno2)
 
-import org.bdgenomics.gnocchi.algorithms.siteregression.AdditiveLinearRegression
+import org.bdgenomics.gnocchi.algorithms.siteregression.LinearSiteRegression
 
-val assoc_1 = AdditiveLinearRegression(fullFiltered1, broadPheno1)
+val assoc_1 = LinearSiteRegression(fullFiltered1, broadPheno1)
 // val assoc_2 = AdditiveLinearRegression(fullFiltered2, broadPheno2)

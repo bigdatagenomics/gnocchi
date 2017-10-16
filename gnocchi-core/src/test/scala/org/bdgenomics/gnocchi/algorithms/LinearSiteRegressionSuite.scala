@@ -19,7 +19,7 @@ package org.bdgenomics.gnocchi.algorithms
 
 import breeze.linalg.MatrixSingularException
 import org.bdgenomics.gnocchi.GnocchiFunSuite
-import org.bdgenomics.gnocchi.algorithms.siteregression.{ AdditiveLinearRegression, DominantLinearRegression }
+import org.bdgenomics.gnocchi.algorithms.siteregression.LinearSiteRegression
 import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
@@ -75,7 +75,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .toMap
 
     // use additiveLinearRegression to regress on AscombeI
-    val regressionResult = AdditiveLinearRegression.applyToSite(phenoMap, cv)
+    val regressionResult = LinearSiteRegression.applyToSite(phenoMap, cv, "ADDITIVE")
 
     // Assert that the rsquared is in the right threshold.
     // R^2 = 1 - (SS_res / SS_tot)
@@ -112,7 +112,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .toMap
 
     // use additiveLinearRegression to regress on AscombeII
-    val regressionResult = AdditiveLinearRegression.applyToSite(phenoMap, cv)
+    val regressionResult = LinearSiteRegression.applyToSite(phenoMap, cv, "ADDITIVE")
 
     // Assert that the rsquared is in the right threshold.
     // R^2 = 1 - (SS_res / SS_tot)
@@ -149,7 +149,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .toMap
 
     // use additiveLinearRegression to regress on AscombeIII
-    val regressionResult = AdditiveLinearRegression.applyToSite(phenoMap, cv)
+    val regressionResult = LinearSiteRegression.applyToSite(phenoMap, cv, "ADDITIVE")
 
     // Assert that the rsquared is in the right threshold.
     // R^2 = 1 - (SS_res / SS_tot)
@@ -186,7 +186,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .toMap
 
     //use additiveLinearRegression to regress on AscombeIV
-    val regressionResult = AdditiveLinearRegression.applyToSite(phenoMap, cv)
+    val regressionResult = LinearSiteRegression.applyToSite(phenoMap, cv, "ADDITIVE")
 
     // Assert that the rsquared is in the right threshold.
     // R^2 = 1 - (SS_res / SS_tot)
@@ -295,7 +295,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .toMap
 
     // use additiveLinearRegression to regress on PIQ
-    val regressionResult = AdditiveLinearRegression.applyToSite(phenoMap, cv)
+    val regressionResult = LinearSiteRegression.applyToSite(phenoMap, cv, "ADDITIVE")
 
     // Assert that the rsquared is in the right threshold.
     // R^2 = 1 - (SS_res / SS_tot)
@@ -321,7 +321,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val phenoMap = Map("sample1" -> Phenotype("sample1", "pheno1", 1))
 
     intercept[MatrixSingularException] {
-      val regressionResult = AdditiveLinearRegression.applyToSite(phenoMap, cv)
+      val regressionResult = LinearSiteRegression.applyToSite(phenoMap, cv, "ADDITIVE")
     }
   }
 
@@ -332,7 +332,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
     val phenoMap = Map("sample2" -> Phenotype("sample2", "pheno1", 1))
 
     intercept[IllegalArgumentException] {
-      val regressionResult = AdditiveLinearRegression.applyToSite(phenoMap, cv)
+      val regressionResult = LinearSiteRegression.applyToSite(phenoMap, cv, "ADDITIVE")
     }
   }
 
@@ -368,8 +368,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1(0), item._1.slice(1, 3).toList)))
       .toMap
 
-    val (x, y) = AdditiveLinearRegression.prepareDesignMatrix(cv, phenoMap)
-
+    val (x, y) = LinearSiteRegression.prepareDesignMatrix(cv, phenoMap, "ADDITIVE")
     // Verify length of X and Y matrices
     assert(x.rows === 5)
     assert(y.length === 5)
@@ -397,7 +396,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1(0), item._1.slice(1, 3).toList)))
       .toMap
 
-    val (x, y) = AdditiveLinearRegression.prepareDesignMatrix(cv, phenoMap)
+    val (x, y) = LinearSiteRegression.prepareDesignMatrix(cv, phenoMap, "ADDITIVE")
 
     // Verify length of Y label vector
     assert(y.length === 5)
@@ -424,7 +423,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1(0), item._1.slice(1, 3).toList)))
       .toMap
 
-    val (x, y) = AdditiveLinearRegression.prepareDesignMatrix(cv, phenoMap)
+    val (x, y) = LinearSiteRegression.prepareDesignMatrix(cv, phenoMap, "ADDITIVE")
 
     // Verify length of X data matrix
     assert(x.rows === 5)
@@ -451,7 +450,7 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
       .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1(0), item._1.slice(1, 3).toList)))
       .toMap
 
-    val (x, y) = AdditiveLinearRegression.prepareDesignMatrix(cv, phenoMap)
+    val (x, y) = LinearSiteRegression.prepareDesignMatrix(cv, phenoMap, "ADDITIVE")
 
     // Verify length of X data matrix
     assert(x.rows === 5)
@@ -466,17 +465,13 @@ class LinearSiteRegressionSuite extends GnocchiFunSuite {
 
   }
 
-  sparkTest("AdditiveLinearRegression should have regressionName set to `additiveLinearRegression`") {
-    assert(AdditiveLinearRegression.regressionName === "additiveLinearRegression")
+  sparkTest("LinearSiteRegression should have regressionName set to `LinearSiteRegression`") {
+    assert(LinearSiteRegression.regressionName === "LinearSiteRegression")
   }
 
   // DominantLinearRegression tests
 
   ignore("DominantLinearRegression.constructVM should call the clip or keep state from the `Dominant` trait.") {
 
-  }
-
-  sparkTest("DominantLinearRegression should have regressionName set to `dominantLinearRegression`") {
-    assert(DominantLinearRegression.regressionName === "dominantLinearRegression")
   }
 }

@@ -15,14 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.bdgenomics.gnocchi.models.variant.logistic
+package org.bdgenomics.gnocchi.models.variant
 
-import org.bdgenomics.gnocchi.models.variant.VariantModel
-import org.bdgenomics.gnocchi.primitives.association.LogisticAssociation
 import org.apache.commons.math3.distribution.ChiSquaredDistribution
+import org.apache.commons.math3.linear.SingularMatrixException
+import org.bdgenomics.gnocchi.algorithms.siteregression.LogisticSiteRegression
+import org.bdgenomics.gnocchi.primitives.association.LogisticAssociation
+import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
+import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 
-trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[VM] {
-  val association: LogisticAssociation
+import scala.collection.immutable.Map
+
+case class LogisticVariantModel(uniqueID: String,
+                                association: LogisticAssociation,
+                                phenotype: String,
+                                chromosome: Int,
+                                position: Int,
+                                referenceAllele: String,
+                                alternateAllele: String,
+                                allelicAssumption: String,
+                                phaseSetId: Int = 0) extends VariantModel[LogisticVariantModel] with LogisticSiteRegression {
+
+  val modelType = "Logistic Variant Model"
+  val regressionName = "Logistic Regression"
 
   /**
    * Returns updated LogisticVariantModel of correct subtype
@@ -32,7 +47,7 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
    *
    * @return Returns updated LogisticVariantModel of correct subtype
    */
-  def mergeWith(variantModel: VM): VM = {
+  def mergeWith(variantModel: LogisticVariantModel): LogisticVariantModel = {
     val updatedNumSamples = updateNumSamples(variantModel.association.numSamples)
     val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(variantModel.association.geneticParameterStandardError, variantModel.association.numSamples)
     val updatedWeights = updateWeights(variantModel.association.weights, variantModel.association.numSamples)
@@ -58,7 +73,6 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
    */
   def computeGeneticParameterStandardError(batchStandardError: Double, batchNumSamples: Int): Double = {
     (batchStandardError * batchNumSamples.toDouble + association.geneticParameterStandardError * association.numSamples.toDouble) / (batchNumSamples + association.numSamples).toDouble
-
   }
 
   /**
@@ -87,9 +101,50 @@ trait LogisticVariantModel[VM <: LogisticVariantModel[VM]] extends VariantModel[
     1 - chiDist.cumulativeProbability(waldStatistic)
   }
 
+  def update(genotypes: CalledVariant,
+             phenotypes: Map[String, Phenotype]): LogisticVariantModel = {
+
+    //TODO: add validation stringency here rather than just creating empty association object
+    val batchVariantModel = try {
+      constructVariantModel(uniqueID, applyToSite(phenotypes, genotypes, allelicAssumption))
+    } catch {
+      case error: SingularMatrixException => throw new SingularMatrixException()
+    }
+    mergeWith(batchVariantModel)
+  }
+
   def constructVariantModel(variantId: String,
                             updatedGeneticParameterStandardError: Double,
                             updatedPValue: Double,
                             updatedWeights: List[Double],
-                            updatedNumSamples: Int): VM
+                            updatedNumSamples: Int): LogisticVariantModel = {
+
+    val association = LogisticAssociation(weights = updatedWeights,
+      geneticParameterStandardError = updatedGeneticParameterStandardError,
+      pValue = updatedPValue,
+      numSamples = updatedNumSamples)
+
+    LogisticVariantModel(variantId,
+      association,
+      phenotype,
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele,
+      allelicAssumption,
+      phaseSetId)
+  }
+
+  def constructVariantModel(variantId: String,
+                            association: LogisticAssociation): LogisticVariantModel = {
+    LogisticVariantModel(variantId,
+      association,
+      phenotype,
+      chromosome,
+      position,
+      referenceAllele,
+      alternateAllele,
+      allelicAssumption,
+      phaseSetId)
+  }
 }

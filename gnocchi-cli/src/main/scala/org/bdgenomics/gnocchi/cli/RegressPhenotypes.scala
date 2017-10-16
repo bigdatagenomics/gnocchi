@@ -18,9 +18,7 @@
 package org.bdgenomics.gnocchi.cli
 
 import org.bdgenomics.gnocchi.algorithms.siteregression._
-import org.bdgenomics.gnocchi.models.variant.VariantModel
-import org.bdgenomics.gnocchi.models.variant.linear.{ AdditiveLinearVariantModel, DominantLinearVariantModel }
-import org.bdgenomics.gnocchi.models.variant.logistic.{ AdditiveLogisticVariantModel, DominantLogisticVariantModel }
+import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, LogisticVariantModel, VariantModel }
 import org.bdgenomics.gnocchi.sql.GnocchiSession._
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
@@ -122,20 +120,20 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     args.associationType match {
       case "ADDITIVE_LINEAR" => {
-        val associations = AdditiveLinearRegression(filteredGeno, broadPhenotype)
-        logResults[AdditiveLinearVariantModel](associations, sc)
+        val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
+        logResults[LinearVariantModel](associations, sc)
       }
       case "DOMINANT_LINEAR" => {
-        val associations = DominantLinearRegression(filteredGeno, broadPhenotype)
-        logResults[DominantLinearVariantModel](associations, sc)
+        val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
+        logResults[LinearVariantModel](associations, sc)
       }
       case "ADDITIVE_LOGISTIC" => {
-        val associations = AdditiveLogisticRegression(filteredGeno, broadPhenotype)
-        logResults[AdditiveLogisticVariantModel](associations, sc)
+        val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
+        logResults[LogisticVariantModel](associations, sc)
       }
       case "DOMINANT_LOGISTIC" => {
-        val associations = DominantLogisticRegression(filteredGeno, broadPhenotype)
-        logResults[DominantLogisticVariantModel](associations, sc)
+        val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
+        logResults[LogisticVariantModel](associations, sc)
       }
     }
   }
