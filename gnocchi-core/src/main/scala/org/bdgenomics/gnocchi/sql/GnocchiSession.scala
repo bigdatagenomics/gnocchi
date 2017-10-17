@@ -11,9 +11,13 @@ import org.apache.spark.sql.functions.{ array, lit, udf }
 import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.utils.misc.Logging
+import java.nio.file.{ Files, Paths }
 
-import java.nio.file.{ Paths, Files }
+import org.apache.hadoop.fs.Path
+import org.bdgenomics.gnocchi.models.variant.VariantModel
+
 import scala.collection.JavaConversions._
+import scala.io.StdIn.readLine
 
 object GnocchiSession {
   // Add GnocchiContext methods
@@ -183,5 +187,35 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     }
 
     phenoCovarDF.withColumn("phenoName", lit(phenoName)).as[Phenotype].collect().map(x => (x.sampleId, x)).toMap
+  }
+
+  def saveAssociations[A <: VariantModel[A]](associations: Dataset[A],
+                                             outPath: String,
+                                             saveAsText: Boolean = false) = {
+    // save dataset
+    val associationsFile = new Path(outPath)
+    val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
+    if (fs.exists(associationsFile)) {
+      val input = readLine(s"Specified output file ${outPath} already exists. Overwrite? (y/n)> ")
+      if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
+        fs.delete(associationsFile)
+      }
+    }
+
+    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
+      .withColumnRenamed("_1", "uniqueID")
+      .withColumnRenamed("_2", "chromosome")
+      .withColumnRenamed("_3", "position")
+      .withColumnRenamed("_4", "pValue")
+      .withColumnRenamed("_5", "beta")
+      .withColumnRenamed("_6", "numSamples")
+      .sort($"pValue".asc).coalesce(5)
+
+    // enables saving as parquet or human readable text files
+    if (saveAsText) {
+      assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(outPath)
+    } else {
+      assoc.toDF.write.parquet(outPath)
+    }
   }
 }

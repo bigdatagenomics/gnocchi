@@ -121,52 +121,20 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     args.associationType match {
       case "ADDITIVE_LINEAR" => {
         val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        logResults[LinearVariantModel](associations, sc)
+        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText)
       }
       case "DOMINANT_LINEAR" => {
         val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        logResults[LinearVariantModel](associations, sc)
+        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText)
       }
       case "ADDITIVE_LOGISTIC" => {
         val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        logResults[LogisticVariantModel](associations, sc)
+        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText)
       }
       case "DOMINANT_LOGISTIC" => {
         val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        logResults[LogisticVariantModel](associations, sc)
+        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText)
       }
-    }
-  }
-
-  def logResults[A <: VariantModel[A]](associations: Dataset[A],
-                                       sc: SparkContext) = {
-    val sparkSession = SparkSession.builder().getOrCreate()
-    import sparkSession.implicits._
-
-    // save dataset
-    val associationsFile = new Path(args.output)
-    val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
-    if (fs.exists(associationsFile)) {
-      val input = readLine(s"Specified output file ${args.output} already exists. Overwrite? (y/n)> ")
-      if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
-        fs.delete(associationsFile)
-      }
-    }
-
-    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
-      .withColumnRenamed("_1", "uniqueID")
-      .withColumnRenamed("_2", "chromosome")
-      .withColumnRenamed("_3", "position")
-      .withColumnRenamed("_4", "pValue")
-      .withColumnRenamed("_5", "beta")
-      .withColumnRenamed("_6", "numSamples")
-      .sort($"pValue".asc).coalesce(5)
-
-    // enables saving as parquet or human readable text files
-    if (args.saveAsText) {
-      assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(args.output)
-    } else {
-      assoc.toDF.write.parquet(args.output)
     }
   }
 }

@@ -98,7 +98,7 @@ trait LinearSiteRegression extends SiteRegression[LinearVariantModel, LinearAsso
                                               phenotypes: Map[String, Phenotype],
                                               allelicAssumption: String): (DenseMatrix[Double], DenseVector[Double]) = {
 
-    val validGenos = genotypes.samples.filter(_.value != ".")
+    val validGenos = genotypes.samples.filter(genotypeState => !genotypeState.value.contains("."))
 
     val samplesGenotypes = allelicAssumption.toUpperCase match {
       case "ADDITIVE"  => validGenos.map(genotypeState => (genotypeState.sampleID, genotypeState.additive))
