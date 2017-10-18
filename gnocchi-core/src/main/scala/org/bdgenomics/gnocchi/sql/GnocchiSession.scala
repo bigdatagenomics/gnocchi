@@ -127,7 +127,8 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
                      delimiter: String,
                      covarPath: Option[String] = None,
                      covarNames: Option[List[String]] = None,
-                     covarDelimiter: String = "\t"): Map[String, Phenotype] = {
+                     covarDelimiter: String = "\t",
+                     missing: List[Int] = List(-9)): Map[String, Phenotype] = {
 
     require(Files.exists(Paths.get(phenotypesPath)), s"Specified genotypes file path does not exits: ${phenotypesPath}")
     logInfo("Loading phenotypes from %s.".format(phenotypesPath))
@@ -186,7 +187,12 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       phenotypesDF.withColumn("covariates", array())
     }
 
-    phenoCovarDF.withColumn("phenoName", lit(phenoName)).as[Phenotype].collect().map(x => (x.sampleId, x)).toMap
+    phenoCovarDF
+      .withColumn("phenoName", lit(phenoName))
+      .as[Phenotype]
+      .collect()
+      .filter(x => !missing.contains(x.phenotype) && x.covariates.forall(!missing.contains(_)))
+      .map(x => (x.sampleId, x)).toMap
   }
 
   def saveAssociations[A <: VariantModel[A]](associations: Dataset[A],
