@@ -7,7 +7,7 @@ import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.functions.{ array, lit, udf }
+import org.apache.spark.sql.functions.{ array, lit, udf, when }
 import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.utils.misc.Logging
@@ -20,9 +20,7 @@ import scala.collection.JavaConversions._
 import scala.io.StdIn.readLine
 
 object GnocchiSession {
-  // Add GnocchiContext methods
-  implicit def sparkContextToGnocchiSession(sc: SparkContext): GnocchiSession =
-    new GnocchiSession(sc)
+  implicit def sparkContextToGnocchiSession(sc: SparkContext): GnocchiSession = new GnocchiSession(sc)
 }
 
 class GnocchiSession(@transient val sc: SparkContext) extends Serializable with Logging {
@@ -35,10 +33,11 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     val sampleIds = genotypes.first.samples.map(x => x.sampleID)
     val separated = genotypes.select($"uniqueID" +: sampleIds.indices.map(idx => $"samples"(idx) as sampleIds(idx)): _*)
 
-    val missingFn: String => Int = _.split("/|\\|").count(_ == ".")
-    val missingUDF = udf(missingFn)
-
-    val filtered = separated.select($"uniqueID" +: sampleIds.map(sampleId => missingUDF(separated(sampleId).getField("value")) as sampleId): _*)
+    val filtered = separated.select($"uniqueID" +: sampleIds.map(sampleId =>
+      when(separated(sampleId).getField("value") === "./.", 2)
+        .when(separated(sampleId).getField("value").endsWith("."), 1)
+        .when(separated(sampleId).getField("value").startsWith("."), 1)
+        .otherwise(0) as sampleId): _*)
 
     val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*)
     val count = filtered.count()
