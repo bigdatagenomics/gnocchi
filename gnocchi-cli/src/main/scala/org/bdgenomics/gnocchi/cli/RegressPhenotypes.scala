@@ -104,13 +104,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
 
-    val delimiter = if (args.phenoSpaceDelimiter) { " " } else { "\t" }
+    val phenoDelimiter = if (args.phenoSpaceDelimiter) { " " } else { "\t" }
+    val covarDelimiter = if (args.covarSpaceDelimiter) { " " } else { "\t" }
     val missingPhenos = if (args.oneTwo) List(0, -9) else List(-9)
 
     val phenotypes = if (args.covarFile != null) {
-      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList), missing = missingPhenos)
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, phenoDelimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList), covarDelimiter = covarDelimiter, missing = missingPhenos)
     } else {
-      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, missing = missingPhenos, )
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, phenoDelimiter, missing = missingPhenos)
     }
     val broadPhenotype = sc.broadcast(phenotypes)
 
