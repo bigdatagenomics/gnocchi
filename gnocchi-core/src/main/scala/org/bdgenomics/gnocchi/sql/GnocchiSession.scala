@@ -100,9 +100,11 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    * @return a [[Dataset]] of [[CalledVariant]] objects loaded from a vcf file
    */
   def loadGenotypes(genotypesPath: String): Dataset[CalledVariant] = {
-    // ToDo: below requirement fails because the file system that scala knows about is the locally mounted one
-    // we need to be able to check hdfs, s3, microsoft datalake etc.
-    // require(Files.exists(Paths.get(genotypesPath)), s"Specified genotypes file path does not exist: ${genotypesPath}")
+
+    val genoFile = new Path(genotypesPath)
+    val fs = genoFile.getFileSystem(sc.hadoopConfiguration)
+    require(fs.exists(genoFile), s"Specified genotypes file path does not exist: ${genotypesPath}")
+
     val vcRdd = sc.loadVcf(genotypesPath)
     vcRdd.rdd.map(vc => {
       val variant = vc.variant.variant
@@ -131,9 +133,10 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
                      covarNames: Option[List[String]] = None,
                      covarDelimiter: String = "\t",
                      missing: List[Int] = List(-9)): Map[String, Phenotype] = {
-    // ToDo: below requirement fails because the file system that scala knows about is the locally mounted one
-    // we need to be able to check hdfs, s3, microsoft datalake etc.
-    // require(Files.exists(Paths.get(phenotypesPath)), s"Specified genotypes file path does not exits: ${phenotypesPath}")
+
+    val phenoFile = new Path(phenotypesPath)
+    val fs = phenoFile.getFileSystem(sc.hadoopConfiguration)
+    require(fs.exists(phenoFile), s"Specified genotypes file path does not exits: ${phenotypesPath}")
     logInfo("Loading phenotypes from %s.".format(phenotypesPath))
 
     // ToDo: keeps these operations on one machine, because phenotypes are small.
@@ -200,14 +203,19 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
 
   def saveAssociations[A <: VariantModel[A]](associations: Dataset[A],
                                              outPath: String,
-                                             saveAsText: Boolean = false) = {
+                                             saveAsText: Boolean = false,
+                                             forceSave: Boolean) = {
     // save dataset
     val associationsFile = new Path(outPath)
     val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
     if (fs.exists(associationsFile)) {
-      val input = readLine(s"Specified output file ${outPath} already exists. Overwrite? (y/n)> ")
-      if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
+      if (forceSave) {
         fs.delete(associationsFile)
+      } else {
+        val input = readLine(s"Specified output file ${outPath} already exists. Overwrite? (y/n)> ")
+        if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
+          fs.delete(associationsFile)
+        }
       }
     }
 

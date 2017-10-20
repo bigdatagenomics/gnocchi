@@ -52,7 +52,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(firstCalledVariant.samples.equals(List(GenotypeState("sample1", "0/1"))))
   }
 
-  ignore("sc.loadGenotypes should gracefully exit when a non-existing file path is passed in.") {
+  sparkTest("sc.loadGenotypes should gracefully exit when a non-existing file path is passed in.") {
     val fakeFilePath = "fake/file/path.vcf"
     try {
       sc.loadGenotypes(fakeFilePath)
@@ -72,7 +72,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // load phenotypes tests
 
-  ignore("sc.loadPhenotypes should gracefully exit when a non-existing file path is passed in.") {
+  sparkTest("sc.loadPhenotypes should gracefully exit when a non-existing file path is passed in.") {
     val fakeFilePath = "fake/file/path.vcf"
     try {
       sc.loadPhenotypes(fakeFilePath, "IID", "pheno", "\t")

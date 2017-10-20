@@ -91,6 +91,9 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
+
+  @Args4jOption(required = false, name = "-forceSave", usage = "If set to true, no prompt will be given and results will overwrite any other files at that location.")
+  var forceSave = false
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -116,16 +119,16 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     args.associationType match {
       case "ADDITIVE_LINEAR" =>
         val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText)
+        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText, args.forceSave)
       case "DOMINANT_LINEAR" =>
         val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText)
+        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText, args.forceSave)
       case "ADDITIVE_LOGISTIC" =>
         val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText)
+        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText, args.forceSave)
       case "DOMINANT_LOGISTIC" =>
         val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText)
+        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText, args.forceSave)
     }
   }
 }
