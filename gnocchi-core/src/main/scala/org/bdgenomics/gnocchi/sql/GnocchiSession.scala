@@ -169,7 +169,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       val covarHeader = prelimCovarDF.schema.fields.map(_.name)
 
       require(covarHeader.length > 1,
-        s"The specified delimiter '$delimiter' does not separate fields in the specified file, '$phenotypesPath'")
+        s"The specified delimiter '$covarDelimiter' does not separate fields in the specified file, '${covarPath.get}'")
       require(covarNames.get.forall(covarHeader.contains(_)),
         s"One of the covariates, '%s' does not exist in the specified file, '%s'".format(covarNames.get.toString(), covarPath.get))
       require(covarHeader.contains(primaryID),
