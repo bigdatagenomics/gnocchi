@@ -353,6 +353,10 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   }
 
+  ignore("sc.filterVariants should work correctly when an entire row is missing") {
+
+  }
+
   sparkTest("sc.filterVariants should exit gracefully when geno > 1") {
     val sparkSession = SparkSession.builder().getOrCreate()
     import sparkSession.implicits._
