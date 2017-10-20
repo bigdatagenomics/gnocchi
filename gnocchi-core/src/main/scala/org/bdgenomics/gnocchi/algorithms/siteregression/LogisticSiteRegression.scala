@@ -32,13 +32,13 @@ import scala.collection.immutable.Map
 
 trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, LogisticAssociation] {
 
-  val sparkSession = SparkSession.builder().getOrCreate()
-  import sparkSession.implicits._
-
   def apply(genotypes: Dataset[CalledVariant],
             phenotypes: Broadcast[Map[String, Phenotype]],
             allelicAssumption: String = "ADDITIVE",
             validationStringency: String = "STRICT"): Dataset[LogisticVariantModel] = {
+
+    import genotypes.sqlContext.implicits._
+
     genotypes.flatMap((genos: CalledVariant) => {
       try {
         val association = applyToSite(phenotypes.value, genos, allelicAssumption)

@@ -32,13 +32,13 @@ import scala.collection.immutable.Map
 
 trait LinearSiteRegression extends SiteRegression[LinearVariantModel, LinearAssociation] {
 
-  val sparkSession = SparkSession.builder().getOrCreate()
-  import sparkSession.implicits._
-
   def apply(genotypes: Dataset[CalledVariant],
             phenotypes: Broadcast[Map[String, Phenotype]],
             allelicAssumption: String = "ADDITIVE",
             validationStringency: String = "STRICT"): Dataset[LinearVariantModel] = {
+
+    import genotypes.sqlContext.implicits._
+
     //ToDo: Singular Matrix Exceptions
     genotypes.map((genos: CalledVariant) => {
       val association = applyToSite(phenotypes.value, genos, allelicAssumption)
