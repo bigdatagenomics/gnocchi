@@ -33,12 +33,13 @@ object LinearGnocchiModelFactory {
             phenotypeNames: Option[List[String]],
             QCVariantIDs: Option[Set[String]] = None,
             QCVariantSamplingRate: Double = 0.1,
+            allelicAssumption:String = "ADDITIVE",
             validationStringency: String = "STRICT"): LinearGnocchiModel = {
 
     import genotypes.sqlContext.implicits._
 
     // ToDo: sampling QC Variants better.
-    val variantModels = LinearSiteRegression(genotypes, phenotypes, validationStringency)
+    val variantModels = LinearSiteRegression(genotypes, phenotypes, allelicAssumption = allelicAssumption, validationStringency = validationStringency)
 
     // Create QCVariantModels
     val comparisonVariants = if (QCVariantIDs.isEmpty) {
