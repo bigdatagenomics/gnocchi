@@ -35,13 +35,11 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
         .when(separated(sampleId).getField("value").startsWith("."), 1)
         .otherwise(0) as sampleId): _*)
 
-    val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*)
+    val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*).select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].collect.toList.head
     val count = filtered.count()
+    val missingness = summed.map(_ / (ploidy * count))
+    val samplesWithMissingness = sampleIds.zip(missingness)
 
-    val missingness = summed.select(sampleIds.map(sampleId => summed(sampleId) / (ploidy * count) as sampleId): _*)
-    val plainMissingness = missingness.select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].head
-
-    val samplesWithMissingness = sampleIds.zip(plainMissingness)
     val keepers = samplesWithMissingness.filter(x => x._2 <= mind).map(x => x._1)
 
     val filteredDF = separated.select($"uniqueID", array(keepers.head, keepers.tail: _*)).toDF("uniqueID", "samples").as[(String, Array[String])]

@@ -35,10 +35,11 @@ object LogisticGnocchiModelFactory {
             phenotypeNames: Option[List[String]],
             QCVariantIDs: Option[Set[String]] = None,
             QCVariantSamplingRate: Double = 0.1,
+            allelicAssumption: String = "ADDITIVE",
             validationStringency: String = "STRICT"): LogisticGnocchiModel = {
 
     // ToDo: sampling QC Variants better.
-    val variantModels = LogisticSiteRegression(genotypes, phenotypes)
+    val variantModels = LogisticSiteRegression(genotypes, phenotypes, allelicAssumption = allelicAssumption, validationStringency = validationStringency)
 
     // Create QCVariantModels
     val comparisonVariants = if (QCVariantIDs.isEmpty) {
