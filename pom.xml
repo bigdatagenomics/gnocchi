@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -9,11 +10,28 @@
     <relativePath/>
   </parent>
 
-  <groupId>net.fnothaft</groupId>
-  <artifactId>gnocchi-parent_2.10</artifactId>
+  <groupId>org.bdgenomics.gnocchi</groupId>
+  <artifactId>gnocchi-parent_2.11</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>gnocchi: Genotype store and query engine</name>
+  <name>gnocchi_${scala.version.prefix}</name>
+  <description>Statistical genomic analysis tool</description>
+
+  <properties>
+    <java.version>1.8</java.version>
+    <avro.version>1.8.0</avro.version>
+    <scala.version>2.11.8</scala.version>
+    <scala.version.prefix>2.11</scala.version.prefix>
+    <spark.version>2.2.0</spark.version>
+    <parquet.version>1.8.1</parquet.version>
+    <hadoop.version>2.7.3</hadoop.version>
+    <slf4j.version>1.7.25</slf4j.version>
+    <adam.version>0.23.0-SNAPSHOT</adam.version>
+    <!-- Edit the following line to configure the Hadoop (HDFS) version. -->
+    <bdg-utils.version>0.2.13</bdg-utils.version>
+    <scoverage.plugin.version>1.1.1</scoverage.plugin.version>
+    <mockito.version>2.10.0</mockito.version>
+  </properties>
 
   <modules>
     <module>gnocchi-core</module>
@@ -23,14 +41,14 @@
   <licenses>
     <license>
       <name>Apache License</name>
-      <url>https://raw.github.com/fnothaft/gnocchi/master/LICENSE.txt</url>
+      <url>https://raw.github.com/bigdatagenomics/gnocchi/master/LICENSE.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
   <scm>
-    <connection>scm:git:git@github.com:fnothaft/gnocchi.git</connection>
-    <developerConnection>scm:git:git@github.com:fnothaft/gnocchi.git</developerConnection>
-    <url>scm:git:git@github.com:fnothaft/gnocchi.git</url>
+    <connection>scm:git:git@github.com:bigdatagenomics/gnocchi.git</connection>
+    <developerConnection>scm:git:git@github.com:bigdatagenomics/gnocchi.git</developerConnection>
+    <url>scm:git:git@github.com:bigdatagenomics/gnocchi.git</url>
     <tag>master</tag>
   </scm>
   <developers>
@@ -45,25 +63,12 @@
   </developers>
   <issueManagement>
     <system>github</system>
-    <url>https://github.com/fnothaft/gnocchi/issues</url>
+    <url>https://github.com/bigdatagenomics/gnocchi/issues</url>
   </issueManagement>
 
-  <properties>
-    <adam.version>0.19.0</adam.version>
-    <avro.version>1.8.0</avro.version>
-    <hadoop.version>2.6.0</hadoop.version>
-    <!-- <hadoop.version>2.6.0-cdh5.8.0</hadoop.version> -->
-    <java.version>1.8</java.version>
-    <parquet.version>1.7.0</parquet.version>
-    <scala.version>2.10.4</scala.version>
-    <scala.version.prefix>2.10</scala.version.prefix>
-    <spark.version>1.6.2</spark.version>
-    <!-- Edit the following line to configure the Hadoop (HDFS) version. -->
-    <utils.version>0.2.8</utils.version>
-    <scoverage.plugin.version>1.1.1</scoverage.plugin.version>
-  </properties>
-  
   <build>
+    <outputDirectory>target/${scala.version}/classes</outputDirectory>
+    <testOutputDirectory>target/${scala.version}/test-classes</testOutputDirectory>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -72,30 +77,39 @@
           <version>0.1.4</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>appassembler-maven-plugin</artifactId>
-          <version>1.8</version>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
           <configuration>
-            <programs>
-              <program>
-                <mainClass>net.fnothaft.gnocchi.GnocchiMain</mainClass>
-                <id>gnocchi</id>
-              </program>
-            </programs>
+            <createDependencyReducedPom>false</createDependencyReducedPom>
+            <filters>
+              <filter>
+                <artifact>*:*</artifact>
+                <excludes>
+                  <exclude>META-INF/*.SF</exclude>
+                  <exclude>META-INF/*.DSA</exclude>
+                  <exclude>META-INF/*.RSA</exclude>
+                </excludes>
+              </filter>
+            </filters>
           </configuration>
           <executions>
             <execution>
               <phase>package</phase>
               <goals>
-                <goal>assemble</goal>
+                <goal>shade</goal>
               </goals>
+              <configuration>
+                <transformers>
+                  <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                </transformers>
+              </configuration>
             </execution>
           </executions>
         </plugin>
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>3.1.5</version>
+          <version>3.2.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -107,7 +121,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.17</version>
           <configuration>
-            <skipTests>false</skipTests>
+            <skipTests>true</skipTests>
           </configuration>
         </plugin>
         <plugin>
@@ -140,7 +154,7 @@
         <plugin>
           <groupId>org.scalatest</groupId>
           <artifactId>scalatest-maven-plugin</artifactId>
-          <version>1.0-RC2</version>
+          <version>1.0</version>
           <configuration>
             <reportsDirectory>${project.build.directory}/scalatest-reports</reportsDirectory>
             <junitxml>.</junitxml>
@@ -149,7 +163,6 @@
                 As explained here: http://stackoverflow.com/questions/1660441/java-flag-to-enable-extended-serialization-debugging-info
                 The second option allows us better debugging for serialization-based errors.
               -->
-            <argLine>-Xmx1024m -Dsun.io.serialization.extendedDebugInfo=true</argLine>
           </configuration>
           <executions>
             <execution>
@@ -264,7 +277,6 @@
       </plugin>
     </plugins>
   </build>
-
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -273,8 +285,18 @@
         <version>3.6.1</version>
       </dependency>
       <dependency>
-        <groupId>net.fnothaft</groupId>
-        <artifactId>gnocchi-core_2.10</artifactId>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-library</artifactId>
+        <version>${scala.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scoverage</groupId>
+        <artifactId>scoverage-maven-plugin</artifactId>
+        <version>${scoverage.plugin.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bdgenomics.gnocchi</groupId>
+        <artifactId>gnocchi-core_2.11</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -289,26 +311,36 @@
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.utils</groupId>
-        <artifactId>utils-misc_${scala.version.prefix}</artifactId>
-        <version>${utils.version}</version>
+        <artifactId>utils-misc-spark2_${scala.version.prefix}</artifactId>
+        <version>${bdg-utils.version}</version>
         <type>test-jar</type>
         <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.utils</groupId>
-        <artifactId>utils-misc_${scala.version.prefix}</artifactId>
-        <version>${utils.version}</version>
-	<exclusions>
-	  <exclusion>
-    	    <groupId>com.esotericsoftware.kryo</groupId>
-    	    <artifactId>kryo</artifactId>
-	  </exclusion>
-	</exclusions>
+        <artifactId>utils-misc-spark2_${scala.version.prefix}</artifactId>
+        <version>${bdg-utils.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.esotericsoftware.kryo</groupId>
+            <artifactId>kryo</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest_${scala.version.prefix}</artifactId>
-        <version>2.2.2</version>
+        <version>2.2.6</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -318,8 +350,8 @@
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.utils</groupId>
-        <artifactId>utils-cli_${scala.version.prefix}</artifactId>
-        <version>${utils.version}</version>
+        <artifactId>utils-cli-spark2_${scala.version.prefix}</artifactId>
+        <version>${bdg-utils.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -355,21 +387,43 @@
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.adam</groupId>
-        <artifactId>adam-core_${scala.version.prefix}</artifactId>
+        <artifactId>adam-core-spark2_${scala.version.prefix}</artifactId>
         <version>${adam.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.bdgenomics.adam</groupId>
-        <artifactId>adam-core_${scala.version.prefix}</artifactId>
+        <artifactId>adam-core-spark2_${scala.version.prefix}</artifactId>
         <version>${adam.version}</version>
         <type>test-jar</type>
         <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_${scala.version.prefix}</artifactId>
         <version>${spark.version}</version>
         <scope>provided</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.spark</groupId>
@@ -386,8 +440,6 @@
     </dependencies>
   </dependencyManagement>
 
-
-  
   <profiles>
     <!-- Only sign artifacts when we are performing a release, not snapshots -->
     <profile>
@@ -446,7 +498,7 @@
             <artifactId>scoverage-maven-plugin</artifactId>
             <version>${scoverage.plugin.version}</version>
             <configuration>
-              <scalaVersion>2.10.4</scalaVersion>
+              <scalaVersion>${scala.version}</scalaVersion>
               <aggregate>true</aggregate>
             </configuration>
           </plugin>
@@ -460,7 +512,7 @@
           <plugin>
             <groupId>org.eluder.coveralls</groupId>
             <artifactId>coveralls-maven-plugin</artifactId>
-            <version>3.0.1</version>
+            <version>4.4.0-SNAPSHOT</version>
             <configuration>
               <coberturaReports>
                 <param>${project.build.directory}/cobertura.xml</param>
