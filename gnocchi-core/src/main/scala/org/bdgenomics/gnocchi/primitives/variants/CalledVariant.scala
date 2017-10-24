@@ -26,8 +26,7 @@ case class CalledVariant(chromosome: Int,
 
     if (sampleValues.length > missingCount) {
       alleleCount / (sampleValues.length - missingCount)
-    }
-    else {
+    } else {
       0.5
     }
   }

@@ -33,7 +33,7 @@ object LinearGnocchiModelFactory {
             phenotypeNames: Option[List[String]],
             QCVariantIDs: Option[Set[String]] = None,
             QCVariantSamplingRate: Double = 0.1,
-            allelicAssumption:String = "ADDITIVE",
+            allelicAssumption: String = "ADDITIVE",
             validationStringency: String = "STRICT"): LinearGnocchiModel = {
 
     import genotypes.sqlContext.implicits._
