@@ -1,7 +1,6 @@
 package org.bdgenomics.gnocchi.primitives.association
 
 import org.bdgenomics.gnocchi.GnocchiFunSuite
-import org.bdgenomics.gnocchi.GnocchiFunSuite
 
 class AssociationSuite extends GnocchiFunSuite {
   sparkTest("LinearAssociation creation works.") {

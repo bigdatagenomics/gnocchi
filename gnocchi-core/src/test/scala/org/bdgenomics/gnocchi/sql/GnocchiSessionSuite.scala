@@ -25,7 +25,6 @@ import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.bdgenomics.gnocchi.sql.GnocchiSession._
 import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.gnocchi.GnocchiFunSuite
 
 import scala.util.Random
 

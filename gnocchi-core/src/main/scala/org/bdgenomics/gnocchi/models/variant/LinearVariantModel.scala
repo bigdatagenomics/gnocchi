@@ -39,7 +39,7 @@ case class LinearVariantModel(uniqueID: String,
   val regressionName = "Linear Regression"
 
   def update(genotypes: CalledVariant, phenotypes: Map[String, Phenotype]): LinearVariantModel = {
-    val batchVariantModel = constructVariantModel(uniqueID, applyToSite(phenotypes, genotypes, allelicAssumption))
+    val batchVariantModel = constructUpdatedVariantModel(uniqueID, applyToSite(phenotypes, genotypes, allelicAssumption))
     mergeWith(batchVariantModel)
   }
 
@@ -61,7 +61,7 @@ case class LinearVariantModel(uniqueID: String,
     val updatedResidualDegreesOfFreedom = updateResidualDegreesOfFreedom(variantModel.association.numSamples)
     val updatedtStatistic = calculateTStatistic(updatedWeights, updatedGeneticParameterStandardError)
     val updatedPValue = calculatePValue(updatedtStatistic, updatedResidualDegreesOfFreedom)
-    constructVariantModel(this.uniqueID,
+    constructUpdatedVariantModel(this.uniqueID,
       updatedSsDeviations,
       updatedSsResiduals,
       updatedGeneticParameterStandardError,
@@ -181,15 +181,30 @@ case class LinearVariantModel(uniqueID: String,
     pvalue
   }
 
-  def constructVariantModel(variantID: String,
-                            updatedSsDeviations: Double,
-                            updatedSsResiduals: Double,
-                            updatedGeneticParameterStandardError: Double,
-                            updatedtStatistic: Double,
-                            updatedResidualDegreesOfFreedom: Int,
-                            updatedPValue: Double,
-                            updatedWeights: List[Double],
-                            updatedNumSamples: Int): LinearVariantModel = {
+  /**
+   * Creates an updated LinearVariantModel from the current model with a new
+   * Association object on the specified parameters.
+   *
+   * @param variantId Variant Id of the new VariantModel
+   * @param updatedSsDeviations New ssDeviations
+   * @param updatedSsResiduals New ssResiduals
+   * @param updatedGeneticParameterStandardError New geneticParameterStandardError
+   * @param updatedtStatistic New tStatistic
+   * @param updatedResidualDegreesOfFreedom New residualDegreesOfFreedom
+   * @param updatedPValue New pValue
+   * @param updatedWeights New weights
+   * @param updatedNumSamples New numSamples
+   * @return Returns a new LinearVariantModel
+   */
+  def constructUpdatedVariantModel(variantID: String,
+                                   updatedSsDeviations: Double,
+                                   updatedSsResiduals: Double,
+                                   updatedGeneticParameterStandardError: Double,
+                                   updatedtStatistic: Double,
+                                   updatedResidualDegreesOfFreedom: Int,
+                                   updatedPValue: Double,
+                                   updatedWeights: List[Double],
+                                   updatedNumSamples: Int): LinearVariantModel = {
 
     val updatedAssociation = LinearAssociation(ssDeviations = updatedSsDeviations,
       ssResiduals = updatedSsResiduals,
@@ -211,8 +226,16 @@ case class LinearVariantModel(uniqueID: String,
       phaseSetId)
   }
 
-  def constructVariantModel(variantID: String,
-                            association: LinearAssociation): LinearVariantModel = {
+  /**
+   * Creates an updated LinearVariantModel from the current model to contain
+   * the input Association object.
+   *
+   * @param variantId VariantId of the new VariantModel
+   * @param association New association object
+   * @return Returns a new LinearVariantModel
+   */
+  def constructUpdatedVariantModel(variantID: String,
+                                   association: LinearAssociation): LinearVariantModel = {
     LinearVariantModel(variantID,
       association,
       phenotype,
