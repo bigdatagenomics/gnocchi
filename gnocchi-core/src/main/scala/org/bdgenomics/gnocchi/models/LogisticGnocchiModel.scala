@@ -27,18 +27,19 @@ import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 object LogisticGnocchiModelFactory {
 
   val regressionName = "additiveLinearRegression"
-  val sparkSession = SparkSession.builder().getOrCreate()
-  import sparkSession.implicits._
 
   def apply(genotypes: Dataset[CalledVariant],
             phenotypes: Broadcast[Map[String, Phenotype]],
             phenotypeNames: Option[List[String]],
             QCVariantIDs: Option[Set[String]] = None,
             QCVariantSamplingRate: Double = 0.1,
+            allelicAssumption: String = "ADDITIVE",
             validationStringency: String = "STRICT"): LogisticGnocchiModel = {
 
+    import genotypes.sqlContext.implicits._
+
     // ToDo: sampling QC Variants better.
-    val variantModels = LogisticSiteRegression(genotypes, phenotypes)
+    val variantModels = LogisticSiteRegression(genotypes, phenotypes, allelicAssumption = allelicAssumption, validationStringency = validationStringency)
 
     // Create QCVariantModels
     val comparisonVariants = if (QCVariantIDs.isEmpty) {
@@ -79,8 +80,7 @@ case class LogisticGnocchiModel(metaData: GnocchiModelMetaData,
                                 QCPhenotypes: Map[String, Phenotype])
     extends GnocchiModel[LogisticVariantModel, LogisticGnocchiModel] {
 
-  val sparkSession = SparkSession.builder().getOrCreate()
-  import sparkSession.implicits._
+  import variantModels.sqlContext.implicits._
 
   def mergeGnocchiModel(otherModel: GnocchiModel[LogisticVariantModel, LogisticGnocchiModel]): GnocchiModel[LogisticVariantModel, LogisticGnocchiModel] = {
 

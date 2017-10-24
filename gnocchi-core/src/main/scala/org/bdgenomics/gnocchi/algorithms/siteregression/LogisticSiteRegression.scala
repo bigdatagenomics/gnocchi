@@ -32,13 +32,13 @@ import scala.collection.immutable.Map
 
 trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, LogisticAssociation] {
 
-  val sparkSession = SparkSession.builder().getOrCreate()
-  import sparkSession.implicits._
-
   def apply(genotypes: Dataset[CalledVariant],
             phenotypes: Broadcast[Map[String, Phenotype]],
             allelicAssumption: String = "ADDITIVE",
             validationStringency: String = "STRICT"): Dataset[LogisticVariantModel] = {
+
+    import genotypes.sqlContext.implicits._
+
     genotypes.flatMap((genos: CalledVariant) => {
       try {
         val association = applyToSite(phenotypes.value, genos, allelicAssumption)
@@ -150,7 +150,7 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
                           genotypes: CalledVariant,
                           allelicAssumption: String): (DenseMatrix[Double], DenseVector[Double]) = {
 
-    val validGenos = genotypes.samples.filter(genotypeState => !genotypeState.value.contains("."))
+    val validGenos = genotypes.samples.filter(genotypeState => !genotypeState.value.contains(".") && phenotypes.contains(genotypeState.sampleID))
 
     val samplesGenotypes = allelicAssumption.toUpperCase match {
       case "ADDITIVE"  => validGenos.map(genotypeState => (genotypeState.sampleID, List(genotypeState.additive)))

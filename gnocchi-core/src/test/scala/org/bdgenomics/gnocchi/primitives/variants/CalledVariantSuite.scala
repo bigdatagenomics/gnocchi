@@ -23,7 +23,7 @@ class CalledVariantSuite extends GnocchiFunSuite {
     assert(calledVar.maf == 1.0, "CalledVariant.maf does not calculate Minor Allele frequency correctly when there are no minor alleles present.")
   }
 
-  sparkTest("CalledVariant.maf should return the frequency rate of the minor allele: all values are missing.") {
+  ignore("CalledVariant.maf should return the frequency rate of the minor allele: all values are missing.") {
     val calledVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 100, maf = 0.0, geno = 1.0)))
     try {
       calledVar.maf

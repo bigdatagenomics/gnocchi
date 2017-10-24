@@ -187,10 +187,6 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(pheno("sample5").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample5")
   }
 
-  ignore("sc.loadPhenotypes should filter out samples with missing phenotype values.") {
-
-  }
-
   // filter samples tests
 
   private def makeGenotypeState(id: String, gs: String): GenotypeState = {
@@ -353,6 +349,10 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
   }
 
   ignore("sc.filterVariants should maf correct") {
+
+  }
+
+  ignore("sc.filterVariants should work correctly when an entire row is missing") {
 
   }
 
@@ -553,11 +553,19 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // phenotype missing tests
 
-  ignore("isMissing should yield true iff the value provided is -9.0 or -9") {
+  ignore("sc.loadPhenotypes should filter out phenotypes coded as -9 by default.") {
 
   }
 
-  ignore("isMissing should throw a NumberFormatException the value provided cannot be converted to a double") {
+  ignore("sc.loadPhenotypes should take in a list of values that should be considered as missing phenotypes.") {
+
+  }
+
+  ignore("sc.loadPhenotypes should filter out the entire row if a covariate is missing.") {
+
+  }
+
+  ignore("sc.loadPhenotypes should filter out the entire row if a primary phenotypes is missing.") {
 
   }
 }

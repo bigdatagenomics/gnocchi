@@ -68,6 +68,9 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
   var covarNames: String = _
 
+  @Args4jOption(required = false, name = "-covarSpaceDelimited", usage = "Set flag if covariates file is space delimited, otherwise tab delimited is assumed.")
+  var covarSpaceDelimiter = false
+
   @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
   var saveAsText = false
 
@@ -91,6 +94,9 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
+
+  @Args4jOption(required = false, name = "-forceSave", usage = "If set to true, no prompt will be given and results will overwrite any other files at that location.")
+  var forceSave = false
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -98,75 +104,35 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
 
-    val sparkSession = SparkSession.builder().getOrCreate()
+    val phenoDelimiter = if (args.phenoSpaceDelimiter) { " " } else { "\t" }
+    val covarDelimiter = if (args.covarSpaceDelimiter) { " " } else { "\t" }
+    val missingPhenos = if (args.oneTwo) List(0, -9) else List(-9)
 
-    val delimiter = if (args.phenoSpaceDelimiter) {
-      " "
+    val phenotypes = if (args.covarFile != null) {
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, phenoDelimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList), covarDelimiter = covarDelimiter, missing = missingPhenos)
     } else {
-      "\t"
+      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, phenoDelimiter, missing = missingPhenos)
     }
+    val broadPhenotype = sc.broadcast(phenotypes)
 
     val rawGenotypes = sc.loadGenotypes(args.genotypes)
     val recoded = sc.recodeMajorAllele(rawGenotypes)
     val sampleFiltered = sc.filterSamples(recoded, mind = args.mind, ploidy = args.ploidy)
     val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
 
-    val phenotypes = if (args.covarFile != null) {
-      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter, Option(args.covarFile), Option(args.covarNames.split(",").toList))
-    } else {
-      sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, delimiter)
-    }
-    val broadPhenotype = sc.broadcast(phenotypes)
-
     args.associationType match {
-      case "ADDITIVE_LINEAR" => {
+      case "ADDITIVE_LINEAR" =>
         val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        logResults[LinearVariantModel](associations, sc)
-      }
-      case "DOMINANT_LINEAR" => {
+        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText, args.forceSave)
+      case "DOMINANT_LINEAR" =>
         val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        logResults[LinearVariantModel](associations, sc)
-      }
-      case "ADDITIVE_LOGISTIC" => {
+        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText, args.forceSave)
+      case "ADDITIVE_LOGISTIC" =>
         val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        logResults[LogisticVariantModel](associations, sc)
-      }
-      case "DOMINANT_LOGISTIC" => {
+        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText, args.forceSave)
+      case "DOMINANT_LOGISTIC" =>
         val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        logResults[LogisticVariantModel](associations, sc)
-      }
-    }
-  }
-
-  def logResults[A <: VariantModel[A]](associations: Dataset[A],
-                                       sc: SparkContext) = {
-    val sparkSession = SparkSession.builder().getOrCreate()
-    import sparkSession.implicits._
-
-    // save dataset
-    val associationsFile = new Path(args.output)
-    val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
-    if (fs.exists(associationsFile)) {
-      val input = readLine(s"Specified output file ${args.output} already exists. Overwrite? (y/n)> ")
-      if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
-        fs.delete(associationsFile)
-      }
-    }
-
-    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
-      .withColumnRenamed("_1", "uniqueID")
-      .withColumnRenamed("_2", "chromosome")
-      .withColumnRenamed("_3", "position")
-      .withColumnRenamed("_4", "pValue")
-      .withColumnRenamed("_5", "beta")
-      .withColumnRenamed("_6", "numSamples")
-      .sort($"pValue".asc).coalesce(5)
-
-    // enables saving as parquet or human readable text files
-    if (args.saveAsText) {
-      assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(args.output)
-    } else {
-      assoc.toDF.write.parquet(args.output)
+        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText, args.forceSave)
     }
   }
 }

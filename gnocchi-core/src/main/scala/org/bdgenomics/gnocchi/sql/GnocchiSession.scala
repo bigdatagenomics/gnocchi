@@ -7,18 +7,20 @@ import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.functions.{ array, lit, udf }
+import org.apache.spark.sql.functions.{ array, lit, udf, when }
 import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.utils.misc.Logging
+import java.nio.file.{ Files, Paths }
 
-import java.nio.file.{ Paths, Files }
+import org.apache.hadoop.fs.Path
+import org.bdgenomics.gnocchi.models.variant.VariantModel
+
 import scala.collection.JavaConversions._
+import scala.io.StdIn.readLine
 
 object GnocchiSession {
-  // Add GnocchiContext methods
-  implicit def sparkContextToGnocchiSession(sc: SparkContext): GnocchiSession =
-    new GnocchiSession(sc)
+  implicit def sparkContextToGnocchiSession(sc: SparkContext): GnocchiSession = new GnocchiSession(sc)
 }
 
 /**
@@ -49,18 +51,17 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     val sampleIds = genotypes.first.samples.map(x => x.sampleID)
     val separated = genotypes.select($"uniqueID" +: sampleIds.indices.map(idx => $"samples"(idx) as sampleIds(idx)): _*)
 
-    val missingFn: String => Int = _.split("/|\\|").count(_ == ".")
-    val missingUDF = udf(missingFn)
+    val filtered = separated.select($"uniqueID" +: sampleIds.map(sampleId =>
+      when(separated(sampleId).getField("value") === "./.", 2)
+        .when(separated(sampleId).getField("value").endsWith("."), 1)
+        .when(separated(sampleId).getField("value").startsWith("."), 1)
+        .otherwise(0) as sampleId): _*)
 
-    val filtered = separated.select($"uniqueID" +: sampleIds.map(sampleId => missingUDF(separated(sampleId).getField("value")) as sampleId): _*)
-
-    val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*)
+    val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*).select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].collect.toList.head
     val count = filtered.count()
+    val missingness = summed.map(_ / (ploidy * count))
+    val samplesWithMissingness = sampleIds.zip(missingness)
 
-    val missingness = summed.select(sampleIds.map(sampleId => summed(sampleId) / (ploidy * count) as sampleId): _*)
-    val plainMissingness = missingness.select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].head
-
-    val samplesWithMissingness = sampleIds.zip(plainMissingness)
     val keepers = samplesWithMissingness.filter(x => x._2 <= mind).map(x => x._1)
 
     val filteredDF = separated.select($"uniqueID", array(keepers.head, keepers.tail: _*)).toDF("uniqueID", "samples").as[(String, Array[String])]
@@ -136,7 +137,11 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    * @return a [[Dataset]] of [[CalledVariant]] objects loaded from a vcf file
    */
   def loadGenotypes(genotypesPath: String): Dataset[CalledVariant] = {
-    require(Files.exists(Paths.get(genotypesPath)), s"Specified genotypes file path does not exist: ${genotypesPath}")
+
+    val genoFile = new Path(genotypesPath)
+    val fs = genoFile.getFileSystem(sc.hadoopConfiguration)
+    require(fs.exists(genoFile), s"Specified genotypes file path does not exist: ${genotypesPath}")
+
     val vcRdd = sc.loadVcf(genotypesPath)
     vcRdd.rdd.map(vc => {
       val variant = vc.variant.variant
@@ -180,9 +185,12 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
                      delimiter: String,
                      covarPath: Option[String] = None,
                      covarNames: Option[List[String]] = None,
-                     covarDelimiter: String = "\t"): Map[String, Phenotype] = {
+                     covarDelimiter: String = "\t",
+                     missing: List[Int] = List(-9)): Map[String, Phenotype] = {
 
-    require(Files.exists(Paths.get(phenotypesPath)), s"Specified genotypes file path does not exits: ${phenotypesPath}")
+    val phenoFile = new Path(phenotypesPath)
+    val fs = phenoFile.getFileSystem(sc.hadoopConfiguration)
+    require(fs.exists(phenoFile), s"Specified genotypes file path does not exits: ${phenotypesPath}")
     logInfo("Loading phenotypes from %s.".format(phenotypesPath))
 
     // ToDo: keeps these operations on one machine, because phenotypes are small.
@@ -215,7 +223,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       val covarHeader = prelimCovarDF.schema.fields.map(_.name)
 
       require(covarHeader.length > 1,
-        s"The specified delimiter '$delimiter' does not separate fields in the specified file, '$phenotypesPath'")
+        s"The specified delimiter '$covarDelimiter' does not separate fields in the specified file, '${covarPath.get}'")
       require(covarNames.get.forall(covarHeader.contains(_)),
         s"One of the covariates, '%s' does not exist in the specified file, '%s'".format(covarNames.get.toString(), covarPath.get))
       require(covarHeader.contains(primaryID),
@@ -239,6 +247,46 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       phenotypesDF.withColumn("covariates", array())
     }
 
-    phenoCovarDF.withColumn("phenoName", lit(phenoName)).as[Phenotype].collect().map(x => (x.sampleId, x)).toMap
+    phenoCovarDF
+      .withColumn("phenoName", lit(phenoName))
+      .as[Phenotype]
+      .collect()
+      .filter(x => !missing.contains(x.phenotype) && x.covariates.forall(!missing.contains(_)))
+      .map(x => (x.sampleId, x)).toMap
+  }
+
+  def saveAssociations[A <: VariantModel[A]](associations: Dataset[A],
+                                             outPath: String,
+                                             saveAsText: Boolean = false,
+                                             forceSave: Boolean) = {
+    // save dataset
+    val associationsFile = new Path(outPath)
+    val fs = associationsFile.getFileSystem(sc.hadoopConfiguration)
+    if (fs.exists(associationsFile)) {
+      if (forceSave) {
+        fs.delete(associationsFile)
+      } else {
+        val input = readLine(s"Specified output file ${outPath} already exists. Overwrite? (y/n)> ")
+        if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
+          fs.delete(associationsFile)
+        }
+      }
+    }
+
+    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
+      .withColumnRenamed("_1", "uniqueID")
+      .withColumnRenamed("_2", "chromosome")
+      .withColumnRenamed("_3", "position")
+      .withColumnRenamed("_4", "pValue")
+      .withColumnRenamed("_5", "beta")
+      .withColumnRenamed("_6", "numSamples")
+      .sort($"pValue".asc).coalesce(5)
+
+    // enables saving as parquet or human readable text files
+    if (saveAsText) {
+      assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(outPath)
+    } else {
+      assoc.toDF.write.parquet(outPath)
+    }
   }
 }
