@@ -19,10 +19,10 @@ class LinearGnocchiModelSuite extends GnocchiFunSuite {
     val spark = SparkSession.builder().master("local").getOrCreate()
     import spark.implicits._
 
-    val observations = new Array[(Double, Double)](3)
-    observations(0) = (10.0, 8.04)
-    observations(1) = (8.0, 6.95)
-    observations(2) = (13.0, 7.58)
+    val observations = new Array[(Int, Int)](3)
+    observations(0) = (10, 8)
+    observations(1) = (8, 6)
+    observations(2) = (10, 7)
 
     val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
     val cv = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStates)
@@ -36,10 +36,10 @@ class LinearGnocchiModelSuite extends GnocchiFunSuite {
 
     val linearGnocchiModel = LinearGnocchiModelFactory.apply(cvDataset, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
 
-    val observationsSecond = new Array[(Double, Double)](3)
-    observationsSecond(0) = (23.0, 4.04)
-    observationsSecond(1) = (29.0, 3.95)
-    observationsSecond(2) = (32.0, 2.58)
+    val observationsSecond = new Array[(Int, Int)](3)
+    observationsSecond(0) = (23, 4)
+    observationsSecond(1) = (29, 3)
+    observationsSecond(2) = (32, 2)
 
     val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
     val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesSecond)
@@ -67,10 +67,10 @@ class LinearGnocchiModelSuite extends GnocchiFunSuite {
     import spark.implicits._
 
     // Create First LinearGnocchiModel
-    val observations = new Array[(Double, Double)](3)
-    observations(0) = (10.0, 8.04)
-    observations(1) = (8.0, 6.95)
-    observations(2) = (13.0, 7.58)
+    val observations = new Array[(Int, Int)](3)
+    observations(0) = (10, 8)
+    observations(1) = (8, 6)
+    observations(2) = (13, 7)
 
     val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
     val cv = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStates)
@@ -85,10 +85,10 @@ class LinearGnocchiModelSuite extends GnocchiFunSuite {
     val linearGnocchiModel = LinearGnocchiModelFactory.apply(cvDataset, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
 
     // Create Second LinearGnocchiModel
-    val observationsSecond = new Array[(Double, Double)](3)
-    observationsSecond(0) = (23.0, 4.04)
-    observationsSecond(1) = (29.0, 3.95)
-    observationsSecond(2) = (32.0, 2.58)
+    val observationsSecond = new Array[(Int, Int)](3)
+    observationsSecond(0) = (23, 4)
+    observationsSecond(1) = (29, 3)
+    observationsSecond(2) = (32, 2)
 
     val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
     val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesSecond)
