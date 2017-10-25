@@ -57,6 +57,7 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
                   allelicAssumption: String): LogisticAssociation = {
 
     val (data, labels) = prepareDesignMatrix(phenotypes, genotypes, allelicAssumption)
+
     val numObservations = genotypes.samples.count(x => !x.value.contains("."))
 
     val maxIter = 1000

@@ -15,16 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.bdgenomics.gnocchi.algorithms
+package org.bdgenomics.gnocchi.algorithms.siteregression
 
-import breeze.linalg
-import breeze.linalg.{ DenseMatrix, DenseVector, MatrixSingularException }
-import org.bdgenomics.gnocchi.algorithms.siteregression.LogisticSiteRegression
-import org.bdgenomics.gnocchi.primitives.association.LogisticAssociation
+import breeze.linalg.{ DenseMatrix, DenseVector }
 import org.apache.spark.sql.SparkSession
 import org.bdgenomics.gnocchi.GnocchiFunSuite
 import org.bdgenomics.gnocchi.models.variant.LogisticVariantModel
-import org.mockito.{ ArgumentMatchers, Mockito }
 
 class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 

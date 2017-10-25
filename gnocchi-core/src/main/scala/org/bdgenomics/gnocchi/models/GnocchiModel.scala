@@ -97,6 +97,8 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
    */
   //  def mergeGnocchiModel(otherModel: GnocchiModel[VM, GM]): GnocchiModel[VM, GM]
 
+  def getVariantModels: Dataset[VM] = { variantModels }
+
   /**
    * Incrementally updates variant models using new batch of data
    *

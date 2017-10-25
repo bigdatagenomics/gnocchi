@@ -87,7 +87,7 @@ case class LinearGnocchiModel(metaData: GnocchiModelMetaData,
     require(otherModel.metaData.modelType == metaData.modelType,
       "Models being merged are not the same type. Type equality is required to merge two models correctly.")
 
-    val mergedVMs = mergeVariantModels(otherModel.variantModels)
+    val mergedVMs = mergeVariantModels(otherModel.getVariantModels)
 
     // ToDo: 1. [DONE] make sure models are of same type 2. [DONE] find intersection of QCVariants and use those as the gnocchiModel
     // ToDo: QCVariants 3. Make sure the phenotype of the models are the same 4. Make sure the covariates of the model
