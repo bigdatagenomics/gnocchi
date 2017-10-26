@@ -79,6 +79,8 @@ find . -name pom.xml \
     {} \;
 find . -name "*.bak" -exec rm -f {} \;
 
+echo "$(git status --porcelain)"
+
 if test -n "$(git status --porcelain)"
 then
     echo "Applying move_to_xyz script marred a pom.xml file."
