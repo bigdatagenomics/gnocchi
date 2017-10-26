@@ -119,9 +119,9 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     rawGenotypes.cache()
     // val recoded = sc.recodeMajorAllele(rawGenotypes)
     val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
-    rawGenotypes.cache()
+    sampleFiltered.cache()
     val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
-    rawGenotypes.cache()
+    filteredGeno.cache()
 
     args.associationType match {
       case "ADDITIVE_LINEAR" =>
