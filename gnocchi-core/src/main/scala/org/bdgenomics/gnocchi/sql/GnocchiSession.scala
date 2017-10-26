@@ -307,7 +307,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       }
     }
 
-    val assoc = associations.select($"uniqueID", $"chromosome", $"position", $"association.pValue", $"association.weights", $"association.numSamples").sort($"pValue".asc)
+    val assoc = associations.select($"uniqueID", $"chromosome", $"position", $"association.pValue", $"association.weights", $"association.numSamples").sort($"pValue".asc).coalesce(1).cache()
 
 //    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
 //      .withColumnRenamed("_1", "uniqueID")
