@@ -89,7 +89,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       when(separated(sampleId).getField("value") === "./.", 2)
         .when(separated(sampleId).getField("value").endsWith("."), 1)
         .when(separated(sampleId).getField("value").startsWith("."), 1)
-        .otherwise(0) as sampleId): _*)
+        .otherwise(0) as sampleId): _*).cache()
 
     val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*).select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].collect.toList.head
     val count = filtered.count()
