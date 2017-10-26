@@ -37,7 +37,6 @@
     <module>gnocchi-core</module>
     <module>gnocchi-cli</module>
     <module>gnocchi-apis</module>
-    <module>gnocchi-python</module>
     <module>gnocchi-assembly</module>
   </modules>
 
