@@ -307,16 +307,16 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       }
     }
 
-    val assoc = associations.select($"uniqueID", $"chromosome", $"position", $"association.pValue", $"association.weights", $"association.numSamples").sort($"pValue".asc).coalesce(1).cache()
+    val assoc = associations.select($"uniqueID", $"chromosome", $"position", $"association.pValue", $"association.weights", $"association.numSamples".getItem(0)).sort($"pValue".asc).coalesce(1).cache()
 
-//    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
-//      .withColumnRenamed("_1", "uniqueID")
-//      .withColumnRenamed("_2", "chromosome")
-//      .withColumnRenamed("_3", "position")
-//      .withColumnRenamed("_4", "pValue")
-//      .withColumnRenamed("_5", "beta")
-//      .withColumnRenamed("_6", "numSamples")
-//      .sort($"pValue".asc).coalesce(5)
+    //    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
+    //      .withColumnRenamed("_1", "uniqueID")
+    //      .withColumnRenamed("_2", "chromosome")
+    //      .withColumnRenamed("_3", "position")
+    //      .withColumnRenamed("_4", "pValue")
+    //      .withColumnRenamed("_5", "beta")
+    //      .withColumnRenamed("_6", "numSamples")
+    //      .sort($"pValue".asc).coalesce(5)
 
     // enables saving as parquet or human readable text files
     if (saveAsText) {
