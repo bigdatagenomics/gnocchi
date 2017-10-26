@@ -89,8 +89,8 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-mind", usage = "Missingness per individual threshold. Default value is 0.1.")
   var mind = 0.1
 
-  @Args4jOption(required = false, name = "-geno", usage = "Missingness per marker threshold. Default value is 1.")
-  var geno = 1.0
+  @Args4jOption(required = false, name = "-geno", usage = "Missingness per marker threshold. Default value is 0.1.")
+  var geno = 0.1
 
   @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
   var oneTwo = false
@@ -116,8 +116,8 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val broadPhenotype = sc.broadcast(phenotypes)
 
     val rawGenotypes = sc.loadGenotypes(args.genotypes)
-    val recoded = sc.recodeMajorAllele(rawGenotypes)
-    val sampleFiltered = sc.filterSamples(recoded, mind = args.mind, ploidy = args.ploidy)
+    // val recoded = sc.recodeMajorAllele(rawGenotypes)
+    val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
     val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
 
     args.associationType match {

@@ -19,6 +19,28 @@
 
 set -e
 
+# Split args into Spark and GNOCCHI args
+DD=False  # DD is "double dash"
+PRE_DD=()
+POST_DD=()
+for ARG in "$@"; do
+  shift
+  if [[ $ARG == "--" ]]; then
+    DD=True
+    POST_DD=( "$@" )
+    break
+  fi
+  PRE_DD+=("$ARG")
+done
+
+if [[ $DD == True ]]; then
+  SPARK_ARGS=("${PRE_DD[@]}")
+  GNOCCHI_ARGS=("${POST_DD[@]}")
+else
+  SPARK_ARGS=()
+  GNOCCHI_ARGS=("${PRE_DD[@]}")
+fi
+
 # Figure out where GNOCCHI is installed
 SCRIPT_DIR="$(cd `dirname $0`/..; pwd)"
 
@@ -73,5 +95,6 @@ cat "$ABSOLUTE_PATH/logo.txt"
 "$SPARK_SHELL" \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
     --conf spark.kryo.registrator=org.bdgenomics.adam.serialization.ADAMKryoRegistrator \
+    "${SPARK_ARGS[@]}" \
     --jars ${GNOCCHI_CLI_JAR} \
     "$@"
