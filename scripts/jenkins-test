@@ -37,61 +37,6 @@ then
     exit 1
 fi
 
-# this next line is supposed to fail
-set +e
-
-echo "Rewriting POM.xml files to Scala 2.10 and Spark 1 should error..."
-./scripts/move_to_spark_1.sh
-if [[ $? == 0 ]];
-then
-    echo "Running move_to_spark_1.sh when POMs are set up for Spark 1 should fail, but error code was 0 (success)."
-    exit 1
-fi
-
-./scripts/move_to_scala_2.10.sh
-if [[ $? == 0 ]];
-then
-    echo "Running move_to_scala_2.10.sh when POMs are set up for Scala 2.10 should fail, but error code was 0 (success)."
-    exit 1
-fi
-
-set -e
-
-# are we testing for spark 2.0.0? if so, we need to rewrite our poms first
-if [ ${SPARK_VERSION} == 2.0.0 ];
-then
-    
-    echo "Rewriting POM.xml files for Spark 2."
-    ./scripts/move_to_spark_2.sh
-
-    # shouldn't be able to move to spark 2 twice
-    set +e
-    ./scripts/move_to_spark_2.sh
-    if [[ $? == 0 ]];
-    then
-        echo "We have already moved to Spark 2, so running move_to_spark_2.sh a second time should fail, but error code was 0 (success)."
-        exit 1
-    fi
-    set -e
-fi
-
-# are we testing for scala 2.11? if so, we need to rewrite our poms to 2.11 first
-if [ ${SCALAVER} == 2.11 ];
-then
-    echo "Rewriting POM.xml files for Scala 2.11."
-    ./scripts/move_to_scala_2.11.sh
-
-    # shouldn't be able to move to scala 2.11 twice
-    set +e
-    ./scripts/move_to_scala_2.11.sh
-    if [[ $? == 0 ]];
-    then
-        echo "We have already moved to Scala 2.11, so running move_to_scala_2.11.sh a second time should fail, but error code was 0 (success)."
-        exit 1
-    fi
-    set -e
-fi
-
 # print versions
 echo "Testing GNOCCHI version ${VERSION} on Spark ${SPARK_VERSION} and Hadoop ${HADOOP_VERSION}"
 
@@ -120,7 +65,7 @@ mvn -U \
     test \
     -P coverage,coveralls  scoverage:report coveralls:report \
     -DrepoToken=${COVERALLS_REPO_TOKEN} ${COVERALLS_PRB_OPTION}
-
+      
 # make verbose again
 set -x -v
 
@@ -128,25 +73,13 @@ set -x -v
 find ${GNOCCHI_MVN_TMP_DIR}
 rm -rf ${GNOCCHI_MVN_TMP_DIR}
 
-# and move our poms back to their original values
-# this will allow us to pass our porcelain test at the end
-if [ ${SPARK_VERSION} == 2.0.0 ];
-then
-    
-    echo "Rewriting POM.xml files back to Spark 1."
-    ./scripts/move_to_spark_1.sh
-fi
-if [ ${SCALAVER} == 2.11 ];
-then
-    echo "Rewriting POM.xml files back to Scala 2.10."
-    ./scripts/move_to_scala_2.10.sh
-fi
-
 find . -name pom.xml \
     -exec sed -i.bak \
     -e "s:sun.io.serialization.extendedDebugInfo=true -Djava.io.tmpdir=${GNOCCHI_MVN_TMP_DIR}:sun.io.serialization.extendedDebugInfo=true:g" \
     {} \;
 find . -name "*.bak" -exec rm -f {} \;
+
+echo "$(git status --porcelain)"
 
 if test -n "$(git status --porcelain)"
 then
@@ -154,6 +87,75 @@ then
     echo "Exiting..."
     exit 1
 fi
+
+# make a temp directory
+Gnocchi_TMP_DIR=$(mktemp -d -t gnocchiTestXXXXXXX)
+
+Gnocchi_TMP_DIR=$Gnocchi_TMP_DIR/deleteMePleaseThisIsNoLongerNeeded
+mkdir $Gnocchi_TMP_DIR
+
+# set the TMPDIR envar, which is used by python to choose where to make temp directories
+export TMPDIR=${Gnocchi_TMP_DIR}
+
+pushd $PROJECT_ROOT
+
+# Copy the jar into our temp space for testing
+cp -r . $Gnocchi_TMP_DIR
+popd
+
+pushd $Gnocchi_TMP_DIR
+
+# create a conda environment for python build, if necessary
+uuid=$(uuidgen)
+conda create -q -n gnocchi-build-${uuid} python=2.7 anaconda
+source activate gnocchi-build-${uuid}
+
+# what hadoop version are we on? format string for downloading spark assembly
+if [[ $HADOOP_VERSION =~ ^2\.6 ]]; then
+    HADOOP=hadoop2.6
+elif [[ $HADOOP_VERSION =~ ^2\.7 ]]; then
+    HADOOP=hadoop2.7
+else
+    echo "Unknown Hadoop version."
+    exit 1
+fi
+
+# set spark artifact string for downloading assembly
+SPARK=spark-${SPARK_VERSION}
+
+# download prepackaged spark assembly
+wget -q http://d3kbcqa49mib13.cloudfront.net/${SPARK}-bin-${HADOOP}.tgz
+tar xzvf ${SPARK}-bin-${HADOOP}.tgz
+export SPARK_HOME=${Gnocchi_TMP_DIR}/${SPARK}-bin-${HADOOP}
+
+# add pyspark to the python path
+PY4J_ZIP="$(ls -1 "${SPARK_HOME}/python/lib" | grep py4j)"
+export PYTHONPATH=${SPARK_HOME}/python:${SPARK_HOME}/python/lib/${PY4J_ZIP}:${PYTHONPATH}
+
+# put gnocchi jar on the pyspark path
+ASSEMBLY_DIR="${Gnocchi_TMP_DIR}/gnocchi-assembly/target"
+ASSEMBLY_JAR="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi[0-9A-Za-z\_\.-]*\.jar$" | grep -v javadoc | grep -v sources || true)"
+export PYSPARK_SUBMIT_ARGS="--jars ${ASSEMBLY_DIR}/${ASSEMBLY_JAR} --driver-class-path ${ASSEMBLY_DIR}/${ASSEMBLY_JAR} pyspark-shell"
+
+# prepare python
+pushd gnocchi-python
+make prepare
+popd
+
+mvn -U \
+    -P python \
+    package \
+    -DskipTests \
+    -Dhadoop.version=${HADOOP_VERSION} \
+    -Dspark.version=${SPARK_VERSION}
+
+    
+# copy python targets back
+cp -r gnocchi-python/target ${PROJECT_ROOT}/gnocchi-python/
+
+# deactivate and remove the conda env
+source deactivate
+conda remove -n gnocchi-build-${uuid} --all
 
 pushd ${PROJECT_ROOT}
 ./scripts/format-source
