@@ -115,7 +115,7 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
     val logitArray = X * beta
 
     // column vector containing probabilities of samples being in class 1 (a case / affected / a positive indicator)
-    val p = logitArray.map(x => Math.exp(-softmax(Array(0.0, -x))))
+    val p = sigmoid(logitArray)
 
     // (Xi is a single sample's row) Xi.T * Xi * pi * (1 - pi) is a nXn matrix, that we sum across all i
     val hessian = p.toArray.zipWithIndex.map { case (pi, i) => -X(i, ::).t * X(i, ::) * pi * (1.0 - pi) }.reduce(_ + _)
