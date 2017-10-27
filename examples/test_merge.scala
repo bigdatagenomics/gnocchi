@@ -25,7 +25,4 @@ val assoc_1 = LinearGnocchiModel(fullFiltered1, broadPheno1, allelicAssumption =
 
 // val broadPheno2 = sc.broadcast(pheno2)
 
-
-
-
 // val assoc_2 = AdditiveLinearRegression(fullFiltered2, broadPheno2)

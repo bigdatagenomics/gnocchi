@@ -89,7 +89,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       when(separated(sampleId).getField("value") === "./.", 2)
         .when(separated(sampleId).getField("value").endsWith("."), 1)
         .when(separated(sampleId).getField("value").startsWith("."), 1)
-        .otherwise(0) as sampleId): _*)
+        .otherwise(0) as sampleId): _*).cache()
 
     val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*).select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].collect.toList.head
     val count = filtered.count()
@@ -307,14 +307,10 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       }
     }
 
-    val assoc = associations.map(x => (x.uniqueID, x.chromosome, x.position, x.association.pValue, x.association.weights(1), x.association.numSamples))
-      .withColumnRenamed("_1", "uniqueID")
-      .withColumnRenamed("_2", "chromosome")
-      .withColumnRenamed("_3", "position")
-      .withColumnRenamed("_4", "pValue")
-      .withColumnRenamed("_5", "beta")
-      .withColumnRenamed("_6", "numSamples")
-      .sort($"pValue".asc).coalesce(5)
+    val assoc = associations
+      .select($"uniqueID", $"chromosome", $"position", $"association.pValue", $"association.weights".getItem(0).as("weights"), $"association.numSamples").sort($"pValue".asc)
+      .coalesce(1)
+      .cache()
 
     // enables saving as parquet or human readable text files
     if (saveAsText) {
