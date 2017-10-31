@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from bdgenomics.gnocchi.primitives import CalledVariantDataset, PhenotypeMap
-
+from py4j.java_collections import ListConverter
 
 class GnocchiSession(object):
     """
@@ -127,6 +127,12 @@ class GnocchiSession(object):
         :return A map of phenotype name to phenotype object
         :rtype: bdgenomics.gnocchi.primitives.PhenotypeMap
         """
+
+        if covarNames:
+            covarNames = ListConverter().convert(covarNames, self._sc._gateway._gateway_client)
+
+        missing = ListConverter().convert(missing, self._sc._gateway._gateway_client)
+
         phenoMap = self.__jgs.loadPhenotypes(phenotypesPath,
                                              primaryID,
                                              phenoName,

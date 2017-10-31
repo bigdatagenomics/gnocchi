@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-// (TODO) Add boilerplate for Java wrapper onto Gnocchi
-
 package org.bdgenomics.gnocchi.api.java
 
+import scala.collection.JavaConversions.asScalaBuffer
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.api.java.JavaSparkContext
@@ -123,18 +122,37 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
                      primaryID: java.lang.String,
                      phenoName: java.lang.String,
                      delimiter: java.lang.String,
-                     covarPath: Option[String] = None,
-                     covarNames: Option[List[String]] = None,
-                     covarDelimiter: String = "\t",
-                     missing: List[Int] = List(-9)): Map[String, Phenotype] = {
+                     covarPath: java.lang.String,
+                     covarNames: java.util.ArrayList[java.lang.String],
+                     covarDelimiter: java.lang.String,
+                     missing: java.util.ArrayList[java.lang.Integer]): Map[java.lang.String, Phenotype] = {
+
+    // Convert python compatible nullable types to scala options                   
+    val covarPathOption = if (covarPath == null) {
+      None
+    } else {
+      Some(covarPath)
+    }
+
+    // Convert python compatible nullable types to scala options                   
+    val covarNamesOption = if (covarNames == null) {
+      None
+    } else {
+      val covarNamesList = asScalaBuffer(covarNames).toList
+      Some(covarNamesList)
+    }
+
+    val missingList = asScalaBuffer(missing).toList
+    val missingListWithIntValues = missingList.map(i => i.intValue)
+
     gs.loadPhenotypes(phenotypesPath,
       primaryID,
       phenoName,
       delimiter,
-      covarPath,
-      covarNames,
+      covarPathOption,
+      covarNamesOption,
       covarDelimiter,
-      missing)
+      missingListWithIntValues)
   }
 
   /**
@@ -145,7 +163,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
    *
    * @return The Phenotype corresponding to the input key
    */
-  def getPhenotypeByKey(phenotypeMap: Map[String, Phenotype], key: java.lang.String): Phenotype = {
+  def getPhenotypeByKey(phenotypeMap: Map[java.lang.String, Phenotype], key: java.lang.String): Phenotype = {
     phenotypeMap(key)
   }
 }
