@@ -13,7 +13,7 @@ val fullFiltered1 = sc.filterVariants(sampleFiltered1, geno = 0.1, maf = 0.1)
 
 val broadPheno1 = sc.broadcast(pheno1)
 
-val assoc_1 = LinearGnocchiModel(fullFiltered1, broadPheno1, allelicAssumption = "ADDITIVE")
+val assoc_1 = LinearSiteRegression(fullFiltered1, broadPheno1, allelicAssumption = "ADDITIVE")
 
 // val genotypesPath2 = "testData/time_genos_2.vcf"
 // val phenotypesPath2 = "testData/tab_time_phenos_2.txt"

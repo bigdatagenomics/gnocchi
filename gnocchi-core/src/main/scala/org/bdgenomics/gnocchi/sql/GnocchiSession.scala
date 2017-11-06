@@ -35,6 +35,7 @@ import org.bdgenomics.gnocchi.models.variant.VariantModel
 
 import scala.collection.JavaConversions._
 import scala.io.StdIn.readLine
+import scala.io.Source.fromFile
 
 object GnocchiSession {
 
@@ -170,30 +171,34 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    * @param genotypesPath A string specifying the location in the file system of the genotypes file to load in.
    * @return a [[Dataset]] of [[CalledVariant]] objects loaded from a vcf file
    */
-  def loadGenotypes(genotypesPath: String): Dataset[CalledVariant] = {
+  def loadGenotypes(genotypesPath: String, parquet: Boolean = false): Dataset[CalledVariant] = {
 
-    val genoFile = new Path(genotypesPath)
-    val fs = genoFile.getFileSystem(sc.hadoopConfiguration)
-    require(fs.exists(genoFile), s"Specified genotypes file path does not exist: ${genotypesPath}")
+    if (parquet) {
+      sparkSession.read.parquet(genotypesPath).as[CalledVariant]
+    } else {
+      val genoFile = new Path(genotypesPath)
+      val fs = genoFile.getFileSystem(sc.hadoopConfiguration)
+      require(fs.exists(genoFile), s"Specified genotypes file path does not exist: ${genotypesPath}")
 
-    val vcRdd = sc.loadVcf(genotypesPath)
-    vcRdd.rdd.map(vc => {
-      val variant = vc.variant.variant
-      CalledVariant(variant.getContigName.toInt,
-        variant.getEnd.intValue(),
-        variant.getNames.get(0),
-        variant.getReferenceAllele,
-        variant.getAlternateAllele,
-        "", // quality score
-        "", // filter
-        "", // info
-        "", // format
-        vc.genotypes.map(geno => GenotypeState(geno.getSampleId, geno.getAlleles.map {
-          case GenotypeAllele.REF                            => "0"
-          case GenotypeAllele.ALT | GenotypeAllele.OTHER_ALT => "1"
-          case GenotypeAllele.NO_CALL | _                    => "."
-        }.mkString("/"))).toList)
-    }).toDS
+      val vcRdd = sc.loadVcf(genotypesPath)
+      vcRdd.rdd.map(vc => {
+        val variant = vc.variant.variant
+        CalledVariant(if (variant.getContigName.toLowerCase() == "x") 23 else variant.getContigName.toInt,
+          variant.getEnd.intValue(),
+          if (variant.getNames.size > 0) variant.getNames.get(0) else variant.getContigName + "_" + variant.getEnd.toString,
+          variant.getReferenceAllele,
+          variant.getAlternateAllele,
+          "", // quality score
+          "", // filter
+          "", // info
+          "", // format
+          vc.genotypes.map(geno => GenotypeState(geno.getSampleId, geno.getAlleles.map {
+            case GenotypeAllele.REF                            => "0"
+            case GenotypeAllele.ALT | GenotypeAllele.OTHER_ALT => "1"
+            case GenotypeAllele.NO_CALL | _                    => "."
+          }.mkString("/"))).toList)
+      }).toDS.cache()
+    }
   }
 
   /**
@@ -316,7 +321,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     if (saveAsText) {
       assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(outPath)
     } else {
-      assoc.toDF.write.parquet(outPath)
+      assoc.write.parquet(outPath)
     }
   }
 }
