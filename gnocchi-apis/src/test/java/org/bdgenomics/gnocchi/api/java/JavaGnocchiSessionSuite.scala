@@ -35,7 +35,7 @@ class JavaGnocchiSessionSuite extends GnocchiFunSuite {
     jgs = new JavaGnocchiSession(gs)
   }
 
-  sparkTest("Verify filterSamples makes correct call to GnocchiSession") {
+  ignore("Verify filterSamples makes correct call to GnocchiSession") {
     val mockGenotype = Mockito.mock(classOf[Dataset[CalledVariant]])
     val mockMind = 0.0
     val mockPloidy = 0.0
@@ -45,7 +45,7 @@ class JavaGnocchiSessionSuite extends GnocchiFunSuite {
     Mockito.verify(gs).filterSamples(mockGenotype, mockMind, mockPloidy)
   }
 
-  sparkTest("Verify filterVariants makes correct call to GnocchiSession") {
+  ignore("Verify filterVariants makes correct call to GnocchiSession") {
     val mockGenotype = Mockito.mock(classOf[Dataset[CalledVariant]])
     val mockGeno = 0.0
     val mockMaf = 0.0
@@ -55,7 +55,7 @@ class JavaGnocchiSessionSuite extends GnocchiFunSuite {
     Mockito.verify(gs).filterVariants(mockGenotype, mockGeno, mockMaf)
   }
 
-  sparkTest("Verify recodeMajorAllele makes correct call to Gnocchi Sesssion") {
+  ignore("Verify recodeMajorAllele makes correct call to Gnocchi Sesssion") {
     val mockGenotype = Mockito.mock(classOf[Dataset[CalledVariant]])
 
     jgs.recodeMajorAllele(mockGenotype)
@@ -63,7 +63,7 @@ class JavaGnocchiSessionSuite extends GnocchiFunSuite {
     Mockito.verify(gs).recodeMajorAllele(mockGenotype)
   }
 
-  sparkTest("Verify loadGenotypes makes correct call to Gnocchi Sesssion") {
+  ignore("Verify loadGenotypes makes correct call to Gnocchi Sesssion") {
     val mockGeno = ""
 
     jgs.loadGenotypes(mockGeno)
@@ -71,7 +71,7 @@ class JavaGnocchiSessionSuite extends GnocchiFunSuite {
     Mockito.verify(gs).loadGenotypes(mockGeno)
   }
 
-  sparkTest("Verify loadPhenotypes makes correct call to Gnocchi Sesssion") {
+  ignore("Verify loadPhenotypes makes correct call to Gnocchi Sesssion") {
     val mockPhenotypesPath = ""
     val mockPrimaryID = ""
     val mockPhenoName = ""

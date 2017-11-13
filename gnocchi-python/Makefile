@@ -76,9 +76,9 @@ clean_sdist:
 	- rm -rf dist
 
 
-# test: check_build_reqs
-# 	mkdir -p target
-# 	$(python) -m pytest -vv --junitxml target/pytest-reports/tests.xml $(tests)
+test: check_build_reqs
+	mkdir -p target
+	$(python) -m pytest -vv --junitxml target/pytest-reports/tests.xml $(tests)
 
 
 pypi: check_clean_working_copy

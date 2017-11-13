@@ -49,7 +49,7 @@ class GnocchiSession(object):
         :return: a filtered Dataset of CalledVariant objects
         :rtype: bdgenomics.gnocchi.primitives.CalledVariantDataset
         """
-        dataset = self.__jgs.filterSamples(genotypesDataset.get(), mind, ploidy)
+        dataset = self.__jgs.filterSamples(genotypesDataset.get(), float(mind), float(ploidy))
         return CalledVariantDataset(dataset, self._sc)
 
 
@@ -68,7 +68,7 @@ class GnocchiSession(object):
         :return: a filtered Dataset of CalledVariant objects
         :rtype: bdgenomics.gnocchi.primitives.CalledVariantDataset
         """
-        dataset = self.__jgs.filterVariants(genotypesDataset.get(), geno, maf)
+        dataset = self.__jgs.filterVariants(genotypesDataset.get(), float(geno), float(maf))
         return CalledVariantDataset(dataset, self._sc)
 
 
