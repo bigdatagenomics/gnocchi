@@ -57,9 +57,69 @@ class LinearGnocchiModelSuite extends GnocchiFunSuite {
 
     val mergedModel = linearGnocchiModel.mergeGnocchiModel(linearGnocchiModelSecond)
     assert(mergedModel.metaData == newMetadata)
+  }
 
-    // mergeGnocchiModel::mergeVariantModels tested in LinearVariantModelSuite
-    // mergeGnocchiModel::mergeQCVariants tested below
+  sparkTest("LinearGnocchiModel correctly combines greater than 2 GnocchiModels") {
+    val spark = SparkSession.builder().master("local").getOrCreate()
+    import spark.implicits._
+
+    // Create first LinearGnocchiModel
+    val observations = new Array[(Int, Int)](3)
+    observations(0) = (10, 8)
+    observations(1) = (8, 6)
+    observations(2) = (10, 7)
+
+    val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
+    val cv = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStates)
+    val cvDataset = mutable.MutableList[CalledVariant](cv).toDS()
+
+    val phenoMap = observations.map(_._2)
+      .toList
+      .zipWithIndex
+      .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1)))
+      .toMap
+
+    val linearGnocchiModelFirst = LinearGnocchiModelFactory.apply(cvDataset, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
+
+    // Create second LinearGnocchiModel
+    val observationsSecond = new Array[(Int, Int)](3)
+    observationsSecond(0) = (23, 4)
+    observationsSecond(1) = (29, 3)
+    observationsSecond(2) = (32, 2)
+
+    val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
+    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesSecond)
+    val cvDatasetSecond = mutable.MutableList[CalledVariant](cvSecond).toDS()
+
+    val linearGnocchiModelSecond = LinearGnocchiModelFactory.apply(cvDatasetSecond, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
+
+    // Create third LinearGnocchiModel
+    val observationsThird = new Array[(Int, Int)](3)
+    observationsThird(0) = (21, 5)
+    observationsThird(1) = (30, 2)
+    observationsThird(2) = (34, 1)
+
+    val genotypeStatesThird = observationsThird.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
+    val cvThird = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesThird)
+    val cvDatasetThird = mutable.MutableList[CalledVariant](cvThird).toDS()
+
+    val linearGnocchiModelThird = LinearGnocchiModelFactory.apply(cvDatasetThird, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
+
+    // Compute expected metadata for fully merged model
+    val oldMetadata = linearGnocchiModelFirst.metaData
+    val newMetadata = GnocchiModelMetaData(
+      oldMetadata.modelType,
+      oldMetadata.phenotype,
+      oldMetadata.covariates,
+      3,
+      oldMetadata.haplotypeBlockErrorThreshold,
+      oldMetadata.flaggedVariantModels)
+
+    // Merge all three models together
+    val mergedModel = linearGnocchiModelFirst.mergeGnocchiModel(linearGnocchiModelSecond)
+    val finalMergedModel = mergedModel.mergeGnocchiModel(linearGnocchiModelThird)
+
+    assert(finalMergedModel.metaData == newMetadata)
   }
 
   sparkTest("LinearGnocchiModel.mergeQCVariants correct combines variant samples") {
