@@ -72,6 +72,7 @@ object LinearGnocchiModelFactory {
       QCVariantModels = QCVariantModels,
       QCPhenotypes = phenotypes.value)
   }
+
 }
 
 case class LinearGnocchiModel(metaData: GnocchiModelMetaData,

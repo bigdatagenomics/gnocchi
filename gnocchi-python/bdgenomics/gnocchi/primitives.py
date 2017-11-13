@@ -34,6 +34,44 @@ class CalledVariantDataset(object):
         return self._jvmDS
 
 
+class LinearVariantModelDataset(object):
+
+    def __init__(self, jvmDS, sc):
+        """
+        Constructs a Python LinearVariantModelDataset from a JVM Dataset[LinearVariantModel]
+
+        :param jvmDS: Py4j handle to underlying JVM object.
+        :param pyspark.context.SparkContext sc: Active Spark Context.
+        """
+        self._jvmDS = jvmDS
+        self.sc = sc
+
+    def get(self):
+        """
+        Access the inner Dataset object
+        """
+        return self._jvmDS
+
+
+class LogisticVariantModelDataset(object):
+
+    def __init__(self, jvmDS, sc):
+        """
+        Constructs a Python LogisticVariantModelDataset from a JVM Dataset[LogisticVariantModel]
+
+        :param jvmDS: Py4j handle to underlying JVM object.
+        :param pyspark.context.SparkContext sc: Active Spark Context.
+        """
+        self._jvmDS = jvmDS
+        self.sc = sc
+
+    def get(self):
+        """
+        Access the inner Dataset object
+        """
+        return self._jvmDS
+
+
 class Phenotype(object):
 
     def __init__(self, p, sc):

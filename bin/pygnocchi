@@ -48,7 +48,7 @@ fi
 GNOCCHI_CLI_JAR="${ASSEMBLY_DIR}/${ASSEMBLY_JARS}"
 
 if [ -z "$SPARK_HOME" ]; then
-  PYSPARK=$(whisasch pyspark || echo)
+  PYSPARK=$(which pyspark || echo)
 else
   PYSPARK="$SPARK_HOME"/bin/pyspark
 fi

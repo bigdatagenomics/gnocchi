@@ -17,6 +17,8 @@
  */
 package org.bdgenomics.gnocchi.cli
 
+import java.util
+
 import org.bdgenomics.gnocchi.algorithms.siteregression._
 import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, LogisticVariantModel, VariantModel }
 import org.bdgenomics.gnocchi.sql.GnocchiSession._

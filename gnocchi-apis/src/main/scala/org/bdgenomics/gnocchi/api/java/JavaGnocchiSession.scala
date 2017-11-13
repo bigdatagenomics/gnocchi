@@ -118,6 +118,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
    *
    * @return A Map of phenotype name to Phenotype object
    */
+
   def loadPhenotypes(phenotypesPath: java.lang.String,
                      primaryID: java.lang.String,
                      phenoName: java.lang.String,
