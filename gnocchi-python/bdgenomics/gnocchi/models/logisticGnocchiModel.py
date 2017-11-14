@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from bdgenomics.gnocchi.primitives import CalledVariantDataset, LinearVariantModelDataset
 from py4j.java_collections import ListConverter
 
+from bdgenomics.gnocchi.utils.primitives import CalledVariantDataset, LogisticVariantModelDataset
 
-class LinearGnocchiModel(object):
+
+class LogisticGnocchiModel(object):
 
     def __init__(self, ss, jlgm):
         self._ss = ss
@@ -39,7 +40,7 @@ class LinearGnocchiModel(object):
 
         sc = ss.sparkContext
         jvm = sc._jvm
-        jlgmf = jvm.org.bdgenomics.gnocchi.api.java.JavaLinearGnocchiModelFactory
+        jlgmf = jvm.org.bdgenomics.gnocchi.api.java.JavaLogisticGnocchiModelFactory
         session = jvm.org.bdgenomics.gnocchi.sql.GnocchiSession.GnocchiSessionFromSession(ss._jsparkSession)
         jlgmf.generate(session)
 
@@ -56,28 +57,28 @@ class LinearGnocchiModel(object):
                           allelicAssumption,
                           validationStringency)
 
-        jlgm = jvm.org.bdgenomics.gnocchi.api.java.JavaLinearGnocchiModel(lgm)
+        jlgm = jvm.org.bdgenomics.gnocchi.api.java.JavaLogisticGnocchiModel(lgm)
 
         return cls(ss, jlgm)
 
     def get(self):
-        return self._jlgm
+        return self.__jlgm
 
     def mergeGnocchiModel(self, otherModel):
-        newModel = self._jlgm.mergeGnocchiModel(otherModel.get())
-        return LinearGnocchiModel(self._ss, newModel)
+        newModel = self.__jlgm.mergeGnocchiModel(otherModel.get())
+        return LogisticGnocchiModel(self._ss, newModel)
 
     def mergeVariantModels(self, newVariantModels):
-        dataset = self._jlgm.mergeVariantModels(newVariantModels.get())
-        return LinearVariantModelDataset(dataset, self._sc)
+        dataset = self.__jlgm.mergeVariantModels(newVariantModels.get())
+        return LogisticVariantModelDataset(dataset, self._sc)
 
     def mergeQCVariants(self, newQCVariantModels):
-        dataset = self._jlgm.mergeQCVariants(newQCVariantModels.get())
+        dataset = self.__jlgm.mergeQCVariants(newQCVariantModels.get())
         return CalledVariantDataset(dataset, self._sc)
 
     def getVariantModels(self):
         dataset = self._jlgm.getVariantModels()
-        return LinearVariantModelDataset(dataset, self._sc)
+        return LogisticVariantModelDataset(dataset, self._sc)
 
     def getQCVariants(self):
         dataset = self._jlgm.getQCVariants()
@@ -85,7 +86,7 @@ class LinearGnocchiModel(object):
 
     def getModelMetadata(self):
         return self._jlgm.getModelMetadata()
-
+    
     def getModelType(self):
         return self._jlgm.getModelType()
     
@@ -103,6 +104,6 @@ class LinearGnocchiModel(object):
     
     def getFlaggedVariantModels(self):
         return self._jlgm.getFlaggedVariantModels()
-
+        
     def save(self, saveTo):
         self._jlgm.save(saveTo)

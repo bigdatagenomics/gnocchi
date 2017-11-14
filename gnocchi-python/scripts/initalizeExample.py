@@ -1,6 +1,7 @@
-from bdgenomics.gnocchi.gnocchiSession import GnocchiSession
 from bdgenomics.gnocchi.linearGnocchiModel import LinearGnocchiModel
-from bdgenomics.gnocchi.logisticGnocchiModel import LogisticGnocchiModel
+
+from bdgenomics.gnocchi.gnocchiSession import GnocchiSession
+from bdgenomics.gnocchi.models.logisticGnocchiModel import LogisticGnocchiModel
 from bdgenomics.gnocchi.regressPhenotypes import RegressPhenotypes
 
 genotypesPath1 = "examples/testData/1snp10samples.vcf"
