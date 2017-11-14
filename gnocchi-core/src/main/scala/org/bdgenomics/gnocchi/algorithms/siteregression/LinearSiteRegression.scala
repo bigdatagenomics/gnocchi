@@ -40,9 +40,13 @@ trait LinearSiteRegression extends SiteRegression[LinearVariantModel, LinearAsso
     import genotypes.sqlContext.implicits._
 
     //ToDo: Singular Matrix Exceptions
-    genotypes.map((genos: CalledVariant) => {
-      val association = applyToSite(phenotypes.value, genos, allelicAssumption)
-      constructVM(genos, phenotypes.value.head._2, association, allelicAssumption)
+    genotypes.flatMap((genos: CalledVariant) => {
+      try {
+        val association = applyToSite(phenotypes.value, genos, allelicAssumption)
+        Some(constructVM(genos, phenotypes.value.head._2, association, allelicAssumption))
+      } catch {
+        case e: breeze.linalg.MatrixSingularException => None
+      }
     })
   }
 

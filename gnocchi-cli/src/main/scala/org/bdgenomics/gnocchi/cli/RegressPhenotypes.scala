@@ -99,6 +99,9 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-forceSave", usage = "If set to true, no prompt will be given and results will overwrite any other files at that location.")
   var forceSave = false
+
+  @Args4jOption(required = false, name = "-missingPhenoChar", usage = "Comma delimited set of strings used to denote a missing phenotype.")
+  var missingPhenoChars: String = _
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -108,7 +111,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
     val phenoDelimiter = if (args.phenoSpaceDelimiter) { " " } else { "\t" }
     val covarDelimiter = if (args.covarSpaceDelimiter) { " " } else { "\t" }
-    val missingPhenos = if (args.oneTwo) List(0, -9) else List(-9)
+    val missingPhenos = if (args.missingPhenoChars == null) List("-9") else args.missingPhenoChars.split(",").toList
 
     val phenotypes = if (args.covarFile != null) {
       sc.loadPhenotypes(args.phenotypes,

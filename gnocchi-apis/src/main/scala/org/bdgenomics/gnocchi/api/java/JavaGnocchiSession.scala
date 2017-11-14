@@ -18,6 +18,8 @@
 
 package org.bdgenomics.gnocchi.api.java
 
+import java.util
+
 import scala.collection.JavaConversions.asScalaBuffer
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
@@ -25,6 +27,7 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.Dataset
 import org.bdgenomics.adam.rdd.ADAMContext
 import org.bdgenomics.gnocchi.sql.GnocchiSession
+import scala.collection.JavaConverters._
 
 object JavaGnocchiSession {
   // convert to and from java/scala implementation
@@ -125,8 +128,8 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
                      delimiter: java.lang.String,
                      covarPath: java.lang.String,
                      covarNames: java.util.ArrayList[java.lang.String],
-                     covarDelimiter: java.lang.String,
-                     missing: java.util.ArrayList[java.lang.Integer]): Map[java.lang.String, Phenotype] = {
+                     covarDelimiter: java.lang.String = "\t",
+                     missing: java.util.ArrayList[java.lang.String] = new util.ArrayList[String](List("-9").asJava)): Map[java.lang.String, Phenotype] = {
 
     // Convert python compatible nullable types to scala options                   
     val covarPathOption = if (covarPath == null) {
@@ -144,7 +147,6 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
     }
 
     val missingList = asScalaBuffer(missing).toList
-    val missingListWithIntValues = missingList.map(i => i.intValue)
 
     gs.loadPhenotypes(phenotypesPath,
       primaryID,
@@ -153,7 +155,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
       covarPathOption,
       covarNamesOption,
       covarDelimiter,
-      missingListWithIntValues)
+      missingList)
   }
 
   /**

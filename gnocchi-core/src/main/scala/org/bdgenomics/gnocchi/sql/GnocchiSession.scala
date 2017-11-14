@@ -225,7 +225,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
                      covarPath: Option[String] = None,
                      covarNames: Option[List[String]] = None,
                      covarDelimiter: String = "\t",
-                     missing: List[Int] = List(-9)): Map[String, Phenotype] = {
+                     missing: List[String] = List("-9")): Map[String, Phenotype] = {
 
     val phenoFile = new Path(phenotypesPath)
     val fs = phenoFile.getFileSystem(sc.hadoopConfiguration)
@@ -250,7 +250,10 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
 
     val phenotypesDF = prelimPhenotypesDF
       .select(primaryID, phenoName)
-      .toDF("sampleId", "phenotype")
+      .toDF("sampleId", "phenotype_stage")
+      .filter(!$"phenotype_stage".isin(missing: _*))
+      .withColumn("phenotype", $"phenotype_stage".cast("double"))
+      .drop($"phenotype_stage")
 
     val covariateDF = if (covarPath.isDefined && covarNames.isDefined) {
       val prelimCovarDF = sparkSession.read.format("csv")
@@ -286,11 +289,11 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       phenotypesDF.withColumn("covariates", array())
     }
 
+    // need to filter out the missing covariates as well.
     phenoCovarDF
       .withColumn("phenoName", lit(phenoName))
       .as[Phenotype]
       .collect()
-      .filter(x => !missing.contains(x.phenotype) && x.covariates.forall(!missing.contains(_)))
       .map(x => (x.sampleId, x)).toMap
   }
 
