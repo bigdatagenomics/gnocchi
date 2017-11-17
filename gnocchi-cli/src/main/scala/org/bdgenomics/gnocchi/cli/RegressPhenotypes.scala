@@ -102,6 +102,9 @@ class RegressPhenotypesArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-missingPhenoChar", usage = "Comma delimited set of strings used to denote a missing phenotype.")
   var missingPhenoChars: String = _
+
+  @Args4jOption(required = false, name = "-parquetInput", usage = "Genotypes are parquet formatted.")
+  var parquetInput: Boolean = false
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -127,7 +130,7 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     }
     val broadPhenotype = sc.broadcast(phenotypes)
 
-    val rawGenotypes = sc.loadGenotypes(args.genotypes)
+    val rawGenotypes = sc.loadGenotypes(args.genotypes, parquet = args.parquetInput)
     // val recoded = sc.recodeMajorAllele(rawGenotypes)
     val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
     val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)

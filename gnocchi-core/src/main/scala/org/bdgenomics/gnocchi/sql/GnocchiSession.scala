@@ -174,7 +174,11 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
   def loadGenotypes(genotypesPath: String, parquet: Boolean = false): Dataset[CalledVariant] = {
 
     if (parquet) {
-      sparkSession.read.parquet(genotypesPath).as[CalledVariant]
+      if (genotypesPath.split(",").length > 2 ) {
+        sparkSession.read.parquet(genotypesPath.split(","):_*).as[CalledVariant]
+      } else {
+        sparkSession.read.parquet(genotypesPath).as[CalledVariant]
+      }
     } else {
       val genoFile = new Path(genotypesPath)
       val fs = genoFile.getFileSystem(sc.hadoopConfiguration)
