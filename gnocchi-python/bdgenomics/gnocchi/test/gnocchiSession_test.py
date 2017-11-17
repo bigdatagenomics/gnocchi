@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from bdgenomics.gnocchi.gnocchiSession import GnocchiSession
+from bdgenomics.gnocchi.core.gnocchiSession import GnocchiSession
 from bdgenomics.gnocchi.test import SparkTestCase
 
 

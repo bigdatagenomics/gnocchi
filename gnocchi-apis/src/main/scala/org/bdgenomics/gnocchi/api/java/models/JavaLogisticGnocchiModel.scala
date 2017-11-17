@@ -1,16 +1,15 @@
-package org.bdgenomics.gnocchi.api.java
+package org.bdgenomics.gnocchi.api.java.models
 
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.Dataset
-import org.bdgenomics.gnocchi.models.variant.{ QualityControlVariantModel, LinearVariantModel }
-import org.bdgenomics.gnocchi.models.{ LinearGnocchiModelFactory, GnocchiModel, LinearGnocchiModel, GnocchiModelMetaData }
+import org.bdgenomics.gnocchi.models.variant.{ LogisticVariantModel, QualityControlVariantModel }
+import org.bdgenomics.gnocchi.models.{ GnocchiModelMetaData, LogisticGnocchiModel, LogisticGnocchiModelFactory }
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.bdgenomics.gnocchi.sql.GnocchiSession
 
 import scala.collection.JavaConversions._
 
-object JavaLinearGnocchiModelFactory {
+object JavaLogisticGnocchiModelFactory {
 
   var gs: GnocchiSession = null
 
@@ -22,7 +21,7 @@ object JavaLinearGnocchiModelFactory {
             QCVariantIDs: java.util.List[java.lang.String], // Option becomes raw object
             QCVariantSamplingRate: java.lang.Double,
             allelicAssumption: java.lang.String,
-            validationStringency: java.lang.String): LinearGnocchiModel = {
+            validationStringency: java.lang.String): LogisticGnocchiModel = {
 
     // Convert python compatible nullable types to scala options
     val phenotypeNamesOption = if (phenotypeNames == null) {
@@ -39,7 +38,7 @@ object JavaLinearGnocchiModelFactory {
       Some(QCVariantIDsList)
     }
 
-    LinearGnocchiModelFactory(genotypes,
+    LogisticGnocchiModelFactory(genotypes,
       this.gs.sparkSession.sparkContext.broadcast(phenotypes),
       phenotypeNamesOption,
       QCVariantIDsOption,
@@ -49,25 +48,25 @@ object JavaLinearGnocchiModelFactory {
   }
 }
 
-class JavaLinearGnocchiModel(val lgm: LinearGnocchiModel) {
-  def mergeGnocchiModel(otherModel: JavaLinearGnocchiModel): JavaLinearGnocchiModel = {
-    val newModel = lgm.mergeGnocchiModel(otherModel.lgm).asInstanceOf[LinearGnocchiModel]
-    new JavaLinearGnocchiModel(newModel)
+class JavaLogisticGnocchiModel(val lgm: LogisticGnocchiModel) {
+  def mergeGnocchiModel(otherModel: JavaLogisticGnocchiModel): JavaLogisticGnocchiModel = {
+    val newModel = lgm.mergeGnocchiModel(otherModel.lgm).asInstanceOf[LogisticGnocchiModel]
+    new JavaLogisticGnocchiModel(newModel)
   }
 
-  def mergeVariantModels(newVariantModels: Dataset[LinearVariantModel]): Dataset[LinearVariantModel] = {
+  def mergeVariantModels(newVariantModels: Dataset[LogisticVariantModel]): Dataset[LogisticVariantModel] = {
     lgm.mergeVariantModels(newVariantModels)
   }
 
-  def mergeQCVariants(newQCVariantModels: Dataset[QualityControlVariantModel[LinearVariantModel]]): Dataset[CalledVariant] = {
+  def mergeQCVariants(newQCVariantModels: Dataset[QualityControlVariantModel[LogisticVariantModel]]): Dataset[CalledVariant] = {
     lgm.mergeQCVariants(newQCVariantModels)
   }
 
-  def getVariantModels(): Dataset[LinearVariantModel] = {
+  def getVariantModels(): Dataset[LogisticVariantModel] = {
     lgm.variantModels
   }
 
-  def getQCVariants(): Dataset[QualityControlVariantModel[LinearVariantModel]] = {
+  def getQCVariants(): Dataset[QualityControlVariantModel[LogisticVariantModel]] = {
     lgm.QCVariantModels
   }
 

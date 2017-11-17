@@ -40,7 +40,7 @@ class LogisticGnocchiModel(object):
 
         sc = ss.sparkContext
         jvm = sc._jvm
-        jlgmf = jvm.org.bdgenomics.gnocchi.api.java.JavaLogisticGnocchiModelFactory
+        jlgmf = jvm.org.bdgenomics.gnocchi.api.java.models.JavaLogisticGnocchiModelFactory
         session = jvm.org.bdgenomics.gnocchi.sql.GnocchiSession.GnocchiSessionFromSession(ss._jsparkSession)
         jlgmf.generate(session)
 
@@ -57,7 +57,7 @@ class LogisticGnocchiModel(object):
                           allelicAssumption,
                           validationStringency)
 
-        jlgm = jvm.org.bdgenomics.gnocchi.api.java.JavaLogisticGnocchiModel(lgm)
+        jlgm = jvm.org.bdgenomics.gnocchi.api.java.models.JavaLogisticGnocchiModel(lgm)
 
         return cls(ss, jlgm)
 

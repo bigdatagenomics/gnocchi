@@ -1,6 +1,5 @@
-package org.bdgenomics.gnocchi.api.java
+package org.bdgenomics.gnocchi.api.java.core
 
-import org.apache.spark.SparkContext
 import org.bdgenomics.gnocchi.cli.RegressPhenotypes
 import org.bdgenomics.gnocchi.sql.GnocchiSession
 

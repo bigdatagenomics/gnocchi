@@ -18,12 +18,13 @@
 
 package org.bdgenomics.gnocchi.api
 
-import org.bdgenomics.gnocchi.api.java.{ GnocchiFunSuite, JavaGnocchiSession }
+import org.bdgenomics.gnocchi.api.java.GnocchiFunSuite
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.bdgenomics.gnocchi.sql.GnocchiSession
 import org.apache.spark.SparkContext
 import org.mockito.Mockito
 import org.apache.spark.sql.Dataset
+import org.bdgenomics.gnocchi.api.java.core.JavaGnocchiSession
 import org.scalatest.FunSuite // (TODO) Replace with GnocchiFunSuite
 
 class JavaGnocchiSessionSuite extends GnocchiFunSuite {

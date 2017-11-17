@@ -16,17 +16,15 @@
  * limitations under the License.
  */
 
-package org.bdgenomics.gnocchi.api.java
+package org.bdgenomics.gnocchi.api.java.core
 
-import java.util
-
-import scala.collection.JavaConversions.asScalaBuffer
-import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
-import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.Dataset
-import org.bdgenomics.adam.rdd.ADAMContext
+import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
+import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.bdgenomics.gnocchi.sql.GnocchiSession
+
+import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConverters._
 
 object JavaGnocchiSession {
@@ -129,7 +127,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
                      covarPath: java.lang.String,
                      covarNames: java.util.ArrayList[java.lang.String],
                      covarDelimiter: java.lang.String = "\t",
-                     missing: java.util.ArrayList[java.lang.String] = new util.ArrayList[String](List("-9").asJava)): Map[java.lang.String, Phenotype] = {
+                     missing: java.util.ArrayList[java.lang.String] = new java.util.ArrayList[String](List("-9").asJava)): Map[java.lang.String, Phenotype] = {
 
     // Convert python compatible nullable types to scala options                   
     val covarPathOption = if (covarPath == null) {
