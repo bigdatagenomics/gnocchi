@@ -52,15 +52,18 @@ case class LinearVariantModel(uniqueID: String,
    * @return Returns updated LinearVariantModel of correct subtype
    */
   def mergeWith(variantModel: LinearVariantModel): LinearVariantModel = {
-    val updatedNumSamples = updateNumSamples(variantModel.association.numSamples)
+    val updatedNumSamples = association.numSamples + variantModel.association.numSamples
+
     val updatedWeights = updateWeights(variantModel.association.weights, variantModel.association.numSamples)
-    val updatedSsDeviations = updateSsDeviations(variantModel.association.ssDeviations)
-    val updatedSsResiduals = updateSsResiduals(variantModel.association.ssResiduals)
+
+    val updatedSsDeviations = association.ssDeviations + variantModel.association.ssDeviations
+    val updatedSsResiduals = association.ssResiduals + variantModel.association.ssResiduals
     val updatedGeneticParameterStandardError = computeGeneticParameterStandardError(updatedSsResiduals,
       updatedSsDeviations, updatedNumSamples)
     val updatedResidualDegreesOfFreedom = updateResidualDegreesOfFreedom(variantModel.association.numSamples)
     val updatedtStatistic = calculateTStatistic(updatedWeights, updatedGeneticParameterStandardError)
     val updatedPValue = calculatePValue(updatedtStatistic, updatedResidualDegreesOfFreedom)
+
     constructUpdatedVariantModel(this.uniqueID,
       updatedSsDeviations,
       updatedSsResiduals,
@@ -70,18 +73,6 @@ case class LinearVariantModel(uniqueID: String,
       updatedPValue,
       updatedWeights,
       updatedNumSamples)
-    // TODO: implement dominant version of linear model
-    //      case domLin: DominantLinearVariantModel => DominantLinearVariantModel(this.variantId,
-    //        updatedSsDeviations,
-    //        updatedSsResiduals,
-    //        updatedGeneticParameterStandardError,
-    //        updatedtStatistic,
-    //        updatedResidualDegreesOfFreedom,
-    //        updatedPValue,
-    //        this.variant,
-    //        updatedWeights,
-    //        this.haplotypeBlock,
-    //        updatedNumSamples)
   }
 
   /**

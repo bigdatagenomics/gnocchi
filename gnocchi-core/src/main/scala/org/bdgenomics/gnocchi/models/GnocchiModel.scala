@@ -23,8 +23,8 @@ import org.bdgenomics.gnocchi.models.variant.{ QualityControlVariantModel, Varia
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.apache.spark.sql.Dataset
 
-import scala.pickling.Defaults._
-import scala.pickling.json._
+import java.io.FileOutputStream
+import java.io.ObjectOutputStream
 
 case class GnocchiModelMetaData(modelType: String,
                                 phenotype: String,
@@ -34,11 +34,11 @@ case class GnocchiModelMetaData(modelType: String,
                                 flaggedVariantModels: Option[List[String]] = None) {
 
   def save(saveTo: String): Unit = {
-    val metadataPkl = this.pickle.value
-    val outputFile = new File(saveTo)
-    val writer = new PrintWriter(outputFile)
-    writer.write(metadataPkl)
-    writer.close()
+    val fos = new FileOutputStream(saveTo)
+    val oos = new ObjectOutputStream(fos)
+
+    oos.writeObject(this)
+    oos.close
   }
 }
 
@@ -183,5 +183,11 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
     variantModels.write.parquet(saveTo + "/variantModels")
     QCVariantModels.write.parquet(saveTo + "/qcModels")
     metaData.save(saveTo + "/metaData")
+
+    val fos = new FileOutputStream(saveTo + "/qcPhenotypes")
+    val oos = new ObjectOutputStream(fos)
+
+    oos.writeObject(QCPhenotypes)
+    oos.close
   }
 }

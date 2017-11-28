@@ -17,7 +17,7 @@
  */
 package org.bdgenomics.gnocchi.sql
 
-import java.io.Serializable
+import java.io.{ FileInputStream, ObjectInputStream, Serializable }
 
 import org.bdgenomics.formats.avro.GenotypeAllele
 import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
@@ -31,7 +31,8 @@ import org.bdgenomics.utils.misc.Logging
 import java.nio.file.{ Files, Paths }
 
 import org.apache.hadoop.fs.Path
-import org.bdgenomics.gnocchi.models.variant.VariantModel
+import org.bdgenomics.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData, LinearGnocchiModel, LogisticGnocchiModel }
+import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, LogisticVariantModel, QualityControlVariantModel, VariantModel }
 
 import scala.collection.JavaConversions._
 import scala.io.StdIn.readLine
@@ -174,8 +175,8 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
   def loadGenotypes(genotypesPath: String, parquet: Boolean = false): Dataset[CalledVariant] = {
 
     if (parquet) {
-      if (genotypesPath.split(",").length > 2 ) {
-        sparkSession.read.parquet(genotypesPath.split(","):_*).as[CalledVariant]
+      if (genotypesPath.split(",").length > 2) {
+        sparkSession.read.parquet(genotypesPath.split(","): _*).as[CalledVariant]
       } else {
         sparkSession.read.parquet(genotypesPath).as[CalledVariant]
       }
@@ -329,6 +330,44 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(outPath)
     } else {
       assoc.write.parquet(outPath)
+    }
+  }
+
+  /**
+   * see https://stackoverflow.com/questions/16386252/scala-deserialization-class-not-found for the object input stream
+   * fix on qcPhenotypes
+   *
+   * @param path
+   * @return
+   */
+  def loadGnocchiModel(path: String): GnocchiModel[_, _] = {
+    val fis = new FileInputStream(path + "/metaData")
+    val ois = new ObjectInputStream(fis)
+
+    val metaData = ois.readObject.asInstanceOf[GnocchiModelMetaData]
+    ois.close
+
+    val fis_2 = new FileInputStream(path + "/qcPhenotypes")
+    val ois_2 = new ObjectInputStream(fis_2) {
+      override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
+        try { Class.forName(desc.getName, false, getClass.getClassLoader) }
+        catch { case ex: ClassNotFoundException => super.resolveClass(desc) }
+      }
+    }
+
+    val qcPhenotypes = ois_2.readObject.asInstanceOf[Map[String, Phenotype]]
+    ois_2.close
+
+    if (metaData.modelType == "LinearRegression") {
+      val variantModels = sparkSession.read.parquet(path + "/variantModels").as[LinearVariantModel]
+      val qcVariantModels = sparkSession.read.parquet(path + "/qcModels").as[QualityControlVariantModel[LinearVariantModel]]
+
+      LinearGnocchiModel(metaData, variantModels, qcVariantModels, qcPhenotypes)
+    } else {
+      val variantModels = sparkSession.read.parquet(path + "/variantModels").as[LogisticVariantModel]
+      val qcVariantModels = sparkSession.read.parquet(path + "/qcModels").as[QualityControlVariantModel[LogisticVariantModel]]
+
+      LogisticGnocchiModel(metaData, variantModels, qcVariantModels, qcPhenotypes)
     }
   }
 }

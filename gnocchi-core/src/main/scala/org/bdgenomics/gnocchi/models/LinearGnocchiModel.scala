@@ -83,7 +83,7 @@ case class LinearGnocchiModel(metaData: GnocchiModelMetaData,
 
   import variantModels.sqlContext.implicits._
 
-  def mergeGnocchiModel(otherModel: GnocchiModel[LinearVariantModel, LinearGnocchiModel]): GnocchiModel[LinearVariantModel, LinearGnocchiModel] = {
+  def mergeGnocchiModel(otherModel: GnocchiModel[LinearVariantModel, LinearGnocchiModel]): LinearGnocchiModel = {
 
     require(otherModel.metaData.modelType == metaData.modelType,
       "Models being merged are not the same type. Type equality is required to merge two models correctly.")

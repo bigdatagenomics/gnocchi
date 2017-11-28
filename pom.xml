@@ -22,6 +22,7 @@
     <avro.version>1.8.0</avro.version>
     <scala.version>2.11.8</scala.version>
     <scala.version.prefix>2.11</scala.version.prefix>
+    <scala.binary.version>2.11.8</scala.binary.version>
     <spark.version>2.2.0</spark.version>
     <parquet.version>1.8.1</parquet.version>
     <hadoop.version>2.7.3</hadoop.version>
@@ -112,6 +113,10 @@
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
           <version>3.2.0</version>
+          <configuration>
+            <scalaCompatVersion>${scala.binary.version}</scalaCompatVersion>
+            <scalaVersion>${scala.version}</scalaVersion>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
