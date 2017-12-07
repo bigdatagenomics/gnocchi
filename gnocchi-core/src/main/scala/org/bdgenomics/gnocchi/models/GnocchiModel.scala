@@ -22,25 +22,17 @@ import java.io.{ File, PrintWriter }
 import org.bdgenomics.gnocchi.models.variant.{ QualityControlVariantModel, VariantModel }
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.apache.spark.sql.Dataset
-
 import java.io.FileOutputStream
 import java.io.ObjectOutputStream
+
+import org.apache.hadoop.fs.Path
 
 case class GnocchiModelMetaData(modelType: String,
                                 phenotype: String,
                                 covariates: String,
                                 numSamples: Int,
                                 haplotypeBlockErrorThreshold: Double = 0.1,
-                                flaggedVariantModels: Option[List[String]] = None) {
-
-  def save(saveTo: String): Unit = {
-    val fos = new FileOutputStream(saveTo)
-    val oos = new ObjectOutputStream(fos)
-
-    oos.writeObject(this)
-    oos.close
-  }
-}
+                                flaggedVariantModels: Option[List[String]] = None)
 
 /**
  * A trait that wraps an RDD of variant-specific models that are incrementally
@@ -182,12 +174,20 @@ trait GnocchiModel[VM <: VariantModel[VM], GM <: GnocchiModel[VM, GM]] {
   def save(saveTo: String): Unit = {
     variantModels.write.parquet(saveTo + "/variantModels")
     QCVariantModels.write.parquet(saveTo + "/qcModels")
-    metaData.save(saveTo + "/metaData")
 
-    val fos = new FileOutputStream(saveTo + "/qcPhenotypes")
-    val oos = new ObjectOutputStream(fos)
+    val qcPhenoPath = new Path(saveTo + "/qcPhenotypes")
+    val metaDataPath = new Path(saveTo + "/metaData")
 
-    oos.writeObject(QCPhenotypes)
-    oos.close
+    val path_fs = qcPhenoPath.getFileSystem(variantModels.sparkSession.sparkContext.hadoopConfiguration)
+    val path_oos = new ObjectOutputStream(path_fs.create(qcPhenoPath))
+
+    path_oos.writeObject(QCPhenotypes)
+    path_oos.close
+
+    val metaData_fs = metaDataPath.getFileSystem(variantModels.sparkSession.sparkContext.hadoopConfiguration)
+    val metaData_oos = new ObjectOutputStream(metaData_fs.create(metaDataPath))
+
+    metaData_oos.writeObject(metaData)
+    metaData_oos.close
   }
 }

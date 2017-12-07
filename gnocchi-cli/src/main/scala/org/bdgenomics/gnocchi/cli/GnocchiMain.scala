@@ -20,7 +20,8 @@ package org.bdgenomics.gnocchi.cli
 object GnocchiMain {
 
   private val commands = List(
-    RegressPhenotypes)
+    RegressPhenotypes,
+    BuildGnocchiModel)
 
   private def printCommands() {
     println("\n")

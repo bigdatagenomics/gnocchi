@@ -568,4 +568,8 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
   ignore("sc.loadPhenotypes should filter out the entire row if a primary phenotypes is missing.") {
 
   }
+
+  ignore("sc.loadPhenotypes should filter out missing covariates.") {
+
+  }
 }

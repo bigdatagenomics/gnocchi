@@ -38,6 +38,8 @@ object LogisticGnocchiModelFactory {
 
     import genotypes.sqlContext.implicits._
 
+    genotypes.cache()
+
     // ToDo: sampling QC Variants better.
     val variantModels = LogisticSiteRegression(genotypes, phenotypes, allelicAssumption = allelicAssumption, validationStringency = validationStringency)
 

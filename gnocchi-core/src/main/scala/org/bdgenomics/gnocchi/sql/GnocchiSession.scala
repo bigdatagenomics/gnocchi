@@ -35,6 +35,7 @@ import org.bdgenomics.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData, Linea
 import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, LogisticVariantModel, QualityControlVariantModel, VariantModel }
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.io.StdIn.readLine
 import scala.io.Source.fromFile
 
@@ -210,6 +211,13 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    * Returns a map of phenotype name to phenotype object, which is loaded from
    * a file, specified by phenotypesPath
    *
+   * @todo Eventually this should be reimplemented without spark. The dataframe abstraction is nice, but there are
+   *      limitations. Data manipulations we want to support. We want a pandas like object
+   *      - automatic detection of missing values
+   *      - converting categorical data into dummy variables
+   *      - indexed columns that can be accessed by phenotype name
+   *      - phenotypic summary information like histograms for particular phenotypes
+   *
    * @param phenotypesPath A string specifying the location in the file system
    *                       of the phenotypes file to load in.
    * @param primaryID The primary sample ID
@@ -288,7 +296,14 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
 
     val phenoCovarDF = if (covariateDF.isDefined) {
       val joinedDF = phenotypesDF.join(covariateDF.get, Seq("sampleId"))
-      joinedDF.withColumn("covariates", array(covarNames.get.head, covarNames.get.tail: _*))
+
+      val filterCov = udf { (tags: mutable.WrappedArray[String]) => tags.forall(x => !missing.contains(x)) }
+      val castCov = udf { (tags: mutable.WrappedArray[String]) => tags.map(x => x.toDouble) }
+
+      joinedDF
+        .withColumn("covariates_staged", array(covarNames.get.head, covarNames.get.tail: _*))
+        .filter(filterCov($"covariates_staged"))
+        .withColumn("covariates", castCov($"covariates_staged"))
         .select("sampleId", "phenotype", "covariates")
     } else {
       phenotypesDF.withColumn("covariates", array())
@@ -329,7 +344,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     if (saveAsText) {
       assoc.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").save(outPath)
     } else {
-      assoc.write.parquet(outPath)
+      associations.write.parquet(outPath)
     }
   }
 
@@ -341,14 +356,16 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    * @return
    */
   def loadGnocchiModel(path: String): GnocchiModel[_, _] = {
-    val fis = new FileInputStream(path + "/metaData")
-    val ois = new ObjectInputStream(fis)
+    val metaDataPath = new Path(path + "/metaData")
 
+    val path_fs = metaDataPath.getFileSystem(sparkSession.sparkContext.hadoopConfiguration)
+    val ois = new ObjectInputStream(path_fs.open(metaDataPath))
     val metaData = ois.readObject.asInstanceOf[GnocchiModelMetaData]
     ois.close
 
-    val fis_2 = new FileInputStream(path + "/qcPhenotypes")
-    val ois_2 = new ObjectInputStream(fis_2) {
+    val qcPhenotypesPath = new Path(path + "/qcPhenotypes")
+    val qcPhenotypes_fs = qcPhenotypesPath.getFileSystem(sparkSession.sparkContext.hadoopConfiguration)
+    val ois_2 = new ObjectInputStream(qcPhenotypes_fs.open(qcPhenotypesPath)) {
       override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
         try { Class.forName(desc.getName, false, getClass.getClassLoader) }
         catch { case ex: ClassNotFoundException => super.resolveClass(desc) }
