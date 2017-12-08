@@ -170,7 +170,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
     val (data, label) = LogisticSiteRegression.prepareDesignMatrix(phenos, cv, "ADDITIVE")
 
-    val genos = DenseVector(cv.samples.filter(!_.toList.contains(".")).map(_.toDouble): _*)
+    val genos = DenseVector(cv.samples.filter(_.misses == 0).map(_.toDouble): _*)
     assert(data(::, 1) == genos, "LogisticSiteRegression.prepareDesignMatrix places genos in the wrong place")
   }
 
@@ -182,7 +182,7 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     val (data, label) = LogisticSiteRegression.prepareDesignMatrix(phenos, cv, "ADDITIVE")
 
     val covs = data(::, 2 to -1)
-    val rows = phenos.filter(x => cv.samples.filter(!_.toList.contains(".")).map(_.sampleID).contains(x._1))
+    val rows = phenos.filter(x => cv.samples.filter(_.misses == 0).map(_.sampleID).contains(x._1))
       .map(_._2.covariates)
       .toList
     val otherCovs = DenseMatrix(rows: _*)

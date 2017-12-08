@@ -122,10 +122,6 @@ case class LogisticGnocchiModel(metaData: GnocchiModelMetaData,
           x._1.uniqueID,
           x._1.referenceAllele,
           x._1.alternateAllele,
-          x._1.qualityScore,
-          x._1.filter,
-          x._1.info,
-          x._1.format,
           x._1.samples ++ x._2.samples))
   }
 }

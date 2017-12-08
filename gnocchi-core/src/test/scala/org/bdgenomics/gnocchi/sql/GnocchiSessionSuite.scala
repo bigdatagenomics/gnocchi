@@ -190,12 +190,13 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
   // filter samples tests
 
   private def makeGenotypeState(id: String, gs: String): GenotypeState = {
-    GenotypeState(id, gs)
+    val alleleLst = gs.split("/")
+    GenotypeState(id, alleleLst.count(_ == "0"), alleleLst.count(_ == "1"), alleleLst.count(_ == "."))
   }
 
   private def makeCalledVariant(uid: Int, sampleIds: List[String], genotypeStates: List[String]): CalledVariant = {
     val samples = sampleIds.zip(genotypeStates).map(idGs => makeGenotypeState(idGs._1, idGs._2))
-    CalledVariant(1, 1234, uid.toString(), "A", "G", "60", "PASS", ".", "GT", samples)
+    CalledVariant(1, 1234, uid.toString(), "A", "G", samples)
   }
 
   private def makeCalledVariantDS(variants: List[CalledVariant]): Dataset[CalledVariant] = {
@@ -446,16 +447,8 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
     assert(recoded.alternateAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly did not change the alternate allele value of variants to be recoded.")
     assert(recoded.referenceAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly did not change the reference allele value of variants to be recoded.")
-    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
-    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
-    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
-    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
 
-    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.toList.map {
-      case "0" => "1"
-      case "1" => "0"
-      case "." => "."
-    }.mkString("/")))
+    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.alts, geno.refs, geno.misses))
 
     assert(recodedSamples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
@@ -471,16 +464,8 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
     assert(recoded.alternateAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly did not change the alternate allele value of variants to be recoded.")
     assert(recoded.referenceAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly did not change the reference allele value of variants to be recoded.")
-    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
-    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
-    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
-    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
 
-    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.toList.map {
-      case "0" => "1"
-      case "1" => "0"
-      case "." => "."
-    }.mkString("/")))
+    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.alts, geno.refs, geno.misses))
 
     assert(recodedSamples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
@@ -496,10 +481,6 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
     assert(recoded.referenceAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly changed the reference allele value of variants to be recoded.")
     assert(recoded.alternateAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly changed the alternate allele value of variants to be recoded.")
-    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
-    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
-    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
-    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
 
     assert(sampleVar.samples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
@@ -515,10 +496,6 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
     assert(recoded.referenceAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly changed the reference allele value of variants to be recoded.")
     assert(recoded.alternateAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly changed the alternate allele value of variants to be recoded.")
-    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
-    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
-    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
-    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
 
     assert(sampleVar.samples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
@@ -534,10 +511,6 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(recoded.uniqueID == sampleVar.uniqueID, "sc.recodeMajorAllele incorrectly changed the uniqueID value of variants to be recoded.")
     assert(recoded.referenceAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly changed the reference allele value of variants to be recoded.")
     assert(recoded.alternateAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly changed the alternate allele value of variants to be recoded.")
-    assert(recoded.qualityScore == sampleVar.qualityScore, "sc.recodeMajorAllele incorrectly changed the quality score value of variants to be recoded.")
-    assert(recoded.filter == sampleVar.filter, "sc.recodeMajorAllele incorrectly changed the filter value of variants to be recoded.")
-    assert(recoded.info == sampleVar.info, "sc.recodeMajorAllele incorrectly changed the info value of variants to be recoded.")
-    assert(recoded.format == sampleVar.format, "sc.recodeMajorAllele incorrectly changed the format value of variants to be recoded.")
 
     assert(sampleVar.samples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }

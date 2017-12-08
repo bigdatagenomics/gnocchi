@@ -66,7 +66,7 @@ trait GnocchiFunSuite extends SparkFunSuite {
     val form = if (format.isEmpty) "." else format.get
     val sam = if (samples.isEmpty) createSampleGenotypeStates(num = 50) else samples.get
 
-    CalledVariant(chrom, pos, uid, ref, alt, qs, fil, inf, form, sam)
+    CalledVariant(chrom, pos, uid, ref, alt, sam)
   }
 
   def createSamplePhenotype(calledVariant: Option[CalledVariant] = None,

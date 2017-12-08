@@ -25,7 +25,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     observations(2) = (13, 7)
 
     val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cv = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStates)
+    val cv = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStates)
     val cvDataset = mutable.MutableList[CalledVariant](cv).toDS()
 
     val phenoMap = observations.map(_._2)
@@ -42,7 +42,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     observationsSecond(2) = (32, 2)
 
     val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesSecond)
+    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
     val cvDatasetSecond = mutable.MutableList[CalledVariant](cvSecond).toDS()
 
     val logisticGnocchiModelSecond = LogisticGnocchiModelFactory.apply(cvDatasetSecond, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
@@ -70,7 +70,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     observations(2) = (13, 7)
 
     val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cv = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStates)
+    val cv = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStates)
     val cvDataset = mutable.MutableList[CalledVariant](cv).toDS()
 
     val phenoMap = observations.map(_._2)
@@ -88,7 +88,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     observationsSecond(2) = (32, 2)
 
     val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesSecond)
+    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
     val cvDatasetSecond = mutable.MutableList[CalledVariant](cvSecond).toDS()
 
     val logisticGnocchiModelSecond = LogisticGnocchiModelFactory.apply(cvDatasetSecond, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
@@ -100,7 +100,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     observationsThird(2) = (34, 1)
 
     val genotypeStatesThird = observationsThird.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvThird = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesSecond)
+    val cvThird = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
     val cvDatasetThird = mutable.MutableList[CalledVariant](cvThird).toDS()
 
     val logisticGnocchiModelThird = LogisticGnocchiModelFactory.apply(cvDatasetThird, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
@@ -153,7 +153,7 @@ class LogisticGnocchiModelSuite extends GnocchiFunSuite {
     observationsSecond(2) = (32, 2)
 
     val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", "", "", "", "", genotypeStatesSecond)
+    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
     val cvDatasetSecond = mutable.MutableList[CalledVariant](cvSecond).toDS()
 
     val logisticGnocchiModelSecond = LogisticGnocchiModelFactory.apply(cvDataset, phenos, Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))

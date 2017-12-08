@@ -58,7 +58,7 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
 
     val (data, labels) = prepareDesignMatrix(phenotypes, genotypes, allelicAssumption)
 
-    val numObservations = genotypes.samples.count(x => !x.value.contains("."))
+    val numObservations = genotypes.samples.count(_.misses == 0)
 
     val maxIter = 1000
     val tolerance = 1e-6
@@ -151,7 +151,7 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
                           genotypes: CalledVariant,
                           allelicAssumption: String): (DenseMatrix[Double], DenseVector[Double]) = {
 
-    val validGenos = genotypes.samples.filter(genotypeState => !genotypeState.value.contains(".") && phenotypes.contains(genotypeState.sampleID))
+    val validGenos = genotypes.samples.filter(genotypeState => genotypeState.misses == 0 && phenotypes.contains(genotypeState.sampleID))
 
     val samplesGenotypes = allelicAssumption.toUpperCase match {
       case "ADDITIVE"  => validGenos.map(genotypeState => (genotypeState.sampleID, List(genotypeState.additive)))

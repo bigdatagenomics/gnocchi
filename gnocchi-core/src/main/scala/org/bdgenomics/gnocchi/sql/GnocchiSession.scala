@@ -88,11 +88,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     val sampleIds = genotypes.first.samples.map(x => x.sampleID)
     val separated = genotypes.select($"uniqueID" +: sampleIds.indices.map(idx => $"samples"(idx) as sampleIds(idx)): _*)
 
-    val filtered = separated.select($"uniqueID" +: sampleIds.map(sampleId =>
-      when(separated(sampleId).getField("value") === "./.", 2)
-        .when(separated(sampleId).getField("value").endsWith("."), 1)
-        .when(separated(sampleId).getField("value").startsWith("."), 1)
-        .otherwise(0) as sampleId): _*).cache()
+    val filtered = separated.select($"uniqueID" +: sampleIds.map(sampleId => separated(sampleId).getField("misses") as sampleId): _*).cache()
 
     val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*).select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].collect.toList.head
     val count = filtered.count()
@@ -151,15 +147,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
           x.uniqueID,
           x.alternateAllele,
           x.referenceAllele,
-          x.qualityScore,
-          x.filter,
-          x.info,
-          x.format,
-          x.samples.map(geno => GenotypeState(geno.sampleID, geno.toList.map {
-            case "0" => "1"
-            case "1" => "0"
-            case "." => "."
-          }.mkString("/"))))
+          x.samples.map(geno => GenotypeState(geno.sampleID, geno.alts, geno.refs, geno.misses)))
       }).as[CalledVariant]
     // Note: the below .map(a => a) is a hack solution to the fact that spark cannot union two
     // datasets of the same type that have reordered columns. See issue: https://issues.apache.org/jira/browse/SPARK-21109
@@ -184,7 +172,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
     } else {
       val genoFile = new Path(genotypesPath)
       val fs = genoFile.getFileSystem(sc.hadoopConfiguration)
-      require(fs.exists(genoFile), s"Specified genotypes file path does not exist: ${genotypesPath}")
+      require(fs.exists(genoFile), s"Specified genotypes file path does not exist: $genotypesPath")
 
       val vcRdd = sc.loadVcf(genotypesPath)
       vcRdd.rdd.map(vc => {
@@ -194,15 +182,10 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
           if (variant.getNames.size > 0) variant.getNames.get(0) else variant.getContigName + "_" + variant.getEnd.toString,
           variant.getReferenceAllele,
           variant.getAlternateAllele,
-          "", // quality score
-          "", // filter
-          "", // info
-          "", // format
-          vc.genotypes.map(geno => GenotypeState(geno.getSampleId, geno.getAlleles.map {
-            case GenotypeAllele.REF                            => "0"
-            case GenotypeAllele.ALT | GenotypeAllele.OTHER_ALT => "1"
-            case GenotypeAllele.NO_CALL | _                    => "."
-          }.mkString("/"))).toList)
+          vc.genotypes.map(geno => GenotypeState(geno.getSampleId,
+            geno.getAlleles.count(al => al == GenotypeAllele.REF),
+            geno.getAlleles.count(al => al == GenotypeAllele.ALT || al == GenotypeAllele.OTHER_ALT),
+            geno.getAlleles.count(al => al == GenotypeAllele.NO_CALL))).toList)
       }).toDS.cache()
     }
   }

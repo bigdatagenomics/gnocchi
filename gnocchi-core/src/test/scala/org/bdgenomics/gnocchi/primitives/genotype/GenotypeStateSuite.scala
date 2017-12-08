@@ -37,17 +37,6 @@ class GenotypeStateSuite extends GnocchiFunSuite {
     assert(gs.toDouble == 1.0, "GenotypeState.toDouble does not correctly count the number of alternate alleles when there are missing values.")
   }
 
-  // to List tests
-  sparkTest("GenotypeState.toList should split the genotype state into a list of genotype values: pipe delimiter.") {
-    val gs = GenotypeState("1234", "1|0")
-    assert(gs.toList == List[String]("1", "0"), "GenotypeState.toList does not correctly split the genotypes on pipe delimiter.")
-  }
-
-  sparkTest("GenotypeState.toList should split the genotype state into a list of genotype values: forward slash delimiter.") {
-    val gs = GenotypeState("1234", "1/0")
-    assert(gs.toList == List[String]("1", "0"), "GenotypeState.toList does not correctly split the genotypes on forward slash delimiter.")
-  }
-
   // Allelic Assumption tests
 
   sparkTest("GenotypeState.dominant should map 0.0 to 0.0 and everything else to 1.0") {

@@ -24,25 +24,21 @@ case class CalledVariant(chromosome: Int,
                          uniqueID: String,
                          referenceAllele: String,
                          alternateAllele: String,
-                         qualityScore: String,
-                         filter: String,
-                         info: String,
-                         format: String,
                          samples: List[GenotypeState]) extends Product {
+
+  val ploidy: Int = samples.head.ploidy
 
   /**
    * @return the minor allele frequency across all samples for this variant
    */
   def maf: Double = {
-    val ploidy = samples.head.toList.length
-    val sampleValues: List[String] = samples.flatMap(_.toList)
-    val missingCount = sampleValues.count(_ == ".")
-    val alleleCount = sampleValues.filter(_ != ".").map(_.toDouble).sum
+    val missingCount = samples.map(_.misses).sum
+    val alleleCount = samples.map(_.alts).sum
 
     // assert(sampleValues.length > missingCount, s"Variant, ${uniqueID}, has entirely missing row. Fix by filtering variants with geno = 1.0")
 
-    if (sampleValues.length > missingCount) {
-      alleleCount / (sampleValues.length - missingCount)
+    if (samples.length * ploidy > missingCount) {
+      alleleCount.toDouble / (samples.length * ploidy - missingCount).toDouble
     } else {
       0.5
     }
@@ -52,24 +48,22 @@ case class CalledVariant(chromosome: Int,
    * @return The fraction of missing values for this variant values across all samples
    */
   def geno: Double = {
-    val ploidy = samples.head.toList.length
-    val sampleValues: List[String] = samples.flatMap(_.toList)
-    val missingCount = sampleValues.count(_ == ".")
+    val missingCount = samples.map(_.misses).sum
 
-    missingCount.toDouble / sampleValues.length.toDouble
+    missingCount.toDouble / (samples.length * ploidy).toDouble
   }
 
   /**
    * @return Number of samples that have all valid values (none missing)
    */
   def numValidSamples: Int = {
-    samples.count(x => !x.value.contains("."))
+    samples.count(_.misses == 0)
   }
 
   /**
    * @return Number of samples that have some valid values (could be some missing)
    */
   def numSemiValidSamples: Int = {
-    samples.count(x => x.toList.count(_ != ".") > 0)
+    samples.count(_.misses < ploidy)
   }
 }
