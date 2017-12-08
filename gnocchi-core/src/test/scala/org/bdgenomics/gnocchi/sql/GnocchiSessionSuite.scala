@@ -191,7 +191,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   private def makeGenotypeState(id: String, gs: String): GenotypeState = {
     val alleleLst = gs.split("/")
-    GenotypeState(id, alleleLst.count(_ == "0"), alleleLst.count(_ == "1"), alleleLst.count(_ == "."))
+    GenotypeState(id, alleleLst.count(_ == "0").toByte, alleleLst.count(_ == "1").toByte, alleleLst.count(_ == ".").toByte)
   }
 
   private def makeCalledVariant(uid: Int, sampleIds: List[String], genotypeStates: List[String]): CalledVariant = {

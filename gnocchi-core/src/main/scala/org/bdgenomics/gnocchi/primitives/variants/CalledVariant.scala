@@ -32,8 +32,8 @@ case class CalledVariant(chromosome: Int,
    * @return the minor allele frequency across all samples for this variant
    */
   def maf: Double = {
-    val missingCount = samples.map(_.misses).sum
-    val alleleCount = samples.map(_.alts).sum
+    val missingCount = samples.map(_.misses.toInt).sum
+    val alleleCount = samples.map(_.alts.toInt).sum
 
     // assert(sampleValues.length > missingCount, s"Variant, ${uniqueID}, has entirely missing row. Fix by filtering variants with geno = 1.0")
 
@@ -48,7 +48,7 @@ case class CalledVariant(chromosome: Int,
    * @return The fraction of missing values for this variant values across all samples
    */
   def geno: Double = {
-    val missingCount = samples.map(_.misses).sum
+    val missingCount = samples.map(_.misses.toInt).sum
 
     missingCount.toDouble / (samples.length * ploidy).toDouble
   }

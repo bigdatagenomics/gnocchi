@@ -18,9 +18,9 @@
 package org.bdgenomics.gnocchi.primitives.genotype
 
 case class GenotypeState(sampleID: String,
-                         refs: Int,
-                         alts: Int,
-                         misses: Int) extends Product {
+                         refs: Byte,
+                         alts: Byte,
+                         misses: Byte) extends Product {
 
   /**
    * @note This method removes missing values from the sum, so effectively treats them as a zero value.
@@ -54,7 +54,6 @@ object GenotypeState {
    */
   def apply(sampleID: String, gsStr: String): GenotypeState = {
     val alleleLst = gsStr.split("/|\\|")
-    val altsum = alleleLst.filter(x => x != "0" && x != ".").map(_.toDouble).sum
-    GenotypeState(sampleID, alleleLst.count(_ == "0"), alleleLst.count(_ == "1"), alleleLst.count(_ == "."))
+    GenotypeState(sampleID, alleleLst.count(_ == "0").toByte, alleleLst.count(_ == "1").toByte, alleleLst.count(_ == ".").toByte)
   }
 }

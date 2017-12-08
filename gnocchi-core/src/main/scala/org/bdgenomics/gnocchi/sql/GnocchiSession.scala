@@ -24,13 +24,14 @@ import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.functions.{ array, lit, udf, when }
-import org.apache.spark.sql.{ Dataset, SparkSession }
+import org.apache.spark.sql.functions.{ array, lit, udf, when, col }
+import org.apache.spark.sql.{ Column, Dataset, SparkSession }
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.utils.misc.Logging
 import java.nio.file.{ Files, Paths }
 
 import org.apache.hadoop.fs.Path
+import org.apache.spark.sql.types.StructType
 import org.bdgenomics.gnocchi.models.{ GnocchiModel, GnocchiModelMetaData, LinearGnocchiModel, LogisticGnocchiModel }
 import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, LogisticVariantModel, QualityControlVariantModel, VariantModel }
 
@@ -85,21 +86,22 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    */
   def filterSamples(genotypes: Dataset[CalledVariant], mind: Double, ploidy: Double): Dataset[CalledVariant] = {
     require(mind >= 0.0 && mind <= 1.0, "`mind` value must be between 0.0 to 1.0 inclusive.")
-    val sampleIds = genotypes.first.samples.map(x => x.sampleID)
-    val separated = genotypes.select($"uniqueID" +: sampleIds.indices.map(idx => $"samples"(idx) as sampleIds(idx)): _*)
+    val x = genotypes.rdd.flatMap(f => { f.samples.map(g => { (g.sampleID, g.misses.toInt) }) })
+    val summed = x.reduceByKey(_ + _)
 
-    val filtered = separated.select($"uniqueID" +: sampleIds.map(sampleId => separated(sampleId).getField("misses") as sampleId): _*).cache()
+    val count = genotypes.count()
+    val samplesWithMissingness = summed.map { case (a, b) => (a, b / (ploidy * count)) }
 
-    val summed = filtered.drop("uniqueID").groupBy().sum().toDF(sampleIds: _*).select(array(sampleIds.head, sampleIds.tail: _*)).as[Array[Double]].collect.toList.head
-    val count = filtered.count()
-    val missingness = summed.map(_ / (ploidy * count))
-    val samplesWithMissingness = sampleIds.zip(missingness)
+    val keepers = samplesWithMissingness.filter(x => x._2 <= mind).map(x => x._1).collect
 
-    val keepers = samplesWithMissingness.filter(x => x._2 <= mind).map(x => x._1)
-
-    val filteredDF = separated.select($"uniqueID", array(keepers.head, keepers.tail: _*)).toDF("uniqueID", "samples").as[(String, Array[String])]
-
-    genotypes.drop("samples").join(filteredDF, "uniqueID").as[CalledVariant]
+    genotypes.map(f => {
+      CalledVariant(f.chromosome,
+        f.position,
+        f.uniqueID,
+        f.referenceAllele,
+        f.alternateAllele,
+        f.samples.filter(g => keepers.contains(g.sampleID)))
+    }).as[CalledVariant]
   }
 
   /**
@@ -118,13 +120,7 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
   def filterVariants(genotypes: Dataset[CalledVariant], geno: Double, maf: Double): Dataset[CalledVariant] = {
     require(maf >= 0.0 && maf <= 1.0, "`maf` value must be between 0.0 to 1.0 inclusive.")
     require(geno >= 0.0 && geno <= 1.0, "`geno` value must be between 0.0 to 1.0 inclusive.")
-    val filtersDF = genotypes.map(x => (x.uniqueID, x.maf, x.geno)).toDF("uniqueID", "maf", "geno")
-    val mafFiltered = genotypes.join(filtersDF, "uniqueID")
-      .filter($"maf" >= maf && lit(1) - $"maf" >= maf && $"geno" <= geno)
-      .drop("maf", "geno")
-      .as[CalledVariant]
-
-    mafFiltered
+    genotypes.filter(x => x.maf >= maf && 1 - x.maf >= maf && x.geno <= geno)
   }
 
   /**
@@ -137,21 +133,18 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
    * @return Returns an updated Dataset that has been recoded
    */
   def recodeMajorAllele(genotypes: Dataset[CalledVariant]): Dataset[CalledVariant] = {
-    val minorAlleleF = genotypes.map(x => (x.uniqueID, x.maf)).toDF("uniqueID", "maf")
-    val genoWithMaf = genotypes.join(minorAlleleF, "uniqueID")
-    val toRecode = genoWithMaf.filter($"maf" > 0.5).drop("maf").as[CalledVariant]
-    val recoded = toRecode.map(
-      x => {
+    genotypes.map(x => {
+      if (x.maf > 0.5) {
         CalledVariant(x.chromosome,
           x.position,
           x.uniqueID,
           x.alternateAllele,
           x.referenceAllele,
           x.samples.map(geno => GenotypeState(geno.sampleID, geno.alts, geno.refs, geno.misses)))
-      }).as[CalledVariant]
-    // Note: the below .map(a => a) is a hack solution to the fact that spark cannot union two
-    // datasets of the same type that have reordered columns. See issue: https://issues.apache.org/jira/browse/SPARK-21109
-    genoWithMaf.filter($"maf" <= 0.5).drop("maf").as[CalledVariant].map(a => a).union(recoded)
+      } else {
+        x
+      }
+    })
   }
 
   /**
@@ -183,9 +176,9 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
           variant.getReferenceAllele,
           variant.getAlternateAllele,
           vc.genotypes.map(geno => GenotypeState(geno.getSampleId,
-            geno.getAlleles.count(al => al == GenotypeAllele.REF),
-            geno.getAlleles.count(al => al == GenotypeAllele.ALT || al == GenotypeAllele.OTHER_ALT),
-            geno.getAlleles.count(al => al == GenotypeAllele.NO_CALL))).toList)
+            geno.getAlleles.count(_ == GenotypeAllele.REF).toByte,
+            geno.getAlleles.count(al => al == GenotypeAllele.ALT || al == GenotypeAllele.OTHER_ALT).toByte,
+            geno.getAlleles.count(_ == GenotypeAllele.NO_CALL).toByte)).toList)
       }).toDS.cache()
     }
   }
@@ -300,6 +293,25 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       .map(x => (x.sampleId, x)).toMap
   }
 
+  /**
+   * shamelessly lifted from here:
+   * https://stackoverflow.com/questions/37471346/automatically-and-elegantly-flatten-dataframe-in-spark-sql
+   *
+   * @param schema
+   * @param prefix
+   * @return
+   */
+  def flattenSchema(schema: StructType, prefix: String = null): Array[Column] = {
+    schema.fields.flatMap(f => {
+      val colName = if (prefix == null) f.name else (prefix + "." + f.name)
+
+      f.dataType match {
+        case st: StructType => flattenSchema(st, colName)
+        case _              => Array(col(colName))
+      }
+    })
+  }
+
   def saveAssociations[A <: VariantModel[A]](associations: Dataset[A],
                                              outPath: String,
                                              saveAsText: Boolean = false,
@@ -318,8 +330,13 @@ class GnocchiSession(@transient val sc: SparkContext) extends Serializable with 
       }
     }
 
+    val stringify = udf((vs: Seq[String]) => s"""[${vs.mkString(",")}]""")
+    val necessaryFields = List("uniqueID", "chromosome", "position", "referenceAllele", "alternateAllele", "association.pValue").map(col(_))
+    val fields = flattenSchema(associations.schema).filterNot(necessaryFields.contains(_)).toList
+
     val assoc = associations
-      .select($"uniqueID", $"chromosome", $"position", $"association.pValue", $"association.weights".getItem(0).as("weights"), $"association.numSamples").sort($"pValue".asc)
+      .select(necessaryFields ::: fields: _*).sort($"pValue".asc)
+      .withColumn("weights", stringify($"weights"))
       .coalesce(1)
       .cache()
 
