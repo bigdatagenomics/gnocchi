@@ -58,8 +58,6 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
 
     val (data, labels) = prepareDesignMatrix(phenotypes, genotypes, allelicAssumption)
 
-    val numObservations = genotypes.samples.count(_.misses == 0)
-
     val maxIter = 1000
     val tolerance = 1e-6
     val initBeta = DenseVector.zeros[Double](data.cols)
@@ -86,7 +84,7 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
       beta.toList,
       genoStandardError,
       waldTests(1),
-      numObservations)
+      data.rows)
   }
 
   /**

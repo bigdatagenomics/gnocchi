@@ -95,7 +95,7 @@ trait LinearSiteRegression extends SiteRegression[LinearVariantModel, LinearAsso
       residualDegreesOfFreedom,
       pValue,
       beta.data.toList,
-      genotypes.numValidSamples)
+      x.rows)
   }
 
   private[algorithms] def prepareDesignMatrix(genotypes: CalledVariant,
