@@ -18,7 +18,7 @@
 package org.bdgenomics.gnocchi.primitives.variants
 
 import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
-import org.bdgenomics.gnocchi.GnocchiFunSuite
+import org.bdgenomics.gnocchi.utils.GnocchiFunSuite
 
 class CalledVariantSuite extends GnocchiFunSuite {
 
@@ -40,7 +40,7 @@ class CalledVariantSuite extends GnocchiFunSuite {
     assert(calledVar.maf == 1.0, "CalledVariant.maf does not calculate Minor Allele frequency correctly when there are no minor alleles present.")
   }
 
-  ignore("CalledVariant.maf should return the frequency rate of the minor allele: all values are missing.") {
+  sparkTest("CalledVariant.maf should return the frequency rate of the minor allele: all values are missing.") {
     val calledVar = createSampleCalledVariant(samples = Option(createSampleGenotypeStates(num = 100, maf = 0.0, geno = 1.0)))
     try {
       calledVar.maf
@@ -65,22 +65,38 @@ class CalledVariantSuite extends GnocchiFunSuite {
   // num valid samples tests
 
   sparkTest("CalledVariant.numValidSamples should only count samples with no missing values") {
-    val iids = random.shuffle(1000 to 9999).take(20)
-    val genos = List.fill(5)("./.") ++ List.fill(5)("./1") ++ List.fill(10)("1/1")
-    val genosStates = genos.zip(iids).map(x => GenotypeState(x._2.toString, x._1))
+    val genosStates = List(
+      GenotypeState("0", 2, 0, 0),
+      GenotypeState("1", 1, 1, 0),
+      GenotypeState("2", 0, 2, 0),
+      GenotypeState("3", 1, 1, 0),
+      GenotypeState("4", 0, 2, 0),
+      GenotypeState("5", 1, 1, 0),
+      GenotypeState("6", 0, 1, 1),
+      GenotypeState("7", 1, 0, 1),
+      GenotypeState("8", 0, 1, 1),
+      GenotypeState("9", 0, 1, 1))
 
     val calledVariant = createSampleCalledVariant(samples = Option(genosStates))
-    assert(calledVariant.numValidSamples == 10, "Number of valid samples miscounted.")
+    assert(calledVariant.numValidSamples == 6, "Number of valid samples miscounted.")
   }
 
   // num semi valid samples tests
 
   sparkTest("CalledVariant.numSemiValidSamples should count the number of samples that have some valid values.") {
-    val iids = random.shuffle(1000 to 9999).take(20)
-    val genos = List.fill(5)("./.") ++ List.fill(5)("./1") ++ List.fill(10)("1/1")
-    val genosStates = genos.zip(iids).map(x => GenotypeState(x._2.toString, x._1))
+    val genosStates = List(
+      GenotypeState("0", 2, 0, 0),
+      GenotypeState("1", 1, 1, 0),
+      GenotypeState("2", 0, 2, 0),
+      GenotypeState("3", 1, 1, 0),
+      GenotypeState("4", 0, 2, 0),
+      GenotypeState("5", 1, 1, 0),
+      GenotypeState("6", 0, 1, 1),
+      GenotypeState("7", 1, 0, 1),
+      GenotypeState("8", 0, 1, 1),
+      GenotypeState("9", 0, 0, 2))
 
     val calledVariant = createSampleCalledVariant(samples = Option(genosStates))
-    assert(calledVariant.numSemiValidSamples == 15, "Number of valid samples miscounted.")
+    assert(calledVariant.numSemiValidSamples == 9, "Number of valid samples miscounted.")
   }
 }

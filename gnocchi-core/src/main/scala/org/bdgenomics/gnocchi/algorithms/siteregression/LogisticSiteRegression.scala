@@ -19,30 +19,54 @@ package org.bdgenomics.gnocchi.algorithms.siteregression
 
 import breeze.linalg._
 import breeze.numerics._
+import org.apache.commons.math3.distribution.ChiSquaredDistribution
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.sql.Dataset
+import org.bdgenomics.gnocchi.models.variant.LogisticVariantModel
 import org.bdgenomics.gnocchi.primitives.association.LogisticAssociation
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
-import org.apache.commons.math3.distribution.ChiSquaredDistribution
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.gnocchi.models.variant.LogisticVariantModel
+import org.bdgenomics.gnocchi.sql.{ GenotypeDataset, PhenotypesContainer }
 
 import scala.annotation.tailrec
 import scala.collection.immutable.Map
 
 trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, LogisticAssociation] {
 
-  def apply(genotypes: Dataset[CalledVariant],
-            phenotypes: Broadcast[Map[String, Phenotype]],
-            allelicAssumption: String = "ADDITIVE",
-            validationStringency: String = "STRICT"): Dataset[LogisticVariantModel] = {
+  /**
+   * Return a [[LogisticRegressionResults]] object for the passed genotypes and phenotypesContainer
+   *
+   * @param genotypes [[GenotypeDataset]] to be analyzed in this study
+   * @param phenotypesContainer [[PhenotypesContainer]] corresponding to the genotype data
+   * @return [[LogisticRegressionResults]] storing access to the models, associations or a
+   *        [[org.bdgenomics.gnocchi.models.LogisticGnocchiModel]]
+   */
+  def apply(genotypes: GenotypeDataset,
+            phenotypesContainer: PhenotypesContainer): LogisticRegressionResults = {
+    LogisticRegressionResults(genotypes, phenotypesContainer)
+  }
 
+  /**
+   * Run Logistic Regression over a [[Dataset]] of [[CalledVariant]] objects and return a tuple that
+   * contains a [[Dataset]] of the resulting [[LogisticVariantModel]] and a [[Dataset]] of the
+   * [[LogisticAssociation]]
+   *
+   * @param genotypes [[Dataset]] of [[CalledVariant]]s for which to compute Logistic models and
+   *                 associations
+   * @param phenotypes Phenotype data corresponding to the [[Dataset]] of [[CalledVariant]] objects
+   * @param allelicAssumption Allelic assumption to use for this analysis
+   * @return Tuple of two [[Dataset]] objects. First is [[LogisticVariantModel]], second is
+   *         [[LogisticAssociation]] objects
+   */
+  def createModelAndAssociations(genotypes: Dataset[CalledVariant],
+                                 phenotypes: Broadcast[Map[String, Phenotype]],
+                                 allelicAssumption: String): (Dataset[LogisticVariantModel], Dataset[LogisticAssociation]) = {
     import genotypes.sqlContext.implicits._
 
-    genotypes.flatMap((genos: CalledVariant) => {
+    val results = genotypes.flatMap((genos: CalledVariant) => {
       try {
-        val association = applyToSite(phenotypes.value, genos, allelicAssumption)
-        Some(constructVM(genos, phenotypes.value.head._2, association, allelicAssumption))
+        val (model, association) = applyToSite(genos, phenotypes.value, allelicAssumption)
+        Some((model, association))
       } catch {
         case e: breeze.linalg.MatrixSingularException => {
           logError(e.toString)
@@ -50,41 +74,67 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
         }
       }
     })
+
+    (results.map(_._1), results.map(_._2))
   }
 
-  def applyToSite(phenotypes: Map[String, Phenotype],
-                  genotypes: CalledVariant,
-                  allelicAssumption: String): LogisticAssociation = {
+  /**
+   * Solve the Logistic Regression problem for a single variant site.
+   *
+   * @param genotypes a single [[CalledVariant]] object to solve Logistic Regression for
+   * @param phenotypes Phenotypes corresponding to the gentoype data
+   * @param allelicAssumption Allelic assumption to use for the genotype encoding
+   * @return a tuple of [[LogisticVariantModel]] and [[LogisticAssociation]] containing the relevant
+   *         statistics for the Logistic Regression solution
+   */
+  def applyToSite(genotypes: CalledVariant,
+                  phenotypes: Map[String, Phenotype],
+                  allelicAssumption: String): (LogisticVariantModel, LogisticAssociation) = {
 
-    val (data, labels) = prepareDesignMatrix(phenotypes, genotypes, allelicAssumption)
+    // ToDo: Orthogonalize the matrix so we dont get singular matrices
+    val (x, y) = prepareDesignMatrix(genotypes, phenotypes, allelicAssumption)
 
+    val (beta, hessian) = solveRegression(x, y)
+
+    val (genoSE, pValue) = calculateSignificance(x, y, beta, hessian)
+
+    val association = LogisticAssociation(
+      genotypes.uniqueID,
+      genotypes.chromosome,
+      genotypes.position,
+      x.rows,
+      pValue,
+      genoSE)
+
+    val model = LogisticVariantModel(
+      genotypes.uniqueID,
+      genotypes.chromosome,
+      genotypes.position,
+      genotypes.referenceAllele,
+      genotypes.alternateAllele,
+      beta.toArray.toList)
+
+    (model, association)
+  }
+
+  /**
+   * Given and X and Y, solve for beta using Logistic Regression.
+   *
+   * @param x [[DenseMatrix]] of Doubles that is the design matrix in the typical Logistic Regression
+   *         formulation
+   * @param y [[DenseVector]] of Doubles that is the target vector in the typical Logistic Regression
+   *         formulation
+   * @return A tuple where the first element is the weights vector and the second element is the
+   *         hessian matrix (square matrix of second order partial derivatives)
+   */
+  def solveRegression(x: DenseMatrix[Double],
+                      y: DenseVector[Double]): (DenseVector[Double], DenseMatrix[Double]) = {
     val maxIter = 1000
     val tolerance = 1e-6
-    val initBeta = DenseVector.zeros[Double](data.cols)
+    val initBeta = DenseVector.zeros[Double](x.cols)
 
-    val (beta, hessian) = findBeta(data, labels, initBeta, maxIter = maxIter, tolerance = tolerance)
-
-    // Use Hessian and weights to calculate the Wald Statistic, or p-value
-    val fisherInfo = -hessian
-    val fishInv = inv(fisherInfo)
-    val standardErrors = sqrt(abs(diag(fishInv)))
-    val genoStandardError = standardErrors(1)
-
-    // calculate Wald statistic for each parameter in the regression model
-    val zScores: DenseVector[Double] = DenseVector(beta) /:/ standardErrors
-    val waldStats = zScores *:* zScores
-
-    // calculate cumulative probs
-    val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
-    val probs = waldStats.map(zi => chiDist.cumulativeProbability(zi))
-
-    val waldTests = 1d - probs
-
-    LogisticAssociation(
-      beta.toList,
-      genoStandardError,
-      waldTests(1),
-      data.rows)
+    val (beta, hessian) = findBeta(x, y, initBeta, maxIter = maxIter, tolerance = tolerance)
+    (DenseVector(beta), hessian)
   }
 
   /**
@@ -129,59 +179,43 @@ trait LogisticSiteRegression extends SiteRegression[LogisticVariantModel, Logist
     val update = -inv(hessian) * score
     val updatedBeta = beta + update
 
-    if (updatedBeta.exists(_.isNaN)) logError("LOG_REG - Broke on iteration: " + iter)
+    if (updatedBeta.exists(_.isNaN)) logError("LOG_REG - Broke on iteration: " + iter) // ToDo: deal with this better. Probably need to break / retry with an orthogonal matrix
     if (max(abs(update)) <= tolerance || iter + 1 == maxIter) return (updatedBeta.toArray, hessian)
 
     findBeta(X, Y, updatedBeta, iter = iter + 1, maxIter = maxIter, tolerance = tolerance)
   }
 
   /**
-   * Data preparation function that converts the gnocchi models into breeze linear algebra primitives BLAS/LAPACK
-   * optimizations.
+   * Given a weight vector, and input X and Y, solve for the significance value of the genotype
+   * parameter.
    *
-   * @param phenotypes [[Phenotype]]s map that contains the labels (primary phenotype) and part of the design matrix
-   *                  (covariates)
-   * @param genotypes [[CalledVariant]] object to convert into a breeze design matrix
-   * @return tuple where first element is the [[DenseMatrix]] design matrix and second element
-   *         is [[DenseVector]] of labels
+   * @param x [[DenseMatrix]] of Doubles that is the design matrix
+   * @param y [[DenseVector]] that is the target vector corresponding to the design matrix
+   * @param beta Solved vector of weights
+   * @param hessian Square matrix of second order partial derivatives of the log likelihood function
+   *                by the variable beta
+   * @return tuple of (genotypeStandardError, pValue)
    */
-  def prepareDesignMatrix(phenotypes: Map[String, Phenotype],
-                          genotypes: CalledVariant,
-                          allelicAssumption: String): (DenseMatrix[Double], DenseVector[Double]) = {
+  def calculateSignificance(x: DenseMatrix[Double],
+                            y: DenseVector[Double],
+                            beta: DenseVector[Double],
+                            hessian: DenseMatrix[Double]): (Double, Double) = {
+    val fisherInfo = -hessian
+    val fishInv = inv(fisherInfo)
+    val standardErrors = sqrt(abs(diag(fishInv)))
+    val genoStandardError = standardErrors(1)
 
-    val validGenos = genotypes.samples.filter(genotypeState => genotypeState.misses == 0 && phenotypes.contains(genotypeState.sampleID))
+    // calculate Wald statistic for each parameter in the regression model
+    val zScores: DenseVector[Double] = beta /:/ standardErrors
+    val waldStats = zScores *:* zScores
 
-    val samplesGenotypes = allelicAssumption.toUpperCase match {
-      case "ADDITIVE"  => validGenos.map(genotypeState => (genotypeState.sampleID, List(genotypeState.additive)))
-      case "DOMINANT"  => validGenos.map(genotypeState => (genotypeState.sampleID, List(genotypeState.dominant)))
-      case "RECESSIVE" => validGenos.map(genotypeState => (genotypeState.sampleID, List(genotypeState.recessive)))
-    }
+    // calculate cumulative probs
+    val chiDist = new ChiSquaredDistribution(1) // 1 degree of freedom
+    val probs = waldStats.map(zi => chiDist.cumulativeProbability(zi))
 
-    val cleanedSampleVector = samplesGenotypes
-      .map { case (sampleID, genotype) => (sampleID, (genotype ++ phenotypes(sampleID).covariates).toList) }
-
-    val XandY = cleanedSampleVector.map { case (sampleID, sampleVector) => (DenseVector(1.0 +: sampleVector.toArray), phenotypes(sampleID).phenotype) }
-    val X = DenseMatrix(XandY.map { case (sampleVector, sampleLabel) => sampleVector }: _*)
-    val Y = DenseVector(XandY.map { case (sampleVector, sampleLabel) => sampleLabel }: _*)
-    (X, Y)
-  }
-
-  def constructVM(variant: CalledVariant,
-                  phenotype: Phenotype,
-                  association: LogisticAssociation,
-                  allelicAssumption: String): LogisticVariantModel = {
-    LogisticVariantModel(variant.uniqueID,
-      association,
-      phenotype.phenoName,
-      variant.chromosome,
-      variant.position,
-      variant.referenceAllele,
-      variant.alternateAllele,
-      allelicAssumption,
-      phaseSetId = 0)
+    val waldTests = 1d - probs
+    (genoStandardError, waldTests(1))
   }
 }
 
-object LogisticSiteRegression extends LogisticSiteRegression {
-  val regressionName = "LogisticSiteRegression"
-}
+object LogisticSiteRegression extends LogisticSiteRegression

@@ -17,19 +17,12 @@
  */
 package org.bdgenomics.gnocchi.cli
 
-import java.util
-
-import org.bdgenomics.gnocchi.algorithms.siteregression._
-import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, LogisticVariantModel, VariantModel }
-import org.bdgenomics.gnocchi.sql.GnocchiSession._
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.gnocchi.models.{ LinearGnocchiModelFactory, LogisticGnocchiModelFactory }
+import org.bdgenomics.gnocchi.algorithms.siteregression._
+import org.bdgenomics.gnocchi.sql.GnocchiSession._
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
-
-import scala.io.StdIn.readLine
 
 object BuildGnocchiModel extends BDGCommandCompanion {
   val commandName = "buildGnocchiModel"
@@ -74,9 +67,6 @@ class BuildGnocchiModelArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-covarSpaceDelimited", usage = "Set flag if covariates file is space delimited, otherwise tab delimited is assumed.")
   var covarSpaceDelimiter = false
 
-  @Args4jOption(required = false, name = "-saveAsText", usage = "Chooses to save as text. If not selected, saves to Parquet.")
-  var saveAsText = false
-
   @Args4jOption(required = false, name = "-validationStringency", usage = "The level of validation to use on inputs. By default, lenient. Choices are STRICT, LENIENT, SILENT.")
   var validationStringency: String = "LENIENT"
 
@@ -95,9 +85,6 @@ class BuildGnocchiModelArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-geno", usage = "Missingness per marker threshold. Default value is 0.1.")
   var geno = 0.1
 
-  @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
-  var oneTwo = false
-
   @Args4jOption(required = false, name = "-forceSave", usage = "If set to true, no prompt will be given and results will overwrite any other files at that location.")
   var forceSave = false
 
@@ -106,18 +93,40 @@ class BuildGnocchiModelArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-parquetInput", usage = "Genotypes are parquet formatted.")
   var parquetInput: Boolean = false
+
+  @Args4jOption(required = false, name = "-datasetName", usage = "Unique ID name of the genotype dataset being loaded.")
+  var datasetName: String = ""
+
+  @Args4jOption(required = false, name = "-ADAMformat", usage = "Genotypes are ADAM formatted GenotypeRDDs.")
+  var adamFormat: Boolean = false
 }
 
 class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSparkCommand[BuildGnocchiModelArgs] {
   val companion = RegressPhenotypes
 
   def run(sc: SparkContext) {
+    val outputLoc = new Path(args.output)
+    val fs = outputLoc.getFileSystem(sc.hadoopConfiguration)
+    if (fs.exists(outputLoc)) {
+      if (args.forceSave) {
+        fs.delete(outputLoc, true)
+      } else {
+        val input = scala.io.StdIn.readLine(s"Specified output file ${args.output} already exists. Overwrite? (y/n)> ")
+        if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
+          fs.delete(outputLoc, true)
+        } else {
+          throw new IllegalArgumentException(s"File already exists at ${args.output}")
+        }
+      }
+    }
 
     val phenoDelimiter = if (args.phenoSpaceDelimiter) { " " } else { "\t" }
+
     val covarDelimiter = if (args.covarSpaceDelimiter) { " " } else { "\t" }
+
     val missingPhenos = if (args.missingPhenoChars == null) List("-9") else args.missingPhenoChars.split(",").toList
 
-    val phenotypes = if (args.covarFile != null) {
+    val phenotypesContainer = if (args.covarFile != null) {
       sc.loadPhenotypes(args.phenotypes,
         args.sampleUID,
         args.phenoName,
@@ -129,27 +138,26 @@ class BuildGnocchiModel(protected val args: BuildGnocchiModelArgs) extends BDGSp
     } else {
       sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, phenoDelimiter, missing = missingPhenos)
     }
-    val broadPhenotype = sc.broadcast(phenotypes)
 
-    val rawGenotypes = sc.loadGenotypes(args.genotypes, parquet = args.parquetInput)
+    // the ordering of calls below is important
+    val rawGenotypes = sc.loadGenotypes(args.genotypes, args.datasetName, args.associationType.split("_").head, adamFormat = args.adamFormat)
     val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
-    val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
-
-    val phenotypeNames = if (args.covarFile != null) args.phenoName :: args.covarNames.split(",").toList else List(args.phenoName)
+    val recoded = sc.recodeMajorAllele(sampleFiltered)
+    val filteredGeno = sc.filterVariants(recoded, geno = args.geno, maf = args.maf)
 
     args.associationType match {
       case "ADDITIVE_LINEAR" =>
-        val gm = LinearGnocchiModelFactory(filteredGeno, broadPhenotype, Option(phenotypeNames), allelicAssumption = "ADDITIVE")
-        gm.save(args.output)
+        val model = LinearSiteRegression(filteredGeno, phenotypesContainer).gnocchiModel
+        model.save(args.output)
       case "DOMINANT_LINEAR" =>
-        val gm = LinearGnocchiModelFactory(filteredGeno, broadPhenotype, Option(phenotypeNames), allelicAssumption = "DOMINANT")
-        gm.save(args.output)
+        val model = LinearSiteRegression(filteredGeno, phenotypesContainer).gnocchiModel
+        model.save(args.output)
       case "ADDITIVE_LOGISTIC" =>
-        val gm = LogisticGnocchiModelFactory(filteredGeno, broadPhenotype, Option(phenotypeNames), allelicAssumption = "ADDITIVE")
-        gm.save(args.output)
+        val model = LogisticSiteRegression(filteredGeno, phenotypesContainer).gnocchiModel
+        model.save(args.output)
       case "DOMINANT_LOGISTIC" =>
-        val gm = LogisticGnocchiModelFactory(filteredGeno, broadPhenotype, Option(phenotypeNames), allelicAssumption = "DOMINANT")
-        gm.save(args.output)
+        val model = LogisticSiteRegression(filteredGeno, phenotypesContainer).gnocchiModel
+        model.save(args.output)
     }
   }
 }

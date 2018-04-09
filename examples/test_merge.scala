@@ -1,6 +1,5 @@
 import org.bdgenomics.gnocchi.sql.GnocchiSession._
 import org.bdgenomics.gnocchi.algorithms.siteregression.LinearSiteRegression
-import org.bdgenomics.gnocchi.models.LinearGnocchiModelFactory
 
 val genotypesPath1 = "examples/testData/time_genos_1.vcf"
 val phenotypesPath1 = "examples/testData/time_phenos_1.txt"

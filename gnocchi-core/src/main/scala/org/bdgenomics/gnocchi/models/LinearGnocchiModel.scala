@@ -17,112 +17,84 @@
  */
 package org.bdgenomics.gnocchi.models
 
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.{ Dataset, SparkSession }
-import org.bdgenomics.gnocchi.algorithms.siteregression.LinearSiteRegression
-import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, QualityControlVariantModel }
-import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
-import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
+import org.apache.spark.sql.Dataset
+import org.bdgenomics.gnocchi.models.variant.LinearVariantModel
+import org.bdgenomics.gnocchi.utils.ModelType._
 
-object LinearGnocchiModelFactory {
-
-  val regressionName = "LinearRegression"
-
-  def apply(genotypes: Dataset[CalledVariant],
-            phenotypes: Broadcast[Map[String, Phenotype]],
-            phenotypeNames: Option[List[String]],
-            QCVariantIDs: Option[Set[String]] = None,
-            QCVariantSamplingRate: Double = 0.1,
-            allelicAssumption: String = "ADDITIVE",
-            validationStringency: String = "STRICT"): LinearGnocchiModel = {
-
-    import genotypes.sqlContext.implicits._
-
-    genotypes.cache()
-
-    // ToDo: sampling QC Variants better.
-    val variantModels = LinearSiteRegression(genotypes, phenotypes, allelicAssumption = allelicAssumption, validationStringency = validationStringency)
-
-    // Create QCVariantModels
-    val comparisonVariants = if (QCVariantIDs.isEmpty) {
-      genotypes.sample(withReplacement = false, fraction = 0.1)
-    } else {
-      genotypes.filter(x => QCVariantIDs.get.contains(x.uniqueID))
-    }
-
-    val QCVariantModels = variantModels
-      .joinWith(comparisonVariants, variantModels("uniqueID") === comparisonVariants("uniqueID"), "inner")
-      .withColumnRenamed("_1", "variantModel")
-      .withColumnRenamed("_2", "variant")
-      .as[QualityControlVariantModel[LinearVariantModel]]
-
-    val phenoNames = if (phenotypeNames.isEmpty) {
-      List(phenotypes.value.head._2.phenoName) ++ (1 to phenotypes.value.head._2.covariates.length).map(x => "covar_" + x)
-    } else {
-      phenotypeNames.get
-    }
-
-    // Create metadata
-    val metadata = GnocchiModelMetaData(regressionName,
-      phenoNames.head,
-      phenoNames.tail.mkString(","),
-      genotypes.count().toInt,
-      flaggedVariantModels = Option(QCVariantModels.select("variant.uniqueID").as[String].collect().toList))
-
-    LinearGnocchiModel(metaData = metadata,
-      variantModels = variantModels,
-      QCVariantModels = QCVariantModels,
-      QCPhenotypes = phenotypes.value)
-  }
-
-}
-
-case class LinearGnocchiModel(metaData: GnocchiModelMetaData,
-                              variantModels: Dataset[LinearVariantModel],
-                              QCVariantModels: Dataset[QualityControlVariantModel[LinearVariantModel]],
-                              QCPhenotypes: Map[String, Phenotype])
+/**
+ * Data container for [[LinearVariantModel]] and the associated metadata that is shared between
+ * the independent variant models in an association study.
+ *
+ * @param variantModels Dataset of [[LinearVariantModel]], each of which store the variant level
+ *                      statistical model for the study
+ * @param phenotypeName The names of the primary phenotype for the study being conducted. This
+ *                      phenotype acts as the label or Y of a sample when building each variant model.
+ * @param covariatesNames The names of the covariates used in for the study being conducted. These
+ *                        variable are the variables that are being controlled for, when building each
+ *                        variant model
+ * @param sampleUIDs The unique identifiers for the subjects used in this study, to build this model
+ * @param numSamples the number of subjects used in this study, to build this model
+ * @param allelicAssumption The allelic assumption used in this study, to build this model
+ */
+case class LinearGnocchiModel(@transient variantModels: Dataset[LinearVariantModel],
+                              phenotypeName: String,
+                              covariatesNames: List[String],
+                              sampleUIDs: Set[String],
+                              numSamples: Int,
+                              allelicAssumption: String)
     extends GnocchiModel[LinearVariantModel, LinearGnocchiModel] {
+  val modelType: ModelType = Linear
 
   import variantModels.sqlContext.implicits._
 
-  def mergeGnocchiModel(otherModel: GnocchiModel[LinearVariantModel, LinearGnocchiModel]): LinearGnocchiModel = {
+  /**
+   * Merge two [[LinearGnocchiModel]]s together into the union of the two models. This is done by
+   * summing each of the constituent [[LinearVariantModel]] xTx matrices pointwise and solving the
+   * linear system of equations for the pointwise summed vector or xTy.
+   *
+   * @param otherModel The second [[LinearGnocchiModel]] to merge into this model
+   * @param allowDifferentPhenotype allows for there to be difference in the names of primary
+   *                                phenotype or the covariates. Allows for collaborators with
+   *                                similar phenotypes that are named differently to collaboratively
+   *                                build models
+   * @return A merged [[LinearGnocchiModel]] which is equivalent to a model built on the union of
+   *         the two seperate datasets
+   */
+  def mergeGnocchiModel(otherModel: LinearGnocchiModel,
+                        allowDifferentPhenotype: Boolean = false): LinearGnocchiModel = {
 
-    require(otherModel.metaData.modelType == metaData.modelType,
-      "Models being merged are not the same type. Type equality is required to merge two models correctly.")
+    require((otherModel.sampleUIDs & sampleUIDs).isEmpty,
+      "There are overlapping samples in the datasets used to build the two models.")
+    require(allelicAssumption == otherModel.allelicAssumption,
+      "The two models are of different allelic assumptions. (additive / dominant / recessive)")
+    if (!allowDifferentPhenotype) {
+      require(otherModel.phenotypeName == phenotypeName,
+        "The two models have different primary phenotypes.")
+      require(otherModel.covariatesNames == covariatesNames,
+        "The two models have different primary phenotypes.")
+    }
 
-    val mergedVMs = mergeVariantModels(otherModel.getVariantModels)
-
-    // ToDo: 1. [DONE] make sure models are of same type 2. [DONE] find intersection of QCVariants and use those as the gnocchiModel
-    // ToDo: QCVariants 3. Make sure the phenotype of the models are the same 4. Make sure the covariates of the model
-    // ToDo: are the same (currently broken because covariates stored in [[Phenotype]] object are the values not names)
-    val updatedMetaData = updateMetaData(otherModel.metaData.numSamples)
-
-    val mergedQCVariants = mergeQCVariants(otherModel.QCVariantModels)
-    val mergedQCVariantModels = mergedVMs.joinWith(mergedQCVariants, mergedVMs("uniqueID") === mergedQCVariants("uniqueID"), "inner")
-      .withColumnRenamed("_1", "variantModel")
-      .withColumnRenamed("_2", "variant")
-      .as[QualityControlVariantModel[LinearVariantModel]]
-    val mergedQCPhenotypes = QCPhenotypes ++ otherModel.QCPhenotypes
-
-    LinearGnocchiModel(updatedMetaData, mergedVMs, mergedQCVariantModels, mergedQCPhenotypes)
+    val mergedVMs = mergeVariantModels(otherModel.variantModels)
+    // ToDo: Ensure that the same phenotypes and covariates are being used
+    LinearGnocchiModel(
+      mergedVMs,
+      phenotypeName,
+      covariatesNames,
+      otherModel.sampleUIDs.toSet | sampleUIDs.toSet,
+      otherModel.numSamples + numSamples,
+      allelicAssumption)
   }
 
+  /**
+   * Merge the dataset of [[LinearVariantModel]] by joining the two datasets together and calling
+   * the [[LinearVariantModel.mergeWith()]] function on the two variant models
+   *
+   * @param newVariantModels [[Dataset]] of [[LinearVariantModel]] to merge into the existing set of
+   *                        variant models stored in this object.
+   * @return the dataset of merged [[LinearVariantModel]]
+   */
   def mergeVariantModels(newVariantModels: Dataset[LinearVariantModel]): Dataset[LinearVariantModel] = {
-    variantModels.joinWith(newVariantModels, variantModels("uniqueID") === newVariantModels("uniqueID")).map(x => x._1.mergeWith(x._2))
-  }
-
-  def mergeQCVariants(newQCVariantModels: Dataset[QualityControlVariantModel[LinearVariantModel]]): Dataset[CalledVariant] = {
-    val variants1 = QCVariantModels.map(_.variant)
-    val variants2 = newQCVariantModels.map(_.variant)
-
-    variants1.joinWith(variants2, variants1("uniqueID") === variants2("uniqueID"))
-      .as[(CalledVariant, CalledVariant)]
-      .map(x =>
-        CalledVariant(x._1.chromosome,
-          x._1.position,
-          x._1.uniqueID,
-          x._1.referenceAllele,
-          x._1.alternateAllele,
-          x._1.samples ++ x._2.samples))
+    variantModels.joinWith(newVariantModels, variantModels("uniqueID") === newVariantModels("uniqueID"))
+      .map(x => x._1.mergeWith(x._2))
   }
 }

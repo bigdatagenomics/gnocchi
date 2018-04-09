@@ -18,7 +18,7 @@
 package org.bdgenomics.gnocchi.primitives.phenotype
 
 /**
- * @
+ * Data storage primitive for phentype information of a single subject's sample
  *
  * @param sampleId Unique identifier of the sample who's phenotype this object represents
  * @param phenoName Name of the primary phenotype that is being used for association

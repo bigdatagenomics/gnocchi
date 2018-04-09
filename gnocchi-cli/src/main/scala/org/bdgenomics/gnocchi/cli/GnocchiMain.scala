@@ -21,7 +21,7 @@ object GnocchiMain {
 
   private val commands = List(
     RegressPhenotypes,
-    BuildGnocchiModel)
+    TransformVariants)
 
   private def printCommands() {
     println("\n")
@@ -34,7 +34,7 @@ object GnocchiMain {
   }
 
   def main(args: Array[String]) {
-    println("ADAM invoked with args: %s".format(args.mkString(" ")))
+    println("Gnocchi invoked with args: %s".format(args.mkString(" ")))
     if (args.size < 1) {
       printCommands()
     } else {

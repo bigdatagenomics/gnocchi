@@ -25,6 +25,7 @@ import org.bdgenomics.gnocchi.sql.GnocchiSession._
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{ Dataset, SparkSession }
+import org.bdgenomics.gnocchi.primitives.association.{ LinearAssociation, LogisticAssociation }
 import org.bdgenomics.utils.cli._
 import org.kohsuke.args4j.{ Argument, Option => Args4jOption }
 
@@ -53,7 +54,7 @@ class RegressPhenotypesArgs extends Args4jBase {
   var output: String = _
 
   @Args4jOption(required = false, name = "-sampleIDName", usage = "The name of the column containing unique ID's for samples")
-  var sampleUID: String = _
+  var sampleUID: String = "IID"
 
   @Args4jOption(required = false, name = "-phenoName", usage = "The phenotype to regress.")
   var phenoName: String = _
@@ -61,13 +62,10 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-phenoSpaceDelimited", usage = "Set flag if phenotypes file is space delimited, otherwise tab delimited is assumed.")
   var phenoSpaceDelimiter = false
 
-  @Args4jOption(required = false, name = "-covar", usage = "Whether to include covariates.")
-  var includeCovariates = false
-
-  @Args4jOption(required = false, name = "-covarFile", usage = "The covariates file path")
+  @Args4jOption(required = false, name = "-covar", usage = "The covariates file path")
   var covarFile: String = _
 
-  @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis") // this will be used to construct the original phenotypes array in LoadPhenotypes. Will need to throw out samples that don't have all of the right fields.
+  @Args4jOption(required = false, name = "-covarNames", usage = "The covariates to include in the analysis")
   var covarNames: String = _
 
   @Args4jOption(required = false, name = "-covarSpaceDelimited", usage = "Set flag if covariates file is space delimited, otherwise tab delimited is assumed.")
@@ -94,17 +92,17 @@ class RegressPhenotypesArgs extends Args4jBase {
   @Args4jOption(required = false, name = "-geno", usage = "Missingness per marker threshold. Default value is 0.1.")
   var geno = 0.1
 
-  @Args4jOption(required = false, name = "-oneTwo", usage = "If cases are 1 and controls 2 instead of 0 and 1")
-  var oneTwo = false
-
   @Args4jOption(required = false, name = "-forceSave", usage = "If set to true, no prompt will be given and results will overwrite any other files at that location.")
   var forceSave = false
 
   @Args4jOption(required = false, name = "-missingPhenoChar", usage = "Comma delimited set of strings used to denote a missing phenotype.")
   var missingPhenoChars: String = _
 
-  @Args4jOption(required = false, name = "-parquetInput", usage = "Genotypes are parquet formatted.")
-  var parquetInput: Boolean = false
+  @Args4jOption(required = false, name = "-ADAMformat", usage = "Genotypes are ADAM formatted GenotypeRDDs.")
+  var adamFormat: Boolean = false
+
+  @Args4jOption(required = false, name = "-datasetName", usage = "Unique ID name of the genotype dataset being loaded.")
+  var datasetName: String = ""
 }
 
 class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSparkCommand[RegressPhenotypesArgs] {
@@ -112,11 +110,28 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
 
   def run(sc: SparkContext) {
 
+    val outputLoc = new Path(args.output)
+    val fs = outputLoc.getFileSystem(sc.hadoopConfiguration)
+    if (fs.exists(outputLoc)) {
+      if (args.forceSave) {
+        fs.delete(outputLoc, true)
+      } else {
+        val input = scala.io.StdIn.readLine(s"Specified output file ${args.output} already exists. Overwrite? (y/n)> ")
+        if (input.equalsIgnoreCase("y") || input.equalsIgnoreCase("yes")) {
+          fs.delete(outputLoc, true)
+        } else {
+          throw new IllegalArgumentException(s"File already exists at ${args.output}")
+        }
+      }
+    }
+
     val phenoDelimiter = if (args.phenoSpaceDelimiter) { " " } else { "\t" }
+
     val covarDelimiter = if (args.covarSpaceDelimiter) { " " } else { "\t" }
+
     val missingPhenos = if (args.missingPhenoChars == null) List("-9") else args.missingPhenoChars.split(",").toList
 
-    val phenotypes = if (args.covarFile != null) {
+    val phenotypesContainer = if (args.covarFile != null) {
       sc.loadPhenotypes(args.phenotypes,
         args.sampleUID,
         args.phenoName,
@@ -128,26 +143,26 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     } else {
       sc.loadPhenotypes(args.phenotypes, args.sampleUID, args.phenoName, phenoDelimiter, missing = missingPhenos)
     }
-    val broadPhenotype = sc.broadcast(phenotypes)
 
-    val rawGenotypes = sc.loadGenotypes(args.genotypes, parquet = args.parquetInput)
-    val recoded = sc.recodeMajorAllele(rawGenotypes)
-    val sampleFiltered = sc.filterSamples(recoded, mind = args.mind, ploidy = args.ploidy)
-    val filteredGeno = sc.filterVariants(sampleFiltered, geno = args.geno, maf = args.maf)
+    // the ordering of calls below is important
+    val rawGenotypes = sc.loadGenotypes(args.genotypes, args.datasetName, args.associationType.split("_").head, adamFormat = args.adamFormat)
+    val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
+    val recoded = sc.recodeMajorAllele(sampleFiltered)
+    val filteredGeno = sc.filterVariants(recoded, geno = args.geno, maf = args.maf)
 
     args.associationType match {
       case "ADDITIVE_LINEAR" =>
-        val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText, args.forceSave)
+        val associations = LinearSiteRegression(filteredGeno, phenotypesContainer).associations
+        sc.saveAssociations[LinearAssociation](associations, args.output, args.saveAsText)
       case "DOMINANT_LINEAR" =>
-        val associations = LinearSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        sc.saveAssociations[LinearVariantModel](associations, args.output, args.saveAsText, args.forceSave)
+        val associations = LinearSiteRegression(filteredGeno, phenotypesContainer).associations
+        sc.saveAssociations[LinearAssociation](associations, args.output, args.saveAsText)
       case "ADDITIVE_LOGISTIC" =>
-        val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "ADDITIVE")
-        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText, args.forceSave)
+        val associations = LogisticSiteRegression(filteredGeno, phenotypesContainer).associations
+        sc.saveAssociations[LogisticAssociation](associations, args.output, args.saveAsText)
       case "DOMINANT_LOGISTIC" =>
-        val associations = LogisticSiteRegression(filteredGeno, broadPhenotype, "DOMINANT")
-        sc.saveAssociations[LogisticVariantModel](associations, args.output, args.saveAsText, args.forceSave)
+        val associations = LogisticSiteRegression(filteredGeno, phenotypesContainer).associations
+        sc.saveAssociations[LogisticAssociation](associations, args.output, args.saveAsText)
     }
   }
 }

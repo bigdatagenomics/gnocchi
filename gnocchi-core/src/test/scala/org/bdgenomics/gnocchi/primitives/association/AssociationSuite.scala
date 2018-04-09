@@ -17,26 +17,51 @@
  */
 package org.bdgenomics.gnocchi.primitives.association
 
-import org.bdgenomics.gnocchi.GnocchiFunSuite
+import breeze.linalg.{ DenseMatrix, DenseVector }
+import org.bdgenomics.gnocchi.utils.GnocchiFunSuite
 
 class AssociationSuite extends GnocchiFunSuite {
   sparkTest("LinearAssociation creation works.") {
-    val assoc = LinearAssociation(ssDeviations = 0.5,
-      ssResiduals = 0.5,
-      geneticParameterStandardError = 0.5,
-      tStatistic = 0.5,
-      residualDegreesOfFreedom = 2,
-      pValue = 0.5,
-      weights = List(0.5, 0.5),
-      numSamples = 10)
+    val uniqueID = "rs123456"
+    val chromosome = 10
+    val position = 12345667
+    val numSamples = 23
+    val genotypeStandardError = 5.12
+    val pValue = 0.001
+    val ssResiduals = 1234.21
+    val tStatistic = 2.123
+
+    val assoc = LinearAssociation(
+      uniqueID,
+      chromosome,
+      position,
+      numSamples,
+      pValue,
+      genotypeStandardError,
+      ssResiduals,
+      tStatistic)
+
     assert(assoc.isInstanceOf[LinearAssociation], "Cannot create LinearAssociation")
   }
 
   sparkTest("LogisticAssociation creation works.") {
-    val assoc = LogisticAssociation(geneticParameterStandardError = 0.5,
-      pValue = 0.5,
-      weights = List(0.5, 0.5),
-      numSamples = 10)
+    val uniqueID = "rs123456"
+    val chromosome = 10
+    val position = 12345667
+    val numSamples = 23
+    val genotypeStandardError = 5.12
+    val pValue = 0.001
+    val ssResiduals = 1234.21
+    val tStatistic = 2.123
+
+    val assoc = LogisticAssociation(
+      uniqueID,
+      chromosome,
+      position,
+      numSamples,
+      pValue,
+      genotypeStandardError)
+
     assert(assoc.isInstanceOf[LogisticAssociation], "Cannot create LogisticAssociation")
   }
 }

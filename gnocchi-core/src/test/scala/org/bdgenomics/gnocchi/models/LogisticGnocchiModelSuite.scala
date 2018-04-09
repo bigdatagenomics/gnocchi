@@ -1,166 +1,59 @@
+/**
+ * Licensed to Big Data Genomics (BDG) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The BDG licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.bdgenomics.gnocchi.models
 
 import org.apache.spark.sql.SparkSession
-import org.bdgenomics.gnocchi.GnocchiFunSuite
 import org.bdgenomics.gnocchi.models.variant.LogisticVariantModel
 import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
+import org.bdgenomics.gnocchi.sql.GnocchiSession._
+import org.bdgenomics.gnocchi.utils.GnocchiFunSuite
 import org.mockito.Mockito
 
 import scala.collection.mutable
 
 class LogisticGnocchiModelSuite extends GnocchiFunSuite {
-  sparkTest("Unit test of LGM.mergeVariantModels") {
-    // (TODO) To unit test mergeVariantModels requires a seperate constructor that takes a mock of Dataset[LogisticVariantModel] which is fairly messy
-  }
+  sparkTest("LogisticGnocchiModel creation works") {
+    val ss = sc.sparkSession
+    import ss.implicits._
 
-  sparkTest("LogisticGnocchiModel correctly combines GnocchiModels") {
-    val spark = SparkSession.builder().master("local").getOrCreate()
-    import spark.implicits._
+    val variantModel =
+      LogisticVariantModel(
+        "rs8330247",
+        14,
+        21373362,
+        "C",
+        "T",
+        List(0.21603874149667546, -0.20074885895765007, 0.21603874149667546, -0.20074885895765007))
 
-    val observations = new Array[(Int, Int)](3)
-    observations(0) = (10, 8)
-    observations(1) = (8, 6)
-    observations(2) = (13, 7)
+    val variantModels = ss.createDataset(List(variantModel))
 
-    val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cv = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStates)
-    val cvDataset = mutable.MutableList[CalledVariant](cv).toDS()
-
-    val phenoMap = observations.map(_._2)
-      .toList
-      .zipWithIndex
-      .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1)))
-      .toMap
-
-    val logisticGnocchiModel = LogisticGnocchiModelFactory.apply(cvDataset, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
-
-    val observationsSecond = new Array[(Int, Int)](3)
-    observationsSecond(0) = (23, 4)
-    observationsSecond(1) = (29, 3)
-    observationsSecond(2) = (32, 2)
-
-    val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
-    val cvDatasetSecond = mutable.MutableList[CalledVariant](cvSecond).toDS()
-
-    val logisticGnocchiModelSecond = LogisticGnocchiModelFactory.apply(cvDatasetSecond, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
-    val oldMetadata = logisticGnocchiModel.metaData
-    val newMetadata = GnocchiModelMetaData(
-      oldMetadata.modelType,
-      oldMetadata.phenotype,
-      oldMetadata.covariates,
-      2,
-      oldMetadata.haplotypeBlockErrorThreshold,
-      oldMetadata.flaggedVariantModels)
-
-    val mergedModel = logisticGnocchiModel.mergeGnocchiModel(logisticGnocchiModelSecond)
-    assert(mergedModel.metaData == newMetadata)
-  }
-
-  sparkTest("LogisticGnocchiModel correctly combines greater than 2 GnocchiModels") {
-    val spark = SparkSession.builder().master("local").getOrCreate()
-    import spark.implicits._
-
-    // Create first LogisticGnocchiModel
-    val observations = new Array[(Int, Int)](3)
-    observations(0) = (10, 8)
-    observations(1) = (8, 6)
-    observations(2) = (13, 7)
-
-    val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cv = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStates)
-    val cvDataset = mutable.MutableList[CalledVariant](cv).toDS()
-
-    val phenoMap = observations.map(_._2)
-      .toList
-      .zipWithIndex
-      .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1)))
-      .toMap
-
-    val logisticGnocchiModelFirst = LogisticGnocchiModelFactory.apply(cvDataset, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
-
-    // Create second LogisticGnocchiModel
-    val observationsSecond = new Array[(Int, Int)](3)
-    observationsSecond(0) = (23, 4)
-    observationsSecond(1) = (29, 3)
-    observationsSecond(2) = (32, 2)
-
-    val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
-    val cvDatasetSecond = mutable.MutableList[CalledVariant](cvSecond).toDS()
-
-    val logisticGnocchiModelSecond = LogisticGnocchiModelFactory.apply(cvDatasetSecond, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
-
-    // Create third LogisticGnocchiModel
-    val observationsThird = new Array[(Int, Int)](3)
-    observationsThird(0) = (21, 5)
-    observationsThird(1) = (30, 2)
-    observationsThird(2) = (34, 1)
-
-    val genotypeStatesThird = observationsThird.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvThird = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
-    val cvDatasetThird = mutable.MutableList[CalledVariant](cvThird).toDS()
-
-    val logisticGnocchiModelThird = LogisticGnocchiModelFactory.apply(cvDatasetThird, sc.broadcast(phenoMap), Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
-
-    // Compute expected metadata for fully merged model
-    val oldMetadata = logisticGnocchiModelFirst.metaData
-    val newMetadata = GnocchiModelMetaData(
-      oldMetadata.modelType,
-      oldMetadata.phenotype,
-      oldMetadata.covariates,
-      3,
-      oldMetadata.haplotypeBlockErrorThreshold,
-      oldMetadata.flaggedVariantModels)
-
-    // Merge all three models together
-    val mergedModel = logisticGnocchiModelFirst.mergeGnocchiModel(logisticGnocchiModelSecond)
-    val finalMergedModel = mergedModel.mergeGnocchiModel(logisticGnocchiModelThird)
-
-    assert(finalMergedModel.metaData == newMetadata)
-  }
-
-  // (TODO) Need to create a singular matrix
-  ignore("LogisticGnocchiModel.mergeQCVariants correct combines variant samples") {
-    val spark = SparkSession.builder().master("local").getOrCreate()
-    import spark.implicits._
-
-    val observations = new Array[(Int, Int)](3)
-    observations(0) = (10, 8)
-    observations(1) = (8, 6)
-    observations(2) = (13, 7)
-
-    val genotypeStates = observations.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val gs = createSampleGenotypeStates(num = 10, maf = 0.35, geno = 0.0, ploidy = 2)
-    val cv = createSampleCalledVariant(samples = Option(gs))
-    val cvDataset = mutable.MutableList[CalledVariant](cv).toDS()
-
-    val phenoMap = observations.map(_._2)
-      .toList
-      .zipWithIndex
-      .map(item => (item._2.toString, Phenotype(item._2.toString, "pheno1", item._1)))
-      .toMap
-
-    val phenos = sc.broadcast(createSamplePhenotype(calledVariant = Option(cv), numCovariate = 10))
-
-    val logisticGnocchiModel = LogisticGnocchiModelFactory.apply(cvDataset, phenos, Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
-
-    val observationsSecond = new Array[(Int, Int)](3)
-    observationsSecond(0) = (23, 4)
-    observationsSecond(1) = (29, 3)
-    observationsSecond(2) = (32, 2)
-
-    val genotypeStatesSecond = observationsSecond.map(_._1).toList.zipWithIndex.map(item => GenotypeState(item._2.toString, item._1.toString))
-    val cvSecond = CalledVariant(1, 1, "rs123456", "A", "C", genotypeStatesSecond)
-    val cvDatasetSecond = mutable.MutableList[CalledVariant](cvSecond).toDS()
-
-    val logisticGnocchiModelSecond = LogisticGnocchiModelFactory.apply(cvDataset, phenos, Option.apply(List[String]("pheno1")), Option.apply(List[String]("rs123456").toSet))
-
-    val mergedQCVariants = logisticGnocchiModel.mergeQCVariants(logisticGnocchiModelSecond.QCVariantModels)
-    val verifyQCVariants = genotypeStates ++ genotypeStatesSecond
-
-    assert(verifyQCVariants.toSet == mergedQCVariants.map(_.samples).collect.flatten.toSet)
+    try {
+      LogisticGnocchiModel(
+        variantModels,
+        "pheno_1",
+        List("covar_1", "covar_2"),
+        Set("6432", "8569", "2411", "6238", "6517", "1939", "6571", "8414", "8327", "6629", "6582", "5600", "7276", "4288", "1890"),
+        15,
+        "ADDITIVE")
+    } catch {
+      case _: Throwable => fail("Error creating a LogisticGnocchiModel")
+    }
   }
 }

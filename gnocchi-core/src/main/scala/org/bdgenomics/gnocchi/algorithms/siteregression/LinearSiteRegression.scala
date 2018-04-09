@@ -17,7 +17,7 @@
  */
 package org.bdgenomics.gnocchi.algorithms.siteregression
 
-import org.bdgenomics.gnocchi.primitives.association.LinearAssociation
+import org.bdgenomics.gnocchi.primitives.association.{ LinearAssociation, LinearAssociationBuilder }
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import breeze.linalg._
@@ -27,48 +27,150 @@ import breeze.stats.distributions.StudentsT
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.bdgenomics.gnocchi.models.variant.LinearVariantModel
+import org.bdgenomics.gnocchi.sql.{ GenotypeDataset, PhenotypesContainer }
 
 import scala.collection.immutable.Map
 
 trait LinearSiteRegression extends SiteRegression[LinearVariantModel, LinearAssociation] {
 
-  def apply(genotypes: Dataset[CalledVariant],
-            phenotypes: Broadcast[Map[String, Phenotype]],
-            allelicAssumption: String = "ADDITIVE",
-            validationStringency: String = "STRICT"): Dataset[LinearVariantModel] = {
+  /**
+   * Return a [[LinearRegressionResults]] object for the passed genotypes and phenotypesContainer
+   *
+   * @param genotypes [[GenotypeDataset]] to be analyzed in this study
+   * @param phenotypesContainer [[PhenotypesContainer]] corresponding to the genotype data
+   * @return [[LinearRegressionResults]] storing access to the models, associations or a
+   *        [[org.bdgenomics.gnocchi.models.LinearGnocchiModel]]
+   */
+  def apply(genotypes: GenotypeDataset,
+            phenotypesContainer: PhenotypesContainer): LinearRegressionResults = {
+    LinearRegressionResults(genotypes, phenotypesContainer)
+  }
+
+  /**
+   * Run Linear Regression over a [[Dataset]] of [[CalledVariant]] objects and return a tuple that
+   * contains a [[Dataset]] of the resulting [[LinearVariantModel]] and a [[Dataset]] of the
+   * [[LinearAssociation]]
+   *
+   * @param genotypes [[Dataset]] of [[CalledVariant]]s for which to compute Linear models and
+   *                 associations
+   * @param phenotypes Phenotype data corresponding to the [[Dataset]] of [[CalledVariant]] objects
+   * @param allelicAssumption Allelic assumption to use for this analysis
+   * @return Tuple of two [[Dataset]] objects. First is [[LinearVariantModel]] objects, second is
+   *         [[LinearAssociation]] objects
+   */
+  def createModelAndAssociations(genotypes: Dataset[CalledVariant],
+                                 phenotypes: Broadcast[Map[String, Phenotype]],
+                                 allelicAssumption: String): (Dataset[LinearVariantModel], Dataset[LinearAssociation]) = {
 
     import genotypes.sqlContext.implicits._
 
     //ToDo: Singular Matrix Exceptions
-    genotypes.flatMap((genos: CalledVariant) => {
+    val results = genotypes.flatMap((genos: CalledVariant) => {
       try {
-        val association = applyToSite(phenotypes.value, genos, allelicAssumption)
-        Some(constructVM(genos, phenotypes.value.head._2, association, allelicAssumption))
+        val (model, association) = applyToSite(genos, phenotypes.value, allelicAssumption)
+        Some((model, association))
       } catch {
         case e: breeze.linalg.MatrixSingularException => None
       }
     })
+
+    (results.map(_._1), results.map(_._2))
   }
 
-  def applyToSite(phenotypes: Map[String, Phenotype],
-                  genotypes: CalledVariant,
-                  allelicAssumption: String): LinearAssociation = {
+  /**
+   * Solve the Logistic Regression problem for a single variant site.
+   *
+   * @param genotypes a single [[CalledVariant]] object to solve Logistic Regression for
+   * @param phenotypes Phenotypes corresponding to the genotype data
+   * @param allelicAssumption Allelic assumption to use for the genotype encoding
+   * @return a tuple of [[LinearVariantModel]] and [[LinearAssociation]] containing the relevant
+   *         statistics for the Logistic Regression solution
+   */
+  def applyToSite(genotypes: CalledVariant,
+                  phenotypes: Map[String, Phenotype],
+                  allelicAssumption: String): (LinearVariantModel, LinearAssociation) = {
 
     val (x, y) = prepareDesignMatrix(genotypes, phenotypes, allelicAssumption)
 
-    // TODO: Determine if QR factorization is faster
-    val beta = x \ y
+    val (xTx, xTy, beta) = solveRegression(x, y)
+
+    val (genoSE, t, pValue, ssResiduals) = calculateSignificance(x, y, beta, xTx)
+
+    val association = LinearAssociation(
+      genotypes.uniqueID,
+      genotypes.chromosome,
+      genotypes.position,
+      x.rows,
+      pValue,
+      genoSE,
+      ssResiduals,
+      t)
+
+    val model = LinearVariantModel(
+      genotypes.uniqueID,
+      genotypes.chromosome,
+      genotypes.position,
+      genotypes.referenceAllele,
+      genotypes.alternateAllele,
+      x.rows,
+      x.cols,
+      xTx.toArray,
+      xTy.toArray,
+      x.rows - x.cols,
+      beta.data.toList)
+
+    (model, association)
+  }
+
+  /**
+   * This function solves the equation Y = Xβ for β and gives back relevant matrices in a tuple.
+   * Places the actual regression solution in a separate function for testing reasons.
+   *
+   * @param x formatted x matrix
+   * @param y formatted y vector
+   * @return (xTx matrix, xTy vector, weights vector)
+   */
+  def solveRegression(x: DenseMatrix[Double],
+                      y: DenseVector[Double]): (DenseMatrix[Double], DenseVector[Double], DenseVector[Double]) = {
+    val xTx = x.t * x // p x p matrix
+    val xTy = x.t * y // p x 1 vector
+
+    // This line is the breeze notation for the equation xTx*beta = xTy, solve for beta
+    val beta = xTx \ xTy
+
+    (xTx, xTy, beta)
+  }
+
+  /**
+   * Given a weight vector, and input X and Y, solve for the significance value of the genotype
+   * parameter. Also takes in optional partial sum of square residuals and additional samples count
+   * for the purpose of merging together an exsiting association with a new set of data.
+   *
+   * @param x Design matrix to be used, containing formatted genotype data
+   * @param y Target vector corresponding to the design matrix
+   * @param beta weight vector to use for calculating the genotype parameter signicicance
+   * @param modelxTx the xTx matrix of the model that is being significance tested
+   * @param partialSSResiduals Optional parameter that can be used as the SSResiduals from
+   *                           another/other datasets
+   * @return (genotype parameter standard error, t-statistic for model, pValue for model, sum of
+   *         squared residuals)
+   */
+  def calculateSignificance(x: DenseMatrix[Double],
+                            y: DenseVector[Double],
+                            beta: DenseVector[Double],
+                            modelxTx: DenseMatrix[Double],
+                            partialSSResiduals: Option[Double] = None,
+                            additionalSamples: Option[Int] = None): (Double, Double, Double, Double) = {
+
+    require(partialSSResiduals.isDefined == additionalSamples.isDefined,
+      "You need to either define both partialSSResiduals and additionalNumSamples, or neither.")
 
     val residuals = y - (x * beta)
-    val ssResiduals = residuals.t * residuals
-
-    // calculate sum of squared deviations
-    val deviations = y - mean(y)
-    val ssDeviations = deviations.t * deviations
+    val ssResiduals = residuals.t * residuals + partialSSResiduals.getOrElse(0: Double)
 
     // compute the regression parameters standard errors
-    val betaVariance = diag(inv(x.t * x))
-    val sigma = residuals.t * residuals / (x.rows - x.cols)
+    val betaVariance = diag(inv(modelxTx))
+    val sigma = ssResiduals / (additionalSamples.getOrElse(0: Int) + x.rows - x.cols)
     val standardErrors = sqrt(sigma * betaVariance)
 
     // get standard error for genotype parameter (for p value calculation)
@@ -83,69 +185,11 @@ trait LinearSiteRegression extends SiteRegression[LinearVariantModel, LinearAsso
       (N = number of samples, p = number of regressors i.e. genotype+covariates+intercept)
       https://en.wikipedia.org/wiki/T-statistic
     */
-    val residualDegreesOfFreedom = x.rows - x.cols
+    val residualDegreesOfFreedom = additionalSamples.getOrElse(0: Int) + x.rows - x.cols
     val tDist = StudentsT(residualDegreesOfFreedom)
     val pValue = 2 * tDist.cdf(-math.abs(t))
-
-    LinearAssociation(
-      ssDeviations,
-      ssResiduals,
-      genoSE,
-      t,
-      residualDegreesOfFreedom,
-      pValue,
-      beta.data.toList,
-      x.rows)
-  }
-
-  private[algorithms] def prepareDesignMatrix(genotypes: CalledVariant,
-                                              phenotypes: Map[String, Phenotype],
-                                              allelicAssumption: String): (DenseMatrix[Double], DenseVector[Double]) = {
-
-    val validGenos = genotypes.samples.filter(genotypeState => genotypeState.misses == 0 && phenotypes.contains(genotypeState.sampleID))
-
-    val samplesGenotypes = allelicAssumption.toUpperCase match {
-      case "ADDITIVE"  => validGenos.map(genotypeState => (genotypeState.sampleID, genotypeState.additive))
-      case "DOMINANT"  => validGenos.map(genotypeState => (genotypeState.sampleID, genotypeState.dominant))
-      case "RECESSIVE" => validGenos.map(genotypeState => (genotypeState.sampleID, genotypeState.recessive))
-    }
-
-    val (primitiveX, primitiveY) = samplesGenotypes.flatMap({
-      case (sampleID, genotype) if phenotypes.contains(sampleID) => {
-        Some(1.0 +: genotype +: phenotypes(sampleID).covariates.toArray, phenotypes(sampleID).phenotype)
-      }
-      case _ => None
-    }).toArray.unzip
-
-    if (primitiveX.length == 0) {
-      // TODO: Determine what to do when the design matrix is empty (i.e. no overlap btwn geno and pheno sampleIDs, etc.)
-      throw new IllegalArgumentException("No overlap between phenotype and genotype state sample IDs.")
-    }
-
-    // NOTE: This may cause problems in the future depending on JVM max varargs, use one of these instead if it breaks:
-    // val x = new DenseMatrix(x(0).length, x.length, x.flatten).t
-    // val x = new DenseMatrix(x.length, x(0).length, x.flatten, 0, x(0).length, isTranspose = true)
-    // val x = new DenseMatrix(x :_*)
-
-    (new DenseMatrix(primitiveX.length, primitiveX(0).length, primitiveX.transpose.flatten), new DenseVector(primitiveY))
-  }
-
-  def constructVM(variant: CalledVariant,
-                  phenotype: Phenotype,
-                  association: LinearAssociation,
-                  allelicAssumption: String): LinearVariantModel = {
-    LinearVariantModel(variant.uniqueID,
-      association,
-      phenotype.phenoName,
-      variant.chromosome,
-      variant.position,
-      variant.referenceAllele,
-      variant.alternateAllele,
-      allelicAssumption,
-      phaseSetId = 0)
+    (genoSE, t, pValue, ssResiduals)
   }
 }
 
-object LinearSiteRegression extends LinearSiteRegression {
-  val regressionName = "LinearSiteRegression"
-}
+object LinearSiteRegression extends LinearSiteRegression

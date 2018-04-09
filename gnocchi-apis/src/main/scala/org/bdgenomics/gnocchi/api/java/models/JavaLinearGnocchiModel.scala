@@ -1,52 +1,25 @@
+/**
+ * Licensed to Big Data Genomics (BDG) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The BDG licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.bdgenomics.gnocchi.api.java.models
 
 import org.apache.spark.sql.Dataset
-import org.bdgenomics.gnocchi.models.variant.{ LinearVariantModel, QualityControlVariantModel }
-import org.bdgenomics.gnocchi.models.{ GnocchiModelMetaData, LinearGnocchiModel, LinearGnocchiModelFactory }
-import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
-import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
-import org.bdgenomics.gnocchi.sql.GnocchiSession
-
-import scala.collection.JavaConversions._
-
-object JavaLinearGnocchiModelFactory {
-
-  var gs: GnocchiSession = null
-
-  def generate(gs: GnocchiSession) { this.gs = gs }
-
-  def apply(genotypes: Dataset[CalledVariant],
-            phenotypes: scala.collection.immutable.Map[java.lang.String, Phenotype],
-            phenotypeNames: java.util.List[java.lang.String], // Option becomes raw object java.util.ArrayList[java.lang.String],
-            QCVariantIDs: java.util.List[java.lang.String], // Option becomes raw object
-            QCVariantSamplingRate: java.lang.Double,
-            allelicAssumption: java.lang.String,
-            validationStringency: java.lang.String): LinearGnocchiModel = {
-
-    // Convert python compatible nullable types to scala options
-    val phenotypeNamesOption = if (phenotypeNames == null) {
-      None
-    } else {
-      val phenotypeNamesList = asScalaBuffer(phenotypeNames).toList
-      Some(phenotypeNamesList)
-    }
-
-    val QCVariantIDsOption = if (QCVariantIDs == null) {
-      None
-    } else {
-      val QCVariantIDsList = asScalaBuffer(QCVariantIDs).toSet
-      Some(QCVariantIDsList)
-    }
-
-    LinearGnocchiModelFactory(genotypes,
-      this.gs.sparkSession.sparkContext.broadcast(phenotypes),
-      phenotypeNamesOption,
-      QCVariantIDsOption,
-      QCVariantSamplingRate,
-      allelicAssumption,
-      validationStringency)
-  }
-}
+import org.bdgenomics.gnocchi.models.LinearGnocchiModel
+import org.bdgenomics.gnocchi.models.variant.LinearVariantModel
 
 class JavaLinearGnocchiModel(val lgm: LinearGnocchiModel) {
   def mergeGnocchiModel(otherModel: JavaLinearGnocchiModel): JavaLinearGnocchiModel = {
@@ -58,47 +31,28 @@ class JavaLinearGnocchiModel(val lgm: LinearGnocchiModel) {
     lgm.mergeVariantModels(newVariantModels)
   }
 
-  def mergeQCVariants(newQCVariantModels: Dataset[QualityControlVariantModel[LinearVariantModel]]): Dataset[CalledVariant] = {
-    lgm.mergeQCVariants(newQCVariantModels)
-  }
-
   def getVariantModels(): Dataset[LinearVariantModel] = {
     lgm.variantModels
   }
 
-  def getQCVariants(): Dataset[QualityControlVariantModel[LinearVariantModel]] = {
-    lgm.QCVariantModels
-  }
-
-  def getModelMetadata(): GnocchiModelMetaData = {
-    lgm.metaData
-  }
-
   def getModelType(): java.lang.String = {
-    lgm.metaData.modelType
+    lgm.allelicAssumption
   }
 
   def getPhenotype(): java.lang.String = {
-    lgm.metaData.phenotype
+    lgm.phenotypeName
   }
 
   def getCovariates(): java.lang.String = {
-    lgm.metaData.covariates
+    lgm.covariatesNames.mkString(",")
   }
 
   def getNumSamples(): java.lang.Integer = {
-    lgm.metaData.numSamples
+    lgm.numSamples
   }
 
-  def getHaplotypeBlockErrorThreshold(): java.lang.Double = {
-    lgm.metaData.haplotypeBlockErrorThreshold
-  }
-
-  def getFlaggedVariantModels(): java.util.List[java.lang.String] = {
-    lgm.metaData.flaggedVariantModels.getOrElse(null)
-  }
-
-  def save(saveTo: java.lang.String): Unit = {
-    lgm.save(saveTo)
-  }
+  //  def save(saveTo: java.lang.String): Unit = {
+  //
+  //    sc.save()
+  //  }
 }

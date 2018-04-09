@@ -18,13 +18,13 @@
 
 package org.bdgenomics.gnocchi.sql
 
-import org.bdgenomics.gnocchi.GnocchiFunSuite
 import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
 import org.bdgenomics.gnocchi.sql.GnocchiSession._
 import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.{ Dataset, SparkSession }
+import org.bdgenomics.gnocchi.utils.GnocchiFunSuite
 
 import scala.util.Random
 
@@ -32,37 +32,33 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // load Genotypes tests
 
-  sparkTest("sc.loadGenotypes should produce a dataset of CalledVariant objects.") {
+  sparkTest("sc.loadGenotypes should produce a GenotypeDataset.") {
     val genoPath = testFile("small1.vcf")
-    val genotypes = sc.loadGenotypes(genoPath)
-    assert(genotypes.isInstanceOf[Dataset[CalledVariant]], "sc.loadGenotypes does not produce as Dataset[CalledVariant]")
+    val genotypes = sc.loadGenotypes(genoPath, "small1", "ADDITIVE")
+    assert(genotypes.isInstanceOf[GenotypeDataset], "sc.loadGenotypes does not produce as GenotypeDataset")
   }
 
   sparkTest("sc.loadGenotypes should map fields correctly.") {
     val genoPath = testFile("1Sample1Variant.vcf")
-    val genotypes = sc.loadGenotypes(genoPath)
-    val firstCalledVariant = genotypes.head
+    val genotypes = sc.loadGenotypes(genoPath, "1Sample1Variant", "ADDITIVE")
+    val firstCalledVariant = genotypes.genotypes.head
 
     assert(firstCalledVariant.uniqueID.equals("rs3131972"))
     assert(firstCalledVariant.chromosome === 1)
     assert(firstCalledVariant.position === 752721)
     assert(firstCalledVariant.referenceAllele === "A")
     assert(firstCalledVariant.alternateAllele === "G")
-    assert(firstCalledVariant.samples.equals(List(GenotypeState("sample1", "0/1"))))
+    assert(firstCalledVariant.samples.equals(List(GenotypeState("sample1", 1, 1, 0))))
   }
 
   sparkTest("sc.loadGenotypes should gracefully exit when a non-existing file path is passed in.") {
     val fakeFilePath = "fake/file/path.vcf"
     try {
-      sc.loadGenotypes(fakeFilePath)
+      sc.loadGenotypes(fakeFilePath, "fakeDataset", "ADDITIVE")
       fail("sc.loadGenotypes does not fail on a fake file path.")
     } catch {
       case e: java.lang.IllegalArgumentException =>
     }
-  }
-
-  ignore("sc.loadGenotypes should have no overlapping values in the `uniqueID` field.") {
-
   }
 
   ignore("sc.loadGenotypes should be able to take in ADAM formatted parquet files with genotype states.") {
@@ -163,13 +159,13 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   sparkTest("sc.loadPhenotypes should produce a scala `Map[String, Phenotype]`.") {
     val path = testFile("first5samples5phenotypes2covars.txt")
-    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno2", "pheno3")), covarDelimiter = "\t")
+    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno2", "pheno3")), covarDelimiter = "\t").phenotypes.value
     assert(pheno.isInstanceOf[Map[String, Phenotype]], "sc.loadPhenotypes does not produce a `Map[String, Phenotype]`")
   }
 
   sparkTest("sc.loadPhenotypes should properly load in covariates.") {
     val path = testFile("first5samples5phenotypes2covars.txt")
-    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno4", "pheno5")), covarDelimiter = "\t")
+    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t", Option(path), Option(List("pheno4", "pheno5")), covarDelimiter = "\t").phenotypes.value
     assert(pheno("sample1").covariates == List(0.8404, 2.9080), "sc.loadPhenotypes does not load in proper covariates: sample1")
     assert(pheno("sample2").covariates == List(-0.8880, 0.8252), "sc.loadPhenotypes does not load in proper covariates: sample2")
     assert(pheno("sample3").covariates == List(0.1001, 1.3790), "sc.loadPhenotypes does not load in proper covariates: sample3")
@@ -179,7 +175,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   sparkTest("sc.loadPhenotypes should create empty lists in the covariate field of the Phenotype objects if there are no covariates.") {
     val path = testFile("first5samples5phenotypes2covars.txt")
-    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t")
+    val pheno = sc.loadPhenotypes(path, "SampleID", "pheno1", "\t").phenotypes.value
     assert(pheno("sample1").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample1")
     assert(pheno("sample2").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample2")
     assert(pheno("sample3").covariates == List(), "sc.loadPhenotypes does not load in proper covariates: sample3")
@@ -196,7 +192,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   private def makeCalledVariant(uid: Int, sampleIds: List[String], genotypeStates: List[String]): CalledVariant = {
     val samples = sampleIds.zip(genotypeStates).map(idGs => makeGenotypeState(idGs._1, idGs._2))
-    CalledVariant(1, 1234, uid.toString(), "A", "G", samples)
+    CalledVariant(uid.toString(), 1, 1234, "A", "G", samples)
   }
 
   private def makeCalledVariantDS(variants: List[CalledVariant]): Dataset[CalledVariant] = {
@@ -229,6 +225,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     val toFilterDS = makeCalledVariantDS(filterVariants)
     val filteredSamples = sc.filterSamples(toFilterDS, .3, 2)
 
+    // construct the target dataset that should be result of filtering `filterVariants` dataset
     val targetFilteredSamples = List("sample3", "sample4")
     val targetvariant1Genotypes = List("./.", "1/1")
     val targetvariant2Genotypes = List("1/1", "1/1")
@@ -243,6 +240,8 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
     val targetcalledVariantsDS = makeCalledVariantDS(List(targetvariant1CalledVariant, targetvariant2CalledVariant,
       targetvariant3CalledVariant, targetvariant4CalledVariant, targetvariant5CalledVariant))
+
+    // Assert that the filtered dataset equals what we expect.
     assert(filteredSamples.collect.forall(targetcalledVariantsDS.collect().contains(_)), "Filtered dataset did not match expected dataset.")
   }
 
@@ -347,10 +346,6 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     } catch {
       case e: java.lang.IllegalArgumentException =>
     }
-  }
-
-  ignore("sc.filterVariants should maf correct") {
-
   }
 
   ignore("sc.filterVariants should work correctly when an entire row is missing") {
@@ -526,7 +521,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // phenotype missing tests
 
-  ignore("sc.loadPhenotypes should filter out phenotypes coded as -9 by default.") {
+  ignore("sc.loadPhenotypes should filter out phenotypes coded as `NA` by default.") {
 
   }
 

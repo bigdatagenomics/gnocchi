@@ -19,9 +19,9 @@ package org.bdgenomics.gnocchi.primitives.variants
 
 import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
 
-case class CalledVariant(chromosome: Int,
+case class CalledVariant(uniqueID: String,
+                         chromosome: Int,
                          position: Int,
-                         uniqueID: String,
                          referenceAllele: String,
                          alternateAllele: String,
                          samples: List[GenotypeState]) extends Product {
@@ -35,7 +35,7 @@ case class CalledVariant(chromosome: Int,
     val missingCount = samples.map(_.misses.toInt).sum
     val alleleCount = samples.map(_.alts.toInt).sum
 
-    // assert(sampleValues.length > missingCount, s"Variant, ${uniqueID}, has entirely missing row. Fix by filtering variants with geno = 1.0")
+    assert(samples.length * ploidy > missingCount, s"Variant, ${uniqueID}, has entirely missing row.")
 
     if (samples.length * ploidy > missingCount) {
       alleleCount.toDouble / (samples.length * ploidy - missingCount).toDouble

@@ -17,6 +17,7 @@
  */
 package org.bdgenomics.gnocchi.algorithms.siteregression
 
+import breeze.linalg.{ DenseMatrix, DenseVector }
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.Dataset
 import org.bdgenomics.gnocchi.models.variant.VariantModel
@@ -29,20 +30,67 @@ import scala.collection.immutable.Map
 
 trait SiteRegression[VM <: VariantModel[VM], A <: Association] extends Serializable with Logging {
 
-  val regressionName: String
+  //  val regressionName: String
 
-  def apply(genotypes: Dataset[CalledVariant],
-            phenotypes: Broadcast[Map[String, Phenotype]],
-            allelicAssumption: String = "ADDITIVE",
-            validationStringency: String = "STRICT"): Dataset[VM]
+  //  def apply(genotypes: Dataset[CalledVariant],
+  //            phenotypes: Broadcast[Map[String, Phenotype]],
+  //            allelicAssumption: String = "ADDITIVE",
+  //            validationStringency: String = "STRICT"): Dataset[VM]
+  //
+  //  def applyToSite(phenotypes: Map[String, Phenotype],
+  //                  genotypes: CalledVariant,
+  //                  allelicAssumption: String): A
 
-  def applyToSite(phenotypes: Map[String, Phenotype],
-                  genotypes: CalledVariant,
-                  allelicAssumption: String): A
+  //  def constructVM(variant: CalledVariant,
+  //                  phenotype: Phenotype,
+  //                  association: A,
+  //                  allelicAssumption: String): VM
 
-  def constructVM(variant: CalledVariant,
-                  phenotype: Phenotype,
-                  association: A,
-                  allelicAssumption: String): VM
+  /**
+   * Data preparation function that converts the gnocchi models into breeze linear algebra primitives BLAS/LAPACK
+   * optimizations.
+   *
+   * @todo Move the allelic assumption [[String]] to
+   *       [[org.bdgenomics.gnocchi.utils.AllelicAssumption.AllelicAssumption]] type.
+   *
+   * @param phenotypes [[Phenotype]]s map that contains the labels (primary phenotype) and part of the design matrix
+   *                  (covariates)
+   * @param genotypes [[CalledVariant]] object to convert into a breeze design matrix
+   * @param allelicAssumption [[String]] that denotes what allelic assumption of ADDITIVE / DOMINANT
+   *                         / RECESSIVE to use for the data preparation
+   * @return tuple where first element is the [[DenseMatrix]] design matrix and second element
+   *         is [[DenseVector]] of labels
+   */
+  def prepareDesignMatrix(genotypes: CalledVariant,
+                          phenotypes: Map[String, Phenotype],
+                          allelicAssumption: String): (DenseMatrix[Double], DenseVector[Double]) = {
+
+    val validGenos = genotypes.samples.filter(genotypeState => genotypeState.misses == 0 && phenotypes.contains(genotypeState.sampleID))
+
+    val samplesGenotypes = allelicAssumption.toUpperCase match {
+      case "ADDITIVE"  => validGenos.map(genotypeState => (genotypeState.sampleID, genotypeState.additive))
+      case "DOMINANT"  => validGenos.map(genotypeState => (genotypeState.sampleID, genotypeState.dominant))
+      case "RECESSIVE" => validGenos.map(genotypeState => (genotypeState.sampleID, genotypeState.recessive))
+    }
+
+    val (primitiveX, primitiveY) = samplesGenotypes.flatMap({
+      case (sampleID, genotype) if phenotypes.contains(sampleID) => {
+        Some(1.0 +: genotype +: phenotypes(sampleID).covariates.toArray, phenotypes(sampleID).phenotype)
+      }
+      case _ => None
+    }).toArray.unzip
+
+    if (primitiveX.length == 0) {
+      // TODO: Determine what to do when the design matrix is empty (i.e. no overlap btwn geno and pheno sampleIDs, etc.)
+      throw new IllegalArgumentException("No overlap between phenotype and genotype state sample IDs.")
+    }
+
+    // NOTE: This may cause problems in the future depending on JVM max varargs, use one of these instead if it breaks:
+    // val x = new DenseMatrix(x(0).length, x.length, x.flatten).t
+    // val x = new DenseMatrix(x.length, x(0).length, x.flatten, 0, x(0).length, isTranspose = true)
+    // val x = new DenseMatrix(x :_*)
+
+    (new DenseMatrix(primitiveX.length, primitiveX(0).length, primitiveX.transpose.flatten), new DenseVector(primitiveY))
+  }
 }
 

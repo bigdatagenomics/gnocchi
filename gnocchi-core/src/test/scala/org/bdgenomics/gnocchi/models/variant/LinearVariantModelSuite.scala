@@ -17,133 +17,167 @@
  */
 package org.bdgenomics.gnocchi.models.variant
 
-import org.bdgenomics.gnocchi.GnocchiFunSuite
 import org.bdgenomics.gnocchi.primitives.association.LinearAssociation
+import org.bdgenomics.gnocchi.primitives.genotype.GenotypeState
+import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
+import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
+import org.bdgenomics.gnocchi.utils.GnocchiFunSuite
 import org.scalactic.Tolerance._
 
 class LinearVariantModelSuite extends GnocchiFunSuite {
 
-  sparkTest("Test constructUpdatedVariantModel works") {
-    val assoc = LinearAssociation(ssDeviations = 0.5,
-      ssResiduals = 0.5,
-      geneticParameterStandardError = 0.5,
-      tStatistic = 0.5,
-      residualDegreesOfFreedom = 2,
-      pValue = 0.5,
-      weights = List(0.5, 0.5),
-      numSamples = 10)
+  sparkTest("LinearVariantModel.createAssociation[Additive] should correctly construct and association.") {
+    val variant = CalledVariant("rs8330247", 14, 21373362, "C", "T",
+      List(
+        GenotypeState("7677", 1, 1, 0),
+        GenotypeState("5218", 2, 0, 0),
+        GenotypeState("1939", 0, 2, 0),
+        GenotypeState("5695", 1, 1, 0),
+        GenotypeState("4626", 2, 0, 0),
+        GenotypeState("1933", 1, 1, 0),
+        GenotypeState("1076", 2, 0, 0),
+        GenotypeState("1534", 0, 2, 0),
+        GenotypeState("1615", 2, 0, 0)))
 
-    val variantModel = LinearVariantModel("rs123456", assoc, "", 1, 1, "A", "C", "")
+    val phenotypes =
+      Map(
+        "1939" -> Phenotype("1939", "pheno_1", 51.75673646004061, List()),
+        "2792" -> Phenotype("2792", "pheno_1", 62.22934974654722, List()),
+        "1534" -> Phenotype("1534", "pheno_1", 51.568591214841405, List()),
+        "5218" -> Phenotype("5218", "pheno_1", 51.57128192897128, List()),
+        "4626" -> Phenotype("4626", "pheno_1", 71.50143228329485, List()),
+        "1933" -> Phenotype("1933", "pheno_1", 61.24800827007204, List()),
+        "5695" -> Phenotype("5695", "pheno_1", 56.08340448063026, List()),
+        "1076" -> Phenotype("1076", "pheno_1", 63.756223063707154, List()),
+        "1615" -> Phenotype("1615", "pheno_1", 69.45757502327798, List()),
+        "7677" -> Phenotype("7677", "pheno_1", 60.18207070928484, List()))
 
-    val newVariantModel = variantModel.constructUpdatedVariantModel("rs234567",
-      0.1,
-      0.2,
-      0.3,
-      0.4,
-      100,
-      0.6,
-      List(0.7, 0.8),
-      500)
+    val model1 = LinearVariantModel("rs8330247",
+      14,
+      21373362,
+      "C",
+      "T",
+      9,
+      2,
+      Array(9.0, 7.0, 7.0, 11.0),
+      Array(537.1253234341203, 384.1641388097512),
+      7,
+      List(64.3845917221413, -6.0480002950216205))
 
-    // Assert that all values in the LinearVariantModel object match expected
-    // The following values should be updated given the new parameters
-    assert(newVariantModel.uniqueID === "rs234567")
-    assert(newVariantModel.association.ssDeviations === 0.1)
-    assert(newVariantModel.association.ssResiduals === 0.2)
-    assert(newVariantModel.association.geneticParameterStandardError === 0.3)
-    assert(newVariantModel.association.tStatistic === 0.4)
-    assert(newVariantModel.association.residualDegreesOfFreedom === 100)
-    assert(newVariantModel.association.pValue === 0.6)
-    assert(newVariantModel.association.weights === List(0.7, 0.8))
-    assert(newVariantModel.association.numSamples === 500)
+    val correctAssoc = LinearAssociation("rs8330247",
+      14,
+      21373362,
+      9,
+      0.0514786205327481,
+      2.5793052054973695,
+      258.7205966763378,
+      -2.3448176207031612)
 
-    // The following values should match the original ones
-    assert(newVariantModel.phenotype === "")
-    assert(newVariantModel.chromosome === 1)
-    assert(newVariantModel.position === 1)
-    assert(newVariantModel.referenceAllele === "A")
-    assert(newVariantModel.alternateAllele === "C")
-    assert(newVariantModel.allelicAssumption === "")
+    val returnedAssoc = model1.createAssociation(variant, phenotypes, "ADDITIVE")
+
+    assert(correctAssoc == returnedAssoc, "Incorrect association!")
   }
 
-  sparkTest("Test constructUpdatedVariantModel with association parameter works") {
-    val assoc = LinearAssociation(ssDeviations = 0.5,
-      ssResiduals = 0.5,
-      geneticParameterStandardError = 0.5,
-      tStatistic = 0.5,
-      residualDegreesOfFreedom = 2,
-      pValue = 0.5,
-      weights = List(0.5, 0.5),
-      numSamples = 10)
+  sparkTest("LinearVariantModel.createAssociation[Dominant] should correctly construct an association.") {
+    val variant = CalledVariant("rs8330247", 14, 21373362, "C", "T",
+      List(
+        GenotypeState("7677", 1, 1, 0),
+        GenotypeState("5218", 2, 0, 0),
+        GenotypeState("1939", 0, 2, 0),
+        GenotypeState("5695", 1, 1, 0),
+        GenotypeState("4626", 2, 0, 0),
+        GenotypeState("1933", 1, 1, 0),
+        GenotypeState("1076", 2, 0, 0),
+        GenotypeState("1534", 0, 2, 0),
+        GenotypeState("1615", 2, 0, 0)))
 
-    val variantModel = LinearVariantModel("rs123456", assoc, "", 1, 1, "A", "C", "")
+    val phenotypes =
+      Map(
+        "1939" -> Phenotype("1939", "pheno_1", 51.75673646004061, List()),
+        "2792" -> Phenotype("2792", "pheno_1", 62.22934974654722, List()),
+        "1534" -> Phenotype("1534", "pheno_1", 51.568591214841405, List()),
+        "5218" -> Phenotype("5218", "pheno_1", 51.57128192897128, List()),
+        "4626" -> Phenotype("4626", "pheno_1", 71.50143228329485, List()),
+        "1933" -> Phenotype("1933", "pheno_1", 61.24800827007204, List()),
+        "5695" -> Phenotype("5695", "pheno_1", 56.08340448063026, List()),
+        "1076" -> Phenotype("1076", "pheno_1", 63.756223063707154, List()),
+        "1615" -> Phenotype("1615", "pheno_1", 69.45757502327798, List()),
+        "7677" -> Phenotype("7677", "pheno_1", 60.18207070928484, List()))
 
-    val newAssoc = LinearAssociation(ssDeviations = 0.1,
-      ssResiduals = 0.2,
-      geneticParameterStandardError = 0.3,
-      tStatistic = 0.4,
-      residualDegreesOfFreedom = 100,
-      pValue = 0.6,
-      weights = List(0.7, 0.8),
-      numSamples = 500)
+    val model1 = LinearVariantModel("rs8330247",
+      14,
+      21373362,
+      "C",
+      "T",
+      9,
+      2,
+      Array(9.0, 5.0, 5.0, 5.0),
+      Array(537.1253234341203, 280.83881113486916),
+      7,
+      List(64.07162807481279, -7.9038658478389605))
 
-    val newVariantModel = variantModel.constructUpdatedVariantModel("rs234567", newAssoc)
+    val correctAssoc = LinearAssociation("rs8330247",
+      14,
+      21373362,
+      9,
+      0.12646717194634544,
+      4.557551693699017,
+      323.1087601892698,
+      -1.7342350408809069)
 
-    // Assert that all values in the LinearVariantModel object match expected
-    // The following values should be updated given the new parameters
-    assert(newVariantModel.uniqueID === "rs234567")
-    assert(newVariantModel.association.ssDeviations === 0.1)
-    assert(newVariantModel.association.ssResiduals === 0.2)
-    assert(newVariantModel.association.geneticParameterStandardError === 0.3)
-    assert(newVariantModel.association.tStatistic === 0.4)
-    assert(newVariantModel.association.residualDegreesOfFreedom === 100)
-    assert(newVariantModel.association.pValue === 0.6)
-    assert(newVariantModel.association.weights === List(0.7, 0.8))
-    assert(newVariantModel.association.numSamples === 500)
+    val returnedAssoc = model1.createAssociation(variant, phenotypes, "DOMINANT")
 
-    // The following values should match the original ones
-    assert(newVariantModel.phenotype === "")
-    assert(newVariantModel.chromosome === 1)
-    assert(newVariantModel.position === 1)
-    assert(newVariantModel.referenceAllele === "A")
-    assert(newVariantModel.alternateAllele === "C")
-    assert(newVariantModel.allelicAssumption === "")
+    assert(correctAssoc == returnedAssoc, "Incorrect association!")
   }
 
-  sparkTest("Test LinearVariantModel.mergeWith works") {
-    val firstAssoc = LinearAssociation(ssDeviations = 0.5,
-      ssResiduals = 0.5,
-      geneticParameterStandardError = 0.5,
-      tStatistic = 0.5,
-      residualDegreesOfFreedom = 2,
-      pValue = 0.5,
-      weights = List(0.5, 0.5),
-      numSamples = 10)
+  sparkTest("LinearVariantModel.mergeWith correctly merges together two LinearVariantModels") {
+    val model1 = LinearVariantModel("rs1085962",
+      17,
+      145908437,
+      "G",
+      "A",
+      96,
+      4,
+      Array(96.0, 105.0, 3307.425151547912, 2395.4060317079206, 105.0, 163.0, 3592.261274997086, 2611.324498197782, 3307.425151547912, 3592.261274997086, 116417.75823673896, 82347.61698038159, 2395.4060317079206, 2611.324498197782, 82347.61698038159, 62444.74412145208),
+      Array(5797.654008575947, 6300.23670069193, 199946.87776767055, 145067.2821012401),
+      92,
+      List(54.43723939165843, -0.7775917571858606, 0.0859282586467727, 0.1540969976355187))
 
-    val firstVariantModel = LinearVariantModel("rs123456", firstAssoc, "", 1, 1, "A", "C", "")
+    val model2 = LinearVariantModel("rs1085962",
+      17,
+      145908437,
+      "G",
+      "A",
+      94,
+      4,
+      Array(94.0, 110.0, 3271.4475914762697, 2302.674589586702, 110.0, 174.0, 3842.5031357490566, 2780.151112084831, 3271.4475914762697, 3842.5031357490566, 115884.84629517219, 80189.97753758742, 2302.674589586702, 2780.151112084831, 80189.97753758742, 58587.956330169975),
+      Array(5617.461892639065, 6558.44291966915, 194976.5580018678, 137567.54574942816),
+      90,
+      List(69.07776644363027, -0.24898087761360677, -0.2572711819891003, -0.0029578942161391356))
 
-    val secondAssoc = LinearAssociation(ssDeviations = 0.2,
-      ssResiduals = 0.3,
-      geneticParameterStandardError = 0.4,
-      tStatistic = 0.6,
-      residualDegreesOfFreedom = 1,
-      pValue = 0.6,
-      weights = List(0.7, 0.8),
-      numSamples = 10)
+    val mergedByHand = LinearVariantModel("rs1085962",
+      17,
+      145908437,
+      "G",
+      "A",
+      190,
+      4,
+      Array(190.0, 215.0, 6578.872743024182, 4698.080621294623, 215.0, 337.0, 7434.764410746142, 5391.475610282612, 6578.872743024182, 7434.764410746142, 232302.60453191114, 162537.594517969, 4698.080621294623, 5391.475610282612, 162537.594517969, 121032.70045162205),
+      Array(11415.115901215013, 12858.67962036108, 394923.43576953834, 282634.8278506682),
+      186,
+      List(61.258606850236056, -0.7001667498483775, -0.07267615668330284, 0.08612956434272387))
 
-    val secondVariantModel = LinearVariantModel("rs123456", secondAssoc, "", 1, 1, "A", "C", "")
-
-    // Merge firstVariantModel with secondVariantModel
-    val mergedVariantModel = firstVariantModel.mergeWith(secondVariantModel)
-
-    assert(mergedVariantModel.association.numSamples === 20)
-    assert(mergedVariantModel.association.weights === List(0.6, 0.65))
-    assert(mergedVariantModel.association.ssDeviations === 0.7)
-    assert(mergedVariantModel.association.ssResiduals === 0.8)
-    assert(mergedVariantModel.association.geneticParameterStandardError === 0.2519 +- 0.0001)
-    assert(mergedVariantModel.association.residualDegreesOfFreedom === 12)
-    assert(mergedVariantModel.association.tStatistic === 2.5796 +- 0.0001)
-    assert(mergedVariantModel.association.pValue === 0.0241 +- 0.0001)
+    val mergedTest = model1.mergeWith(model2)
+    assert(mergedByHand.uniqueID == mergedTest.uniqueID, "Merging variant model is incorrect for uniqueID")
+    assert(mergedByHand.chromosome == mergedTest.chromosome, "Merging variant model is incorrect for chromosome")
+    assert(mergedByHand.position == mergedTest.position, "Merging variant model is incorrect for position")
+    assert(mergedByHand.referenceAllele == mergedTest.referenceAllele, "Merging variant model is incorrect for referenceAllele")
+    assert(mergedByHand.alternateAllele == mergedTest.alternateAllele, "Merging variant model is incorrect for alternateAllele")
+    assert(mergedByHand.numSamples == mergedTest.numSamples, "Merging variant model is incorrect for numSamples")
+    assert(mergedByHand.numPredictors == mergedTest.numPredictors, "Merging variant model is incorrect for numPredictors")
+    assert(mergedByHand.xTx.toList == mergedTest.xTx.toList, "Merging variant model is incorrect for xTx")
+    assert(mergedByHand.xTy.toList == mergedTest.xTy.toList, "Merging variant model is incorrect for xTy")
+    assert(mergedByHand.residualDegreesOfFreedom == mergedTest.residualDegreesOfFreedom, "Merging variant model is incorrect for residualDegreesOfFreedom")
+    assert(mergedByHand.weights == mergedTest.weights, "Merging variant model is incorrect for weights")
   }
-
 }

@@ -10,7 +10,8 @@
 
   <artifactId>gnocchi-assembly_2.11</artifactId>
   <packaging>jar</packaging>
-  <name>Gnocchi_${scala.version.prefix}: Assembly</name>
+  <name>gnocchi_${scala.version.prefix}: Assembly</name>
+
   <properties>
     <timestamp>${maven.build.timestamp}</timestamp>
     <maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>
@@ -44,7 +45,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <configuration>
-          <createDependencyReducedPom>false</createDependencyReducedPom>
           <filters>
             <filter>
               <artifact>*:*</artifact>
@@ -118,7 +118,7 @@
     </dependency>
     <dependency>
       <groupId>org.bdgenomics.gnocchi</groupId>
-      <artifactId>gnocchi-apis.10</artifactId>
+      <artifactId>gnocchi-apis_2.11</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

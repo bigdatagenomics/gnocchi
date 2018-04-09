@@ -55,17 +55,17 @@ GNOCCHI_CLI_JAR=
 if [ -d "$SCRIPT_DIR/repo" ]; then
   ASSEMBLY_DIR="$SCRIPT_DIR/repo"
 else
-  ASSEMBLY_DIR="$SCRIPT_DIR/gnocchi-cli/target"
+  ASSEMBLY_DIR="$SCRIPT_DIR/gnocchi-assembly/target"
 fi
 
-num_jars="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi-cli_[0-9A-Za-z\.-]*\.jar$" | grep -v javadoc | grep -v sources | wc -l)"
+num_jars="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi-assembly_[0-9A-Za-z\.-]*\.jar$" | grep -v javadoc | grep -v sources | wc -l)"
 if [ "$num_jars" -eq "0" ]; then
   echo "Failed to find GNOCCHI assembly in $ASSEMBLY_DIR." 1>&2
   echo "You need to build GNOCCHI before running this program." 1>&2
   exit 1
 fi
 
-ASSEMBLY_JARS="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi-cli_[0-9A-Za-z\.-]*\.jar$" | grep -v javadoc | grep -v sources || true)"
+ASSEMBLY_JARS="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi-assembly_[0-9A-Za-z\.-]*\.jar$" | grep -v javadoc | grep -v sources || true)"
 if [ "$num_jars" -gt "1" ]; then
   echo "Found multiple GNOCCHI cli assembly jars in $ASSEMBLY_DIR:" 1>&2
   echo "$ASSEMBLY_JARS" 1>&2

@@ -22,7 +22,7 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.Dataset
 import org.bdgenomics.gnocchi.primitives.phenotype.Phenotype
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
-import org.bdgenomics.gnocchi.sql.GnocchiSession
+import org.bdgenomics.gnocchi.sql.{ GenotypeDataset, GnocchiSession, PhenotypesContainer }
 
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConverters._
@@ -98,8 +98,8 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
    * @param genotypesPath A string specifying the location in the file system of the genotypes file to load in.
    * @return a [[Dataset]] of [[CalledVariant]] objects loaded from a vcf file
    */
-  def loadGenotypes(genotypesPath: java.lang.String): Dataset[CalledVariant] = {
-    gs.loadGenotypes(genotypesPath)
+  def loadGenotypes(genotypesPath: java.lang.String, datasetUID: java.lang.String, allelicAssumption: java.lang.String): GenotypeDataset = {
+    gs.loadGenotypes(genotypesPath, datasetUID, allelicAssumption)
   }
 
   /**
@@ -127,7 +127,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
                      covarPath: java.lang.String,
                      covarNames: java.util.ArrayList[java.lang.String],
                      covarDelimiter: java.lang.String = "\t",
-                     missing: java.util.ArrayList[java.lang.String] = new java.util.ArrayList[String](List("-9").asJava)): Map[java.lang.String, Phenotype] = {
+                     missing: java.util.ArrayList[java.lang.String] = new java.util.ArrayList[String](List("-9").asJava)): PhenotypesContainer = {
 
     // Convert python compatible nullable types to scala options                   
     val covarPathOption = if (covarPath == null) {

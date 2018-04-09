@@ -17,7 +17,7 @@
  */
 package org.bdgenomics.gnocchi.primitives.phenotype
 
-import org.bdgenomics.gnocchi.GnocchiFunSuite
+import org.bdgenomics.gnocchi.utils.GnocchiFunSuite
 
 class PhenotypeSuite extends GnocchiFunSuite {
   // toList tests

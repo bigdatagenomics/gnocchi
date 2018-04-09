@@ -65,7 +65,7 @@ GNOCCHI_CLI_JAR=
 if [ -d "$INSTALL_DIR/repo" ]; then
   ASSEMBLY_DIR="$INSTALL_DIR/repo"
 else
-  ASSEMBLY_DIR="$INSTALL_DIR/gnocchi-cli/target"
+  ASSEMBLY_DIR="$INSTALL_DIR/gnocchi-assembly/target"
 fi
 
 num_jars="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi[0-9A-Za-z\.\_\-]*\.jar$" | grep -v javadoc | grep -v sources | wc -l)"

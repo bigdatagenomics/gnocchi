@@ -9,9 +9,9 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>gnocchi-apis.10</artifactId>
+  <artifactId>gnocchi-apis_2.11</artifactId>
   <packaging>jar</packaging>
-  <name>gnocchi-apis: Alterate language APIs</name>
+  <name>gnocchi_${scala.version.prefix}: Alterate language APIs</name>
 
   <build>
     <plugins>
