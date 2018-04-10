@@ -69,6 +69,15 @@ mvn -U \
 # make verbose again
 set -x -v
 
+# if those pass, build the distribution package
+mvn -U \
+    -P assembly \
+    package \
+    -DskipTests \
+    -Dhadoop.version=${HADOOP_VERSION} \
+    -Dspark.version=${SPARK_VERSION} \
+    -DargLine=${GNOCCHI_MVN_TMP_DIR}
+
 # we are done with maven, so clean up the maven temp dir
 find ${GNOCCHI_MVN_TMP_DIR}
 rm -rf ${GNOCCHI_MVN_TMP_DIR}
