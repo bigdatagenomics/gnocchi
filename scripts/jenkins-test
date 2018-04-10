@@ -89,26 +89,22 @@ then
 fi
 
 # make a temp directory
-Gnocchi_TMP_DIR=$(mktemp -d -t gnocchiTestXXXXXXX)
+GNOCCHI_TMP_DIR=$(mktemp -d -t gnocchiTestXXXXXXX)
 
-Gnocchi_TMP_DIR=$Gnocchi_TMP_DIR/deleteMePleaseThisIsNoLongerNeeded
-mkdir $Gnocchi_TMP_DIR
+# Just to be paranoid.. use a directory internal to the ADAM_TMP_DIR
+GNOCCHI_TMP_DIR=$GNOCCHI_TMP_DIR/deleteMePleaseThisIsNoLongerNeeded
+mkdir $GNOCCHI_TMP_DIR
 
 # set the TMPDIR envar, which is used by python to choose where to make temp directories
-export TMPDIR=${Gnocchi_TMP_DIR}
+export TMPDIR=${GNOCCHI_TMP_DIR}
 
 pushd $PROJECT_ROOT
 
 # Copy the jar into our temp space for testing
-cp -r . $Gnocchi_TMP_DIR
+cp -r . $GNOCCHI_TMP_DIR
 popd
 
-pushd $Gnocchi_TMP_DIR
-
-# create a conda environment for python build, if necessary
-uuid=$(uuidgen)
-conda create -q -n gnocchi-build-${uuid} python=2.7 anaconda
-source activate gnocchi-build-${uuid}
+pushd $GNOCCHI_TMP_DIR
 
 # what hadoop version are we on? format string for downloading spark assembly
 if [[ $HADOOP_VERSION =~ ^2\.6 ]]; then
@@ -124,18 +120,28 @@ fi
 SPARK=spark-${SPARK_VERSION}
 
 # download prepackaged spark assembly
-wget -q http://d3kbcqa49mib13.cloudfront.net/${SPARK}-bin-${HADOOP}.tgz
+curl \
+    -L "https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=spark/${SPARK}/${SPARK}-bin-${HADOOP}.tgz" \
+    -o ${SPARK}-bin-${HADOOP}.tgz
+
 tar xzvf ${SPARK}-bin-${HADOOP}.tgz
-export SPARK_HOME=${Gnocchi_TMP_DIR}/${SPARK}-bin-${HADOOP}
+export SPARK_HOME=${GNOCCHI_TMP_DIR}/${SPARK}-bin-${HADOOP}
 
 # add pyspark to the python path
 PY4J_ZIP="$(ls -1 "${SPARK_HOME}/python/lib" | grep py4j)"
 export PYTHONPATH=${SPARK_HOME}/python:${SPARK_HOME}/python/lib/${PY4J_ZIP}:${PYTHONPATH}
 
 # put gnocchi jar on the pyspark path
-ASSEMBLY_DIR="${Gnocchi_TMP_DIR}/gnocchi-assembly/target"
+ASSEMBLY_DIR="${GNOCCHI_TMP_DIR}/gnocchi-assembly/target"
 ASSEMBLY_JAR="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi[0-9A-Za-z\_\.-]*\.jar$" | grep -v javadoc | grep -v sources || true)"
+
 export PYSPARK_SUBMIT_ARGS="--jars ${ASSEMBLY_DIR}/${ASSEMBLY_JAR} --driver-class-path ${ASSEMBLY_DIR}/${ASSEMBLY_JAR} pyspark-shell"
+echo "Printing PYSPARK_SUBMIT_ARGS: \n\n ${PYSPARK_SUBMIT_ARGS} \n\n"
+
+# create a conda environment for python build, if necessary
+uuid=$(uuidgen)
+conda create -q -n gnocchi-build-${uuid} python=2.7 anaconda
+source activate gnocchi-build-${uuid}
 
 # prepare python
 pushd gnocchi-python
