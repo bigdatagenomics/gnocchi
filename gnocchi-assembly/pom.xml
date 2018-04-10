@@ -111,11 +111,8 @@
     </plugins>
   </build>
   <dependencies>
-    <dependency>
-      <groupId>org.bdgenomics.gnocchi</groupId>
-      <artifactId>gnocchi-cli_2.11</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+    <!-- Note: asssembly actually should have core, cli, and apis as dependencies but because
+    apis actually pulls in core and cli to its shaded jar we only need to depend on apis here. -->
     <dependency>
       <groupId>org.bdgenomics.gnocchi</groupId>
       <artifactId>gnocchi-apis_2.11</artifactId>

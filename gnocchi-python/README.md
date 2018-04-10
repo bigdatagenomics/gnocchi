@@ -5,6 +5,19 @@ Python based Statistical associations using the ADAM genomics analysis platform 
 PyGnocchi exposes the core functionality of Gnocchi to users through a Python interface. Included is a guide on how to install and get started using PyGnocchi (both in shell and Jupyter Notebook) as well a detailed explanation of the available functions and how to use them.
 
 ## Installation and Usage
+To place the gnocchi jars on the pyspark submit path run the following:
+
+```bash
+# add pyspark to the python path
+PY4J_ZIP="$(ls -1 "${SPARK_HOME}/python/lib" | grep py4j)"
+export PYTHONPATH=${SPARK_HOME}/python:${SPARK_HOME}/python/lib/${PY4J_ZIP}:${PYTHONPATH}
+
+# put gnocchi jar on the pyspark path
+ASSEMBLY_DIR="${GNOCCHI_HOME}/gnocchi-assembly/target"
+ASSEMBLY_JAR="$(ls -1 "$ASSEMBLY_DIR" | grep "^gnocchi[0-9A-Za-z\.\_-]*\.jar$" | grep -v -e javadoc -e sources || true)"
+export PYSPARK_SUBMIT_ARGS="--jars ${ASSEMBLY_DIR}/${ASSEMBLY_JAR} --driver-class-path ${ASSEMBLY_DIR}/${ASSEMBLY_JAR} pyspark-shell"
+```
+
 
 To build and test, enable the `python` profile:
 

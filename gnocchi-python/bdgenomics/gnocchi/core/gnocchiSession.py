@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from bdgenomics.gnocchi.utils.primitives import CalledVariantDataset, PhenotypeMap
+from bdgenomics.gnocchi.utils.primitives import GenotypeDataset, PhenotypesContainer
 from py4j.java_collections import ListConverter
 
 class GnocchiSession(object):
@@ -37,41 +37,41 @@ class GnocchiSession(object):
 
     def filterSamples(self, genotypesDataset, mind, ploidy):
         """
-        Returns a filtered Dataset of CalledVariant objects, where all values
+        Returns a filtered GenotypeDataset, where all values
         with fewer samples than the mind threshold are filtered out.
-        :param bdgenomics.gnocchi.primitives.CalledVariantDataset genotypesDataset:
+        :param bdgenomics.gnocchi.primitives.GenotypeDataset genotypesDataset:
                the dataset of CalledVariant objects to filter on.
         :param float mind: the percentage threshold of samples to have filled in;
                values with fewer samples will be removed in this operation.
         :param float ploidy: the number of sets of chromosomes.
-        :return: a filtered Dataset of CalledVariant objects
-        :rtype: bdgenomics.gnocchi.primitives.CalledVariantDataset
+        :return: a filtered GenotypeDataset object
+        :rtype: bdgenomics.gnocchi.primitives.GenotypeDataset
         """
         dataset = self.__jgs.filterSamples(genotypesDataset.get(), float(mind), float(ploidy))
-        return CalledVariantDataset(dataset, self._sc)
+        return GenotypeDataset(dataset, self._sc)
 
 
     def filterVariants(self, genotypesDataset, geno, maf):
         """
-        Returns a filtered Dataset of CalledVariant objects, where all variants
+        Returns a filtered GenotypeDataset, where all variants
         with values less than the specified geno or maf threshold are filtered
         out.
-        :param bdgenomics.gnocchi.primitives.CalledVariantDataset genotypesDataset:
+        :param bdgenomics.gnocchi.primitives.GenotypeDataset genotypesDataset:
                the dataset of CalledVariant objects to filter on.
         :param float geno: the percentage threshold for geno values for each
                CalledVariant object.
         :param float maf: the percentage threshold for Minor Allele Frequency
                for each CalledVariant object.
-        :return: a filtered Dataset of CalledVariant objects
-        :rtype: bdgenomics.gnocchi.primitives.CalledVariantDataset
+        :return: a filtered GenotypeDataset object
+        :rtype: bdgenomics.gnocchi.primitives.GenotypeDataset
         """
         dataset = self.__jgs.filterVariants(genotypesDataset.get(), float(geno), float(maf))
-        return CalledVariantDataset(dataset, self._sc)
+        return GenotypeDataset(dataset, self._sc)
 
 
     def recodeMajorAllele(self, genotypesDataset):
         """
-        Returns a modified Dataset of CalledVariant objects, where any value
+        Returns a modified GenotypeDataset object, where any value
         with a maf > 0.5 is recoded. The recoding is specified as flipping the
         referenceAllele and alternateAllele when the frequency of alt is greater
         than that of ref.
@@ -81,19 +81,22 @@ class GnocchiSession(object):
         :rtype: bdgenomics.gnocchi.primitives.CalledVariantDataset
         """
         dataset = self.__jgs.recodeMajorAllele(genotypesDataset.get())
-        return CalledVariantDataset(dataset, self._sc)
+        return GenotypeDataset(dataset, self._sc)
 
 
-    def loadGenotypes(self, genotypesPath):
+    def loadGenotypes(self, genotypesPath, datasetUID = "", allelicAssumption = "ADDITIVE"):
         """
-        Loads a Dataset of CalledVariant objects from a file.
+        Loads a GenotypeDatatset object from a file.
         :param string genotypesPath: A string specifying the location in the
                file system of the genotypes file to load in.
-        :return: a Dataset of CalledVariant objects loaded from a vcf file
-        :rtype: bdgenomics.gnocchi.primitives.CalledVariantDataset
+        :param string datasetUID: the UID to attach to a dataset. If left blank an empty
+               string is used
+        :param string allelicAssumption: What allelic assumption to use for this dataset
+        :return: a GenotypeDataset object loaded from a vcf file
+        :rtype: bdgenomics.gnocchi.primitives.GenotypeDatatset
         """
-        dataset = self.__jgs.loadGenotypes(genotypesPath)
-        return CalledVariantDataset(dataset, self._sc)
+        dataset = self.__jgs.loadGenotypes(genotypesPath, datasetUID, allelicAssumption)
+        return GenotypeDataset(dataset, self._sc)
 
 
     def loadPhenotypes(self,
@@ -127,7 +130,7 @@ class GnocchiSession(object):
 
         missing = ListConverter().convert(missing, self._sc._gateway._gateway_client)
 
-        phenoMap = self.__jgs.loadPhenotypes(phenotypesPath,
+        phenoContainer = self.__jgs.loadPhenotypes(phenotypesPath,
                                              primaryID,
                                              phenoName,
                                              delimiter,
@@ -136,4 +139,4 @@ class GnocchiSession(object):
                                              covarDelimiter,
                                              missing)
 
-        return PhenotypeMap(phenoMap, self._sc, self.__jgs)
+        return PhenotypesContainer(phenoContainer, self._sc, self.__jgs)

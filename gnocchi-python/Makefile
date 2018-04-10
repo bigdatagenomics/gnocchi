@@ -46,7 +46,7 @@ python=python2.7
 pip=pip
 tests=bdgenomics
 extras=
-adam_version:=$(shell $(python) version.py)
+gnocchi_version:=$(shell $(python) version.py)
 sdist_name:=gnocchi-$(gnocchi_version).tar.gz
 current_commit:=$(shell git log --pretty=oneline -n 1 -- $(pwd) | cut -f1 -d " ")
 dirty:=$(shell (git diff --exit-code && git diff --cached --exit-code) > /dev/null || printf -- --DIRTY)

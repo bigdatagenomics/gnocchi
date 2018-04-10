@@ -26,5 +26,5 @@ setup(
     author='',
     author_email='',
     url="https://github.com/bdgenomics/gnocchi",
-    install_requires=[],
+    install_requires=['pyspark>=1.6.0'],
     packages=find_packages(exclude=['*.test.*']))

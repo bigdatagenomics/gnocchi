@@ -528,10 +528,8 @@
     <profile>
       <id>python</id>
       <modules>
-        <module>gnocchi-core</module>
         <module>gnocchi-apis</module>
         <module>gnocchi-python</module>
-        <module>gnocchi-cli</module>
         <module>gnocchi-assembly</module>
       </modules>
     </profile>

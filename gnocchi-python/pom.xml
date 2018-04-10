@@ -10,7 +10,7 @@
 
   <artifactId>gnocchi-python_2.11</artifactId>
   <packaging>jar</packaging>
-  <name>Gnocchi: Python APIs</name>
+  <name>gnocchi_${scala.version.prefix}: Python APIs</name>
   <properties>
     <timestamp>${maven.build.timestamp}</timestamp>
     <maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>

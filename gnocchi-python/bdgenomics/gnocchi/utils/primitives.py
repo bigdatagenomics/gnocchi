@@ -15,11 +15,11 @@
 # limitations under the License.
 
 
-class CalledVariantDataset(object):
+class GenotypeDataset(object):
 
     def __init__(self, jvmDS, sc):
         """
-        Constructs a Python CalledVariantDataset from a JVM Dataset[CalledVariant]
+        Constructs a Python CalledVariantDataset from a JVM GenotypeDataset
 
         :param jvmDS: Py4j handle to underlying JVM object.
         :param pyspark.context.SparkContext sc: Active Spark Context.
@@ -31,7 +31,7 @@ class CalledVariantDataset(object):
         """
         Access the inner Dataset object
         """
-        return self._jvmDS
+        return self._jvmDS.genotypes
 
 
 class LinearVariantModelDataset(object):
@@ -84,16 +84,16 @@ class Phenotype(object):
         self._jvmPhenotype = p
         self.sc = sc
 
-class PhenotypeMap(object):
+class PhenotypesContainer(object):
 
-    def __init__(self, jvmMap, sc, jgs):
+    def __init__(self, jvmPhenoContainer, sc, jgs):
         """
         Constructs a Python PhenotypeMap from a JVM Map[String, Phenotype]
 
         :param jvmMap: Py4j handle to underlying JVM object.
         :param pyspark.context.SparkContext sc: Active Spark Context.
         """
-        self._jvmMap = jvmMap
+        self._jvmPhenoContainer = jvmPhenoContainer
         self.sc = sc
         self._jgs = jgs
 
@@ -101,11 +101,11 @@ class PhenotypeMap(object):
         """
         Access the inner JVM Map object
         """
-        return self._jvmMap
+        return self._jvmPhenoContainer
 
     def getKey(self, k):
         """
         Get the Phenotype object corresponding to a specific phenotype name
         """
-        p = self._jgs.getPhenotypeByKey(self._jvmMap, k)
+        p = self._jgs.getPhenotypeByKey(self._jvmPhenoContainer, k)
         return Phenotype(p, self.sc)

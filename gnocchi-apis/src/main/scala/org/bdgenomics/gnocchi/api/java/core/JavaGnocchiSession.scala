@@ -57,7 +57,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
    * @return Returns an updated Dataset with values removed, as specified by the
    *         filtering
    */
-  def filterSamples(genotypes: Dataset[CalledVariant], mind: java.lang.Double, ploidy: java.lang.Double): Dataset[CalledVariant] = {
+  def filterSamples(genotypes: GenotypeDataset, mind: java.lang.Double, ploidy: java.lang.Double): GenotypeDataset = {
     gs.filterSamples(genotypes, mind, ploidy)
   }
 
@@ -74,7 +74,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
    * @return Returns an updated Dataset with values removed, as specified by the
    *         filtering
    */
-  def filterVariants(genotypes: Dataset[CalledVariant], geno: java.lang.Double, maf: java.lang.Double): Dataset[CalledVariant] = {
+  def filterVariants(genotypes: GenotypeDataset, geno: java.lang.Double, maf: java.lang.Double): GenotypeDataset = {
     gs.filterVariants(genotypes, geno, maf)
   }
 
@@ -87,7 +87,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
    *
    * @return Returns an updated Dataset that has been recoded
    */
-  def recodeMajorAllele(genotypes: Dataset[CalledVariant]): Dataset[CalledVariant] = {
+  def recodeMajorAllele(genotypes: GenotypeDataset): GenotypeDataset = {
     gs.recodeMajorAllele(genotypes)
   }
 
@@ -164,7 +164,7 @@ class JavaGnocchiSession(val gs: GnocchiSession) extends Serializable {
    *
    * @return The Phenotype corresponding to the input key
    */
-  def getPhenotypeByKey(phenotypeMap: Map[java.lang.String, Phenotype], key: java.lang.String): Phenotype = {
-    phenotypeMap(key)
+  def getPhenotypeByKey(phenotypeMap: PhenotypesContainer, key: java.lang.String): Phenotype = {
+    phenotypeMap.phenotypes.value(key)
   }
 }
