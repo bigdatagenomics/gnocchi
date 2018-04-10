@@ -31,7 +31,7 @@ class GenotypeDataset(object):
         """
         Access the inner Dataset object
         """
-        return self._jvmDS.genotypes
+        return self._jvmDS
 
 
 class LinearVariantModelDataset(object):

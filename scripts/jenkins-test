@@ -152,6 +152,11 @@ uuid=$(uuidgen)
 conda create -q -n gnocchi-build-${uuid} python=2.7 anaconda
 source activate gnocchi-build-${uuid}
 
+# create a conda environment for python build, if necessary
+uuid=$(uuidgen)
+conda create -q -n gnocchi-build-${uuid} python=2.7 anaconda
+source activate gnocchi-build-${uuid}
+
 # prepare python
 pushd gnocchi-python
 make prepare
