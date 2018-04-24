@@ -51,6 +51,9 @@ class TransformVariantsArgs extends Args4jBase {
 
   @Args4jOption(required = false, name = "-saveADAMParquet", usage = "Set flag to save the ADAM Formatted VariantContextRDD. Saves to OUTPUT/adam")
   var saveAdamParquet = false
+
+  @Args4jOption(required = false, name = "-variantContextParquet", usage = "Is the input ADAM Formatted VariantContextRDD?")
+  var variantContextParquet = false
 }
 
 class TransformVariants(protected val args: TransformVariantsArgs) extends BDGSparkCommand[TransformVariantsArgs] {
@@ -64,6 +67,8 @@ class TransformVariants(protected val args: TransformVariantsArgs) extends BDGSp
       val variantContextRDD = ac.loadVcf(args.inputPath)
       if (args.saveAdamParquet) { variantContextRDD.saveAsParquet(args.outputPath + "/adam") }
       sc.wrapAdamVariantContextRDD(variantContextRDD, args.datasetUID, args.allelicAssumption)
+    } else if (args.variantContextParquet) {
+      sc.loadAdamVariantContextRDD(args.inputPath, args.datasetUID, args.allelicAssumption)
     } else {
       sc.loadGenotypes(args.inputPath, args.datasetUID, args.allelicAssumption, adamFormat = true)
     }

@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.Path
 case class GenotypeDataset(@transient genotypes: Dataset[CalledVariant],
                            datasetUID: String,
                            allelicAssumption: String,
-                           sampleUIDs: Set[String]) {
+                           sampleUIDs: Set[String]) extends Serializable {
 
   /**
    * Transform the allelic assumption of this GenotypeDataset to a newly specified allelic assumption

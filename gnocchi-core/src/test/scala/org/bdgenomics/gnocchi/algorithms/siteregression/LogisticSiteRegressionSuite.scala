@@ -132,16 +132,16 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
    */
   sparkTest("LogisticSiteRegression.applyToSite should match plink: Additive") {
     val variant = CalledVariant("rs8330247", 14, 21373362, "C", "T",
-      List(
-        GenotypeState("7677", 1, 1, 0),
-        GenotypeState("5218", 2, 0, 0),
-        GenotypeState("1939", 0, 2, 0),
-        GenotypeState("5695", 1, 1, 0),
-        GenotypeState("4626", 2, 0, 0),
-        GenotypeState("1933", 1, 1, 0),
-        GenotypeState("1076", 2, 0, 0),
-        GenotypeState("1534", 0, 2, 0),
-        GenotypeState("1615", 2, 0, 0)))
+      Map(
+        "7677" -> GenotypeState(1, 1, 0),
+        "5218" -> GenotypeState(2, 0, 0),
+        "1939" -> GenotypeState(0, 2, 0),
+        "5695" -> GenotypeState(1, 1, 0),
+        "4626" -> GenotypeState(2, 0, 0),
+        "1933" -> GenotypeState(1, 1, 0),
+        "1076" -> GenotypeState(2, 0, 0),
+        "1534" -> GenotypeState(0, 2, 0),
+        "1615" -> GenotypeState(2, 0, 0)))
     val phenotypes =
       Map("1939" -> Phenotype("1939", "pheno_1", 0.0, List(33.1311556631243, 17.335648977819975)),
         "1534" -> Phenotype("1534", "pheno_1", 1.0, List(43.5631372995055, 31.375377041144386)),
@@ -176,16 +176,16 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
    */
   sparkTest("LogisticSiteRegression.applyToSite should match plink: Dominant") {
     val variant = CalledVariant("rs8330247", 14, 21373362, "C", "T",
-      List(
-        GenotypeState("7677", 1, 1, 0),
-        GenotypeState("5218", 2, 0, 0),
-        GenotypeState("1939", 0, 2, 0),
-        GenotypeState("5695", 1, 1, 0),
-        GenotypeState("4626", 2, 0, 0),
-        GenotypeState("1933", 1, 1, 0),
-        GenotypeState("1076", 2, 0, 0),
-        GenotypeState("1534", 0, 2, 0),
-        GenotypeState("1615", 2, 0, 0)))
+      Map(
+        "7677" -> GenotypeState(1, 1, 0),
+        "5218" -> GenotypeState(2, 0, 0),
+        "1939" -> GenotypeState(0, 2, 0),
+        "5695" -> GenotypeState(1, 1, 0),
+        "4626" -> GenotypeState(2, 0, 0),
+        "1933" -> GenotypeState(1, 1, 0),
+        "1076" -> GenotypeState(2, 0, 0),
+        "1534" -> GenotypeState(0, 2, 0),
+        "1615" -> GenotypeState(2, 0, 0)))
     val phenotypes =
       Map("1939" -> Phenotype("1939", "pheno_1", 0.0, List(33.1311556631243, 17.335648977819975)),
         "1534" -> Phenotype("1534", "pheno_1", 1.0, List(43.5631372995055, 31.375377041144386)),
@@ -204,16 +204,16 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
   // LogisticSiteRegression.applyToSite input validation tests
   sparkTest("LogisticSiteRegression.applyToSite should break when there is not overlap between sampleIDs in phenotypes and CalledVariant objects.") {
     val variant = CalledVariant("rs8330247", 14, 21373362, "C", "T",
-      List(
-        GenotypeState("1", 1, 1, 0),
-        GenotypeState("2", 2, 0, 0),
-        GenotypeState("3", 0, 2, 0),
-        GenotypeState("4", 1, 1, 0),
-        GenotypeState("5", 2, 0, 0),
-        GenotypeState("6", 1, 1, 0),
-        GenotypeState("7", 2, 0, 0),
-        GenotypeState("8", 0, 2, 0),
-        GenotypeState("9", 2, 0, 0)))
+      Map(
+        "1" -> GenotypeState(1, 1, 0),
+        "2" -> GenotypeState(2, 0, 0),
+        "3" -> GenotypeState(0, 2, 0),
+        "4" -> GenotypeState(1, 1, 0),
+        "5" -> GenotypeState(2, 0, 0),
+        "6" -> GenotypeState(1, 1, 0),
+        "7" -> GenotypeState(2, 0, 0),
+        "8" -> GenotypeState(0, 2, 0),
+        "9" -> GenotypeState(2, 0, 0)))
 
     val phenotypes =
       Map("1939" -> Phenotype("1939", "pheno_1", 0.0, List(33.1311556631243, 17.335648977819975)),
@@ -237,16 +237,16 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
 
   sparkTest("LogisticSiteRegression.applyToSite should not break with missing covariates.") {
     val variant = CalledVariant("rs8330247", 14, 21373362, "C", "T",
-      List(
-        GenotypeState("7677", 1, 1, 0),
-        GenotypeState("5218", 2, 0, 0),
-        GenotypeState("1939", 0, 2, 0),
-        GenotypeState("5695", 1, 1, 0),
-        GenotypeState("4626", 2, 0, 0),
-        GenotypeState("1933", 1, 1, 0),
-        GenotypeState("1076", 2, 0, 0),
-        GenotypeState("1534", 0, 2, 0),
-        GenotypeState("1615", 2, 0, 0)))
+      Map(
+        "7677" -> GenotypeState(1, 1, 0),
+        "5218" -> GenotypeState(2, 0, 0),
+        "1939" -> GenotypeState(0, 2, 0),
+        "5695" -> GenotypeState(1, 1, 0),
+        "4626" -> GenotypeState(2, 0, 0),
+        "1933" -> GenotypeState(1, 1, 0),
+        "1076" -> GenotypeState(2, 0, 0),
+        "1534" -> GenotypeState(0, 2, 0),
+        "1615" -> GenotypeState(2, 0, 0)))
 
     val phenotypes =
       Map("1939" -> Phenotype("1939", "pheno_1", 0.0, List()),
@@ -264,58 +264,6 @@ class LogisticSiteRegressionSuite extends GnocchiFunSuite {
     } catch {
       case e: Throwable => { print(e); fail("exception thrown") }
     }
-  }
-
-  // LogisticSiteRegression.prepareDesignMatrix tests
-  sparkTest("LogisticSiteRegression.prepareDesignMatrix should filter out missing values and produce a label vector and a design matrix.") {
-    // This should produce a singular hessian matrix as all the rows will be identical
-    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
-    val cv = createSampleCalledVariant(samples = Option(gs))
-    val phenos = createSamplePhenotype(calledVariant = Option(cv))
-
-    val (data, label) = LogisticSiteRegression.prepareDesignMatrix(cv, phenos, "ADDITIVE")
-
-    assert(data.rows == cv.numValidSamples, "LogisticSiteRegression.prepareDesignMatrix doesn't filter out missing values properly, design matrix.")
-    assert(data.isInstanceOf[DenseMatrix[Double]], "LogisticSiteRegression.prepareDesignMatrix doesn't produce a `breeze.linalg.DenseMatrix[Double]`.")
-    assert(label.length == cv.numValidSamples, "LogisticSiteRegression.prepareDesignMatrix doesn't filter out missing values properly, labels.")
-    assert(label.isInstanceOf[DenseVector[Double]], "LogisticSiteRegression.prepareDesignMatrix doesn't produce a `breeze.linalg.DenseVector[Double]`.")
-  }
-
-  sparkTest("LogisticSiteRegression.prepareDesignMatrix should place the genotype value in the second column of the design matrix.") {
-    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
-    val cv = createSampleCalledVariant(samples = Option(gs))
-    val phenos = createSamplePhenotype(calledVariant = Option(cv))
-
-    val (data, label) = LogisticSiteRegression.prepareDesignMatrix(cv, phenos, "ADDITIVE")
-
-    val genos = DenseVector(cv.samples.filter(_.misses == 0).map(_.toDouble): _*)
-    assert(data(::, 1) == genos, "LogisticSiteRegression.prepareDesignMatrix places genos in the wrong place")
-  }
-
-  sparkTest("LogisticSiteRegression.prepareDesignMatrix should place the covariates in columns 1 through n in the design matrix") {
-    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
-    val cv = createSampleCalledVariant(samples = Option(gs))
-    val phenos = createSamplePhenotype(calledVariant = Option(cv), numCovariate = 3)
-
-    val (data, label) = LogisticSiteRegression.prepareDesignMatrix(cv, phenos, "ADDITIVE")
-
-    val covs = data(::, 2 to -1)
-    val rows = phenos.filter(x => cv.samples.filter(_.misses == 0).map(_.sampleID).contains(x._1))
-      .map(_._2.covariates)
-      .toList
-    val otherCovs = DenseMatrix(rows: _*)
-
-    for (i <- 0 until covs.cols) assert(covs(::, i).toArray.toList.sorted == otherCovs(::, i).toArray.toList.sorted, "Covariates are wrong.")
-  }
-
-  sparkTest("LogisticSiteRegression.prepareDesignMatrix should produce a `(DenseMatrix[Double], DenseVector[Double])`") {
-    val gs = createSampleGenotypeStates(num = 10, maf = 0.25, geno = 0.1, ploidy = 2)
-    val cv = createSampleCalledVariant(samples = Option(gs))
-    val phenos = createSamplePhenotype(calledVariant = Option(cv), numCovariate = 3)
-
-    val XandY = LogisticSiteRegression.prepareDesignMatrix(cv, phenos, "ADDITIVE")
-
-    assert(XandY.isInstanceOf[(DenseMatrix[Double], DenseVector[Double])], "LogisticSiteRegression.prepareDesignMatrix returned an incorrect type.")
   }
 
   // LogisticSiteRegression.findBeta tests

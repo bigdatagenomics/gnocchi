@@ -20,7 +20,7 @@ package org.bdgenomics.gnocchi.api
 
 import org.bdgenomics.gnocchi.api.java.GnocchiFunSuite
 import org.bdgenomics.gnocchi.primitives.variants.CalledVariant
-import org.bdgenomics.gnocchi.sql.GnocchiSession
+import org.bdgenomics.gnocchi.sql.{ GenotypeDataset, GnocchiSession }
 import org.apache.spark.SparkContext
 import org.mockito.Mockito
 import org.apache.spark.sql.Dataset
@@ -37,7 +37,7 @@ class JavaGnocchiSessionSuite extends GnocchiFunSuite {
   }
 
   ignore("Verify filterSamples makes correct call to GnocchiSession") {
-    val mockGenotype = Mockito.mock(classOf[Dataset[CalledVariant]])
+    val mockGenotype = Mockito.mock(classOf[GenotypeDataset])
     val mockMind = 0.0
     val mockPloidy = 0.0
 

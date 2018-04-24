@@ -30,4 +30,24 @@ class JavaLogisticGnocchiModel(val lgm: LogisticGnocchiModel) {
   def save(saveTo: java.lang.String): Unit = {
     lgm.save(saveTo)
   }
+
+  def getVariantModels(): Dataset[LogisticVariantModel] = {
+    lgm.variantModels
+  }
+
+  def getModelType(): java.lang.String = {
+    lgm.allelicAssumption
+  }
+
+  def getPhenotype(): java.lang.String = {
+    lgm.phenotypeName
+  }
+
+  def getCovariates(): java.lang.String = {
+    lgm.covariatesNames.mkString(",")
+  }
+
+  def getNumSamples(): java.lang.Integer = {
+    lgm.numSamples
+  }
 }

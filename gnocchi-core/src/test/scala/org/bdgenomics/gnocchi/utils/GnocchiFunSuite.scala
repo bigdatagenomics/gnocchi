@@ -35,13 +35,13 @@ trait GnocchiFunSuite extends SparkFunSuite {
   def createSampleGenotypeStates(num: Int = 10,
                                  maf: Double = 0.0,
                                  geno: Double = 0.0,
-                                 ploidy: Int = 2): List[GenotypeState] = {
+                                 ploidy: Int = 2): Map[String, GenotypeState] = {
     val iids = random.shuffle(1000 to 9999 + num).take(num)
     val gsString = List.fill((num * ploidy * maf).toInt)("1") ++ List.fill((num * ploidy * geno).toInt)(".")
     val gsString2 = gsString ++ List.fill((num * ploidy) - gsString.length)("0")
     val gsVect = random.shuffle(gsString2).grouped(2).toList
 
-    gsVect.zip(iids).map(x => GenotypeState(x._2.toString, x._1.count(_ == "0").toByte, x._1.count(_ == "1").toByte, x._1.count(_ == ".").toByte))
+    gsVect.zip(iids).map(x => (x._2.toString, GenotypeState(x._1.count(_ == "0").toByte, x._1.count(_ == "1").toByte, x._1.count(_ == ".").toByte))).toMap
   }
 
   def createSampleCalledVariant(chromosome: Option[Int] = None,
@@ -53,7 +53,7 @@ trait GnocchiFunSuite extends SparkFunSuite {
                                 filter: Option[String] = None,
                                 info: Option[String] = None,
                                 format: Option[String] = None,
-                                samples: Option[List[GenotypeState]] = None): CalledVariant = {
+                                samples: Option[Map[String, GenotypeState]] = None): CalledVariant = {
 
     val chrom = if (chromosome.isEmpty) random.nextInt(22) + 1 else chromosome.get
     val pos = if (position.isEmpty) random.nextInt(100000000) else position.get
@@ -74,7 +74,7 @@ trait GnocchiFunSuite extends SparkFunSuite {
                             caseControl: Boolean = false): Map[String, Phenotype] = {
 
     val ids: List[Int] = if (calledVariant.isDefined) {
-      calledVariant.get.samples.map(_.sampleID.toInt)
+      calledVariant.get.samples.keys.toList.map(_.toInt)
     } else if (sampleIDs.isDefined) {
       sampleIDs.get
     } else {

@@ -48,7 +48,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(firstCalledVariant.position === 752721)
     assert(firstCalledVariant.referenceAllele === "A")
     assert(firstCalledVariant.alternateAllele === "G")
-    assert(firstCalledVariant.samples.equals(List(GenotypeState("sample1", 1, 1, 0))))
+    assert(firstCalledVariant.samples.equals(Map("sample1" -> GenotypeState(1, 1, 0))))
   }
 
   sparkTest("sc.loadGenotypes should gracefully exit when a non-existing file path is passed in.") {
@@ -185,20 +185,21 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
 
   // filter samples tests
 
-  private def makeGenotypeState(id: String, gs: String): GenotypeState = {
+  private def makeGenotypeState(id: String, gs: String): (String, GenotypeState) = {
     val alleleLst = gs.split("/")
-    GenotypeState(id, alleleLst.count(_ == "0").toByte, alleleLst.count(_ == "1").toByte, alleleLst.count(_ == ".").toByte)
+    (id, GenotypeState(alleleLst.count(_ == "0").toByte, alleleLst.count(_ == "1").toByte, alleleLst.count(_ == ".").toByte))
   }
 
   private def makeCalledVariant(uid: Int, sampleIds: List[String], genotypeStates: List[String]): CalledVariant = {
-    val samples = sampleIds.zip(genotypeStates).map(idGs => makeGenotypeState(idGs._1, idGs._2))
+    val samples = sampleIds.zip(genotypeStates).map(idGs => makeGenotypeState(idGs._1, idGs._2)).toMap
     CalledVariant(uid.toString(), 1, 1234, "A", "G", samples)
   }
 
-  private def makeCalledVariantDS(variants: List[CalledVariant]): Dataset[CalledVariant] = {
+  private def makeCalledVariantDS(variants: List[CalledVariant]): GenotypeDataset = {
     val sparkSession = SparkSession.builder().getOrCreate()
     import sparkSession.implicits._
-    sc.parallelize(variants).toDS()
+    val ds = sc.parallelize(variants).toDS()
+    GenotypeDataset(ds, "", "ADDITIVE", variants.head.samples.keys.toSet)
   }
 
   val sampleIds = List("sample1", "sample2", "sample3", "sample4")
@@ -218,7 +219,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
   sparkTest("sc.filterSamples should not filter any samples if mind >= 1 since missingness should never exceed 1.0") {
     val toFilterDS = makeCalledVariantDS(filterVariants)
     val filteredSamples = sc.filterSamples(toFilterDS, 1.0, 2)
-    assert(filteredSamples.collect.forall(toFilterDS.collect.contains(_)), "Sample filtering did not match original collection.")
+    assert(filteredSamples.genotypes.collect.forall(toFilterDS.genotypes.collect.contains(_)), "Sample filtering did not match original collection.")
   }
 
   sparkTest("sc.filterSamples should filter on mind if mind is greater than 0 but less than 1") {
@@ -242,7 +243,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
       targetvariant3CalledVariant, targetvariant4CalledVariant, targetvariant5CalledVariant))
 
     // Assert that the filtered dataset equals what we expect.
-    assert(filteredSamples.collect.forall(targetcalledVariantsDS.collect().contains(_)), "Filtered dataset did not match expected dataset.")
+    assert(filteredSamples.genotypes.collect.forall(targetcalledVariantsDS.genotypes.collect().contains(_)), "Filtered dataset did not match expected dataset.")
   }
 
   sparkTest("sc.filterSamples should filter out all non-perfect samples if mind == 0") {
@@ -263,13 +264,14 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     val targetcalledVariantsDS = makeCalledVariantDS(List(targetvariant1CalledVariant, targetvariant2CalledVariant,
       targetvariant3CalledVariant, targetvariant4CalledVariant, targetvariant5CalledVariant))
 
-    assert(filteredSamples.collect.forall(targetcalledVariantsDS.collect().contains(_)), "Filtered dataset did not match expected dataset.")
+    assert(filteredSamples.genotypes.collect.forall(targetcalledVariantsDS.genotypes.collect().contains(_)), "Filtered dataset did not match expected dataset.")
   }
 
   sparkTest("sc.filterSamples exit gracefully when mind < 0.") {
     val sparkSession = SparkSession.builder().getOrCreate()
     import sparkSession.implicits._
-    val dataset = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    val ds = sparkSession.createDataset(List.fill(5)(createSampleCalledVariant()))
+    val dataset = GenotypeDataset(ds, "", "ADDITIVE", ds.head.samples.keys.toSet)
     try {
       sc.filterSamples(dataset, -0.4, 2)
       fail("sc.filterSamples does not fail on missingness per individual < 0.")
@@ -443,7 +445,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(recoded.alternateAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly did not change the alternate allele value of variants to be recoded.")
     assert(recoded.referenceAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly did not change the reference allele value of variants to be recoded.")
 
-    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.alts, geno.refs, geno.misses))
+    val recodedSamples = sampleVar.samples.map { case (id, geno) => (id, GenotypeState(geno.alts, geno.refs, geno.misses)) }
 
     assert(recodedSamples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }
@@ -460,7 +462,7 @@ class GnocchiSessionSuite extends GnocchiFunSuite {
     assert(recoded.alternateAllele == sampleVar.referenceAllele, "sc.recodeMajorAllele incorrectly did not change the alternate allele value of variants to be recoded.")
     assert(recoded.referenceAllele == sampleVar.alternateAllele, "sc.recodeMajorAllele incorrectly did not change the reference allele value of variants to be recoded.")
 
-    val recodedSamples = sampleVar.samples.map(geno => GenotypeState(geno.sampleID, geno.alts, geno.refs, geno.misses))
+    val recodedSamples = sampleVar.samples.map { case (id, geno) => (id, GenotypeState(geno.alts, geno.refs, geno.misses)) }
 
     assert(recodedSamples == recoded.samples, "sc.recodeMajorAllele incorrectly recoded the alleles in the input variant.")
   }

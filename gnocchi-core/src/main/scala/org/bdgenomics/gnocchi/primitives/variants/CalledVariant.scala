@@ -24,21 +24,21 @@ case class CalledVariant(uniqueID: String,
                          position: Int,
                          referenceAllele: String,
                          alternateAllele: String,
-                         samples: List[GenotypeState]) extends Product {
+                         samples: Map[String, GenotypeState]) extends Product {
 
-  val ploidy: Int = samples.head.ploidy
+  val ploidy: Int = samples.head._2.ploidy
 
   /**
    * @return the minor allele frequency across all samples for this variant
    */
   def maf: Double = {
-    val missingCount = samples.map(_.misses.toInt).sum
-    val alleleCount = samples.map(_.alts.toInt).sum
+    val missingCount = samples.map(_._2.misses.toInt).sum
+    val alleleCount = samples.map(_._2.alts.toInt).sum
 
-    assert(samples.length * ploidy > missingCount, s"Variant, ${uniqueID}, has entirely missing row.")
+    assert(samples.size * ploidy > missingCount, s"Variant, ${uniqueID}, has entirely missing row.")
 
-    if (samples.length * ploidy > missingCount) {
-      alleleCount.toDouble / (samples.length * ploidy - missingCount).toDouble
+    if (samples.size * ploidy > missingCount) {
+      alleleCount.toDouble / (samples.size * ploidy - missingCount).toDouble
     } else {
       0.5
     }
@@ -48,22 +48,22 @@ case class CalledVariant(uniqueID: String,
    * @return The fraction of missing values for this variant values across all samples
    */
   def geno: Double = {
-    val missingCount = samples.map(_.misses.toInt).sum
+    val missingCount = samples.map(_._2.misses.toInt).sum
 
-    missingCount.toDouble / (samples.length * ploidy).toDouble
+    missingCount.toDouble / (samples.size * ploidy).toDouble
   }
 
   /**
    * @return Number of samples that have all valid values (none missing)
    */
   def numValidSamples: Int = {
-    samples.count(_.misses == 0)
+    samples.count(_._2.misses == 0)
   }
 
   /**
    * @return Number of samples that have some valid values (could be some missing)
    */
   def numSemiValidSamples: Int = {
-    samples.count(_.misses < ploidy)
+    samples.count(_._2.misses < ploidy)
   }
 }

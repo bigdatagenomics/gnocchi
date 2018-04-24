@@ -94,7 +94,7 @@ cat "$ABSOLUTE_PATH/logo.txt"
 # submit the job to Spark
 "$SPARK_SHELL" \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
-    --conf spark.kryo.registrator=org.bdgenomics.adam.serialization.ADAMKryoRegistrator \
+    --conf spark.kryo.registrator=org.bdgenomics.gnocchi.sql.GnocchiKryoRegistrator \
     "${SPARK_ARGS[@]}" \
     --jars ${GNOCCHI_CLI_JAR} \
     "$@"

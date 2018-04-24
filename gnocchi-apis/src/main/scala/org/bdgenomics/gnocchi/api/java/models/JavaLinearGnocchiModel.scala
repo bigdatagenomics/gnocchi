@@ -51,8 +51,7 @@ class JavaLinearGnocchiModel(val lgm: LinearGnocchiModel) {
     lgm.numSamples
   }
 
-  //  def save(saveTo: java.lang.String): Unit = {
-  //
-  //    sc.save()
-  //  }
+  def save(saveTo: java.lang.String): Unit = {
+    lgm.save(saveTo)
+  }
 }

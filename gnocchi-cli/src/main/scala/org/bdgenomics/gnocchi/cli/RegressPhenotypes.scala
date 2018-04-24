@@ -149,13 +149,14 @@ class RegressPhenotypes(protected val args: RegressPhenotypesArgs) extends BDGSp
     val sampleFiltered = sc.filterSamples(rawGenotypes, mind = args.mind, ploidy = args.ploidy)
     val recoded = sc.recodeMajorAllele(sampleFiltered)
     val filteredGeno = sc.filterVariants(recoded, geno = args.geno, maf = args.maf)
+    //    filteredGeno.genotypes.count()
 
     args.associationType match {
       case "ADDITIVE_LINEAR" =>
-        val associations = LinearSiteRegression(filteredGeno, phenotypesContainer).associations
+        val associations = LinearSiteRegression.createAssociationsDataset(filteredGeno, phenotypesContainer)
         sc.saveAssociations[LinearAssociation](associations, args.output, args.saveAsText)
       case "DOMINANT_LINEAR" =>
-        val associations = LinearSiteRegression(filteredGeno, phenotypesContainer).associations
+        val associations = LinearSiteRegression.createAssociationsDataset(filteredGeno, phenotypesContainer)
         sc.saveAssociations[LinearAssociation](associations, args.output, args.saveAsText)
       case "ADDITIVE_LOGISTIC" =>
         val associations = LogisticSiteRegression(filteredGeno, phenotypesContainer).associations

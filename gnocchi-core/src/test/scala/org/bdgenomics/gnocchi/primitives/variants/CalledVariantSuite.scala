@@ -65,17 +65,17 @@ class CalledVariantSuite extends GnocchiFunSuite {
   // num valid samples tests
 
   sparkTest("CalledVariant.numValidSamples should only count samples with no missing values") {
-    val genosStates = List(
-      GenotypeState("0", 2, 0, 0),
-      GenotypeState("1", 1, 1, 0),
-      GenotypeState("2", 0, 2, 0),
-      GenotypeState("3", 1, 1, 0),
-      GenotypeState("4", 0, 2, 0),
-      GenotypeState("5", 1, 1, 0),
-      GenotypeState("6", 0, 1, 1),
-      GenotypeState("7", 1, 0, 1),
-      GenotypeState("8", 0, 1, 1),
-      GenotypeState("9", 0, 1, 1))
+    val genosStates = Map(
+      "0" -> GenotypeState(2, 0, 0),
+      "1" -> GenotypeState(1, 1, 0),
+      "2" -> GenotypeState(0, 2, 0),
+      "3" -> GenotypeState(1, 1, 0),
+      "4" -> GenotypeState(0, 2, 0),
+      "5" -> GenotypeState(1, 1, 0),
+      "6" -> GenotypeState(0, 1, 1),
+      "7" -> GenotypeState(1, 0, 1),
+      "8" -> GenotypeState(0, 1, 1),
+      "9" -> GenotypeState(0, 1, 1))
 
     val calledVariant = createSampleCalledVariant(samples = Option(genosStates))
     assert(calledVariant.numValidSamples == 6, "Number of valid samples miscounted.")
@@ -84,17 +84,17 @@ class CalledVariantSuite extends GnocchiFunSuite {
   // num semi valid samples tests
 
   sparkTest("CalledVariant.numSemiValidSamples should count the number of samples that have some valid values.") {
-    val genosStates = List(
-      GenotypeState("0", 2, 0, 0),
-      GenotypeState("1", 1, 1, 0),
-      GenotypeState("2", 0, 2, 0),
-      GenotypeState("3", 1, 1, 0),
-      GenotypeState("4", 0, 2, 0),
-      GenotypeState("5", 1, 1, 0),
-      GenotypeState("6", 0, 1, 1),
-      GenotypeState("7", 1, 0, 1),
-      GenotypeState("8", 0, 1, 1),
-      GenotypeState("9", 0, 0, 2))
+    val genosStates = Map(
+      "0" -> GenotypeState(2, 0, 0),
+      "1" -> GenotypeState(1, 1, 0),
+      "2" -> GenotypeState(0, 2, 0),
+      "3" -> GenotypeState(1, 1, 0),
+      "4" -> GenotypeState(0, 2, 0),
+      "5" -> GenotypeState(1, 1, 0),
+      "6" -> GenotypeState(0, 1, 1),
+      "7" -> GenotypeState(1, 0, 1),
+      "8" -> GenotypeState(0, 1, 1),
+      "9" -> GenotypeState(0, 0, 2))
 
     val calledVariant = createSampleCalledVariant(samples = Option(genosStates))
     assert(calledVariant.numSemiValidSamples == 9, "Number of valid samples miscounted.")
